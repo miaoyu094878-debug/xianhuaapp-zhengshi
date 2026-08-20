@@ -35,7 +35,980 @@
     }
   })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026.6">
+  <style id="luminara-styles">
+/* ════════════════════════════════════════════════════════════════
+   Luminara — Multi-Theme Design System
+   Themes: luminara · manifest-light · manifest-dark
+   ════════════════════════════════════════════════════════════════ */
+
+/* ---------- THEME TOKENS ---------- */
+:root[data-theme="luminara"] {
+  --font-heading: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+  --bg-grad: linear-gradient(160deg, #f1eafc 0%, #fbe8f4 45%, #f8ecfb 100%);
+  --surface: rgba(249,242,255,0.62);
+  --surface-hover: rgba(251,246,255,0.8);
+  --surface-2: rgba(252,247,255,0.5);
+  --border: rgba(175,135,210,0.25);
+  --border-strong: rgba(175,135,210,0.32);
+  --text: #2d1b4e;
+  --text-soft: #655381;
+  --text-dim: #a894bf;
+  --accent: #9a63d2;
+  --accent2: #e386b6;
+  --accent3: #c0a0f0;
+  --cta-grad: linear-gradient(135deg, #9a63d2 0%, #bd76c2 48%, #e386b6 100%);
+  --cta-text: #fff;
+  --stat-color: #9a63d2;
+  --heading-italic: normal;
+  --shadow-card: 0 6px 26px rgba(140,100,200,0.1);
+  --shadow-hover: 0 14px 44px rgba(140,100,200,0.18);
+  --aur-a: radial-gradient(circle, #d3b0ff 0%, transparent 70%);
+  --aur-b: radial-gradient(circle, #ffc4de 0%, transparent 70%);
+  --aur-c: radial-gradient(circle, #bcd4ff 0%, transparent 70%);
+  --aur-op: 0.42;
+  --heading-gradient: none;
+}
+
+:root[data-theme="manifest-light"] {
+  --font-heading: 'Instrument Serif', serif;
+  --font-body: 'Barlow', 'Inter', sans-serif;
+  --bg-grad: #FAF6FF;
+  --surface: linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.38) 45%, rgba(241,232,255,0.42) 100%);
+  --surface-hover: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 45%, rgba(241,232,255,0.6) 100%);
+  --surface-2: rgba(241,232,255,0.6);
+  --border: rgba(255,255,255,0.6);
+  --border-strong: rgba(184,161,227,0.28);
+  --text: #4A3F5C;
+  --text-soft: #7C6F8E;
+  --text-dim: #A89BC4;
+  --accent: #B8A1E3;
+  --accent2: #F4A6BD;
+  --accent3: #E8B86D;
+  --cta-grad: linear-gradient(180deg, #F5D9A0 0%, #E8B86D 55%, #E8B86D 100%);
+  --cta-text: #fff;
+  --stat-color: #E8B86D;
+  --heading-italic: italic;
+  --shadow-card: 0 10px 38px rgba(184,161,227,0.16), 0 2px 6px rgba(74,63,92,0.04);
+  --shadow-hover: 0 14px 48px rgba(184,161,227,0.24), 0 3px 8px rgba(74,63,92,0.06);
+  --aur-a: radial-gradient(circle, #B8A1E3 0%, transparent 70%);
+  --aur-b: radial-gradient(circle, #F4A6BD 0%, transparent 70%);
+  --aur-c: radial-gradient(circle, #F5D9A0 0%, transparent 70%);
+  --aur-op: 0.45;
+  --heading-gradient: linear-gradient(135deg, #E8B86D, #F4A6BD);
+}
+
+:root[data-theme="manifest-dark"] {
+  --font-heading: 'Instrument Serif', serif;
+  --font-body: 'Barlow', 'Inter', sans-serif;
+  --bg-grad: linear-gradient(180deg, #0a0415 0%, #070416 45%, #10072a 100%);
+  --surface: rgba(255,255,255,0.035);
+  --surface-hover: rgba(255,255,255,0.07);
+  --surface-2: rgba(255,255,255,0.04);
+  --border: transparent;
+  --border-strong: transparent;
+  --text: #ffffff;
+  --text-soft: rgba(255,255,255,0.82);
+  --text-dim: rgba(255,255,255,0.55);
+  --accent: #F5D9A0;
+  --accent2: #F4A6BD;
+  --accent3: #B8A1E3;
+  --cta-grad: rgba(255,255,255,0.06);
+  --cta-text: #ffffff;
+  --stat-color: #F5D9A0;
+  --heading-italic: italic;
+  --shadow-card: 0 10px 40px rgba(0,0,0,0.3);
+  --shadow-hover: 0 14px 50px rgba(0,0,0,0.4);
+  --aur-a: radial-gradient(ellipse, rgba(184,161,227,0.38) 0%, transparent 70%);
+  --aur-b: radial-gradient(ellipse, rgba(244,166,189,0.28) 0%, transparent 70%);
+  --aur-c: radial-gradient(ellipse, rgba(232,184,109,0.22) 0%, transparent 70%);
+  --aur-op: 0.6;
+  --heading-gradient: linear-gradient(135deg, #F5D9A0, #F4A6BD, #B8A1E3);
+}
+
+:root[data-theme="prism"] {
+  --font-heading: 'Instrument Serif', serif;
+  --font-body: 'Barlow', 'Inter', sans-serif;
+  --bg-grad:
+    radial-gradient(1200px 820px at 88% -12%, rgba(255,160,160,0.30) 0%, transparent 62%),
+    radial-gradient(1000px 720px at -12% 32%, rgba(160,215,255,0.32) 0%, transparent 62%),
+    radial-gradient(920px 680px at 55% 112%, rgba(255,215,150,0.26) 0%, transparent 62%),
+    radial-gradient(760px 620px at 12% 88%, rgba(215,185,255,0.24) 0%, transparent 62%),
+    linear-gradient(180deg, #ffffff 0%, #fdfaff 55%, #faf6ff 100%);
+  --surface: rgba(255,255,255,0.72);
+  --surface-hover: rgba(255,255,255,0.9);
+  --surface-2: rgba(252,250,255,0.55);
+  --border: rgba(255,255,255,0.8);
+  --border-strong: rgba(190,175,255,0.45);
+  --text: #3a3450;
+  --text-soft: #6f6887;
+  --text-dim: #aaa3c0;
+  --accent: #8f7bd8;
+  --accent2: #f290b0;
+  --accent3: #f0b45e;
+  --cta-grad: linear-gradient(120deg, #f39bb8 0%, #f7c978 45%, #8fc3f5 100%);
+  --cta-text: #fff;
+  --stat-color: #c471ed;
+  --heading-italic: italic;
+  --shadow-card: 0 8px 34px rgba(150,125,225,0.16);
+  --shadow-hover: 0 16px 50px rgba(150,125,225,0.26);
+  --aur-a: radial-gradient(circle, rgba(255,148,148,0.55) 0%, transparent 70%);
+  --aur-b: radial-gradient(circle, rgba(255,209,128,0.5) 0%, transparent 70%);
+  --aur-c: radial-gradient(circle, rgba(140,195,255,0.55) 0%, transparent 70%);
+  --aur-op: 0.55;
+  --heading-gradient: linear-gradient(120deg, #ff6a88 0%, #ffa751 28%, #4fc3f7 62%, #a78bfa 100%);
+}
+
+/* ---------- BASE ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-grad);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.5s ease, color 0.5s ease;
+}
+
+#starfield { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+.aurora {
+  position: fixed; border-radius: 50%; filter: blur(135px);
+  pointer-events: none; z-index: 0; animation: auroraFloat 22s ease-in-out infinite;
+}
+.aurora.a1 { width: 55vmax; height: 55vmax; opacity: var(--aur-op); background: var(--aur-a); top: -12%; left: -18%; }
+.aurora.a2 { width: 45vmax; height: 45vmax; opacity: var(--aur-op); background: var(--aur-b); bottom: -18%; right: -12%; animation-delay: -8s; }
+.aurora.a3 { width: 35vmax; height: 35vmax; opacity: var(--aur-op); background: var(--aur-c); top: 50%; left: 55%; animation-delay: -14s; }
+@keyframes auroraFloat {
+  0%,100% { transform: translate(0,0) scale(1); }
+  25% { transform: translate(5%,-4%) scale(1.08); }
+  50% { transform: translate(-3%,6%) scale(0.94); }
+  75% { transform: translate(4%,3%) scale(1.06); }
+}
+
+#app { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; padding-bottom: 100px; }
+
+/* ---------- HEADER ---------- */
+.app-header { display: flex; justify-content: space-between; align-items: center; padding: 22px 20px 12px; }
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand-logo {
+  font-size: 28px; animation: sparkle 2.5s ease-in-out infinite;
+  color: var(--accent);
+  filter: drop-shadow(0 2px 8px rgba(180,130,210,0.3));
+}
+:root[data-theme="luminara"] .brand-logo {
+  background: var(--cta-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+:root[data-theme="manifest-light"] .brand-logo,
+:root[data-theme="manifest-dark"] .brand-logo,
+:root[data-theme="prism"] .brand-logo {
+  background: var(--heading-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+@keyframes sparkle { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.18); } }
+.brand-name {
+  font-family: var(--font-heading); font-style: var(--heading-italic);
+  font-size: 23px; font-weight: 600; letter-spacing: 2px; color: var(--text);
+}
+:root[data-theme="manifest-light"] .brand-name,
+:root[data-theme="manifest-dark"] .brand-name,
+:root[data-theme="prism"] .brand-name {
+  background: var(--heading-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.install-btn {
+  border: 1.5px solid var(--border-strong); background: var(--surface-2);
+  color: var(--accent); border-radius: 999px; padding: 8px 18px;
+  font-size: 12px; cursor: pointer; transition: 0.35s; backdrop-filter: blur(10px);
+}
+.install-btn:hover { background: var(--surface-hover); }
+.hidden { display: none !important; }
+
+main { padding: 10px 18px 0; }
+
+/* ---------- TABS ---------- */
+.tab-page { display: none; animation: fadeSlide .4s ease; }
+.tab-page.active { display: block; }
+@keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+  display: flex; justify-content: space-around;
+  background: var(--surface-2); backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--border); padding: 8px 2px calc(8px + env(safe-area-inset-bottom));
+}
+.tab-btn { border: none; background: none; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 6px 10px; border-radius: 14px; transition: 0.3s; flex: 1; max-width: 64px; }
+.tab-btn .tb-icon { font-size: 21px; transition: 0.3s; line-height: 1; }
+.tab-btn .tb-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; max-height: 0; opacity: 0; overflow: hidden; transition: 0.3s; }
+.tab-btn.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.tab-btn.active .tb-label { max-height: 14px; opacity: 1; font-weight: 600; margin-top: 1px; }
+.tab-btn.active .tb-icon { transform: translateY(-1px); }
+
+/* ---------- GLASS CARD ---------- */
+.glass, .card {
+  position: relative; isolation: isolate;
+  background: var(--surface); backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid var(--border);
+  border-top-color: rgba(255,255,255,0.85);
+  border-bottom-color: var(--border-strong);
+  border-radius: 22px; padding: 22px 20px; margin-bottom: 16px;
+  box-shadow: var(--shadow-card); transition: 0.4s cubic-bezier(0.2,0.7,0.3,1);
+  overflow: hidden;
+}
+.glass:hover, .card:hover {
+  transform: translateY(-2px);
+  background: var(--surface-hover); box-shadow: var(--shadow-hover);
+}
+
+/* Manifest liquid-glass top sheen */
+:root[data-theme="manifest-light"] .glass::before,
+:root[data-theme="manifest-light"] .card::before {
+  content: ""; position: absolute; z-index: -1; top: 0; left: 0; right: 0; height: 45%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 55%, rgba(244,166,189,0.08) 100%);
+  border-top-left-radius: 22px; border-top-right-radius: 22px;
+  border-bottom-right-radius: 60%; border-bottom-left-radius: 50%;
+  pointer-events: none; opacity: 0.9;
+}
+/* Manifest dark: gradient border via mask */
+:root[data-theme="manifest-dark"] .glass::before,
+:root[data-theme="manifest-dark"] .card::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.4px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+}
+:root[data-theme="manifest-dark"] .glass, :root[data-theme="manifest-dark"] .card {
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), var(--shadow-card);
+}
+:root[data-theme="manifest-dark"] .glass:hover, :root[data-theme="manifest-dark"] .card:hover {
+  background: rgba(255,255,255,0.07); box-shadow: inset 0 1px 1px rgba(255,255,255,0.18), var(--shadow-hover);
+}
+/* Prism: iridescent rainbow top sheen */
+:root[data-theme="prism"] .glass::before,
+:root[data-theme="prism"] .card::before {
+  content: ""; position: absolute; z-index: -1; top: 0; left: 0; right: 0; height: 45%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(244,166,189,0.20) 32%, rgba(184,161,227,0.14) 58%, rgba(143,195,245,0.22) 100%);
+  border-top-left-radius: 22px; border-top-right-radius: 22px;
+  border-bottom-right-radius: 60%; border-bottom-left-radius: 50%;
+  pointer-events: none; opacity: 0.85;
+}
+:root[data-theme="prism"] .glass, :root[data-theme="prism"] .card {
+  border-top-color: rgba(255,255,255,0.95);
+  border-bottom-color: rgba(190,175,255,0.35);
+}
+
+/* ---------- TYPOGRAPHY ---------- */
+.page-title {
+  font-family: var(--font-heading); font-style: var(--heading-italic);
+  font-size: 25px; letter-spacing: 1.5px; margin: 10px 0 6px; color: var(--text);
+}
+.page-sub { color: var(--text-soft); font-size: 13px; margin-bottom: 14px; line-height: 1.6; }
+
+/* ---------- HERO ---------- */
+.hero {
+  background: var(--surface); border: 1px solid var(--border);
+  border-top-color: rgba(255,255,255,0.85); border-bottom-color: var(--border-strong);
+  text-align: center; padding: 26px 20px; box-shadow: var(--shadow-card);
+}
+:root[data-theme="luminara"] .hero {
+  background: linear-gradient(135deg, rgba(154,99,210,0.18), rgba(227,134,182,0.18));
+  border-color: rgba(175,135,210,0.3);
+}
+:root[data-theme="manifest-light"] .hero {
+  background: linear-gradient(135deg, rgba(232,184,109,0.16), rgba(244,166,189,0.16));
+  border-color: rgba(255,255,255,0.6);
+}
+:root[data-theme="manifest-dark"] .hero {
+  background: rgba(255,255,255,0.04); border-color: transparent;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), var(--shadow-card);
+}
+:root[data-theme="prism"] .hero {
+  background: linear-gradient(120deg, rgba(255,160,160,0.20), rgba(255,215,150,0.18) 40%, rgba(150,200,255,0.20));
+  border-color: rgba(190,175,255,0.35);
+  border-top-color: rgba(255,255,255,0.95);
+}
+.hero-date { font-size: 13px; color: var(--text-soft); margin-bottom: 6px; }
+.hero-greeting {
+  font-family: var(--font-heading); font-style: var(--heading-italic);
+  font-size: 27px; margin: 6px 0 14px; letter-spacing: 1px;
+}
+:root[data-theme="manifest-light"] .hero-greeting,
+:root[data-theme="manifest-dark"] .hero-greeting,
+:root[data-theme="prism"] .hero-greeting {
+  background: var(--heading-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-quote {
+  font-size: 14px; line-height: 1.7; font-style: italic;
+  background: var(--surface-2); border-radius: 12px; padding: 14px 16px;
+  color: var(--text-soft); border: 1px solid var(--border);
+}
+.hero-stats { display: flex; justify-content: space-around; margin-top: 20px; text-align: center; }
+.stat { position: relative; }
+.stat-num { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 26px; font-weight: 600; display: block; color: var(--stat-color); }
+.stat-label { font-size: 10px; color: var(--text-soft); text-transform: uppercase; letter-spacing: 1px; }
+.stat-spark { position: absolute; top: -8px; right: -10px; font-size: 13px; }
+.mini-card { display: flex; align-items: center; gap: 14px; cursor: pointer; }
+.mini-card:active { transform: scale(0.97); }
+.mini-icon { font-size: 22px; color: var(--accent); flex-shrink: 0; animation: sparkle 3s ease-in-out infinite; }
+.mini-info { flex: 1; }
+.mini-info h3 { font-size: 15px; font-weight: 500; }
+.mini-info p { font-size: 12px; color: var(--text-soft); margin-top: 3px; }
+.mini-arrow { color: var(--accent); font-size: 18px; opacity: 0.5; }
+
+/* Daily mantra */
+.daily-mantra { margin-top: 18px; text-align: center; }
+.dm-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 8px; }
+.dm-text { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 19px; line-height: 1.55; color: var(--text); }
+:root[data-theme="manifest-light"] .dm-text,
+:root[data-theme="manifest-dark"] .dm-text,
+:root[data-theme="prism"] .dm-text { background: var(--heading-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Focus cards (home quick links) */
+.focus-card { cursor: pointer; transition: 0.3s; }
+.focus-card:active { transform: scale(0.98); }
+.focus-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.focus-title { font-size: 15px; font-weight: 500; }
+.focus-meta { font-size: 11px; color: var(--text-soft); text-align: right; }
+.focus-bar { height: 5px; background: var(--surface-2); border-radius: 999px; margin-top: 12px; overflow: hidden; }
+.focus-bar > div { height: 100%; background: var(--cta-grad); border-radius: 999px; transition: width 0.4s ease; }
+
+/* More / Practice hub */
+.more-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+.more-card {
+  background: var(--surface); border: 1px solid var(--border); border-top-color: rgba(255,255,255,0.6);
+  border-radius: 18px; padding: 18px 16px; cursor: pointer; backdrop-filter: blur(12px);
+  display: flex; flex-direction: column; gap: 5px; transition: 0.35s; min-height: 102px;
+}
+:root[data-theme="manifest-dark"] .more-card { border-color: transparent; box-shadow: inset 0 1px 1px rgba(255,255,255,0.06); }
+.more-card:hover { transform: translateY(-2px); background: var(--surface-hover); box-shadow: var(--shadow-hover); }
+.more-card:active { transform: scale(0.98); }
+.mc-ico { font-size: 24px; color: var(--accent); }
+.mc-title { font-size: 15px; font-weight: 600; }
+.mc-desc { font-size: 11px; color: var(--text-soft); line-height: 1.45; }
+
+/* ---------- FORMS ---------- */
+.form-card label.field-label { font-size: 12px; color: var(--text-soft); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+textarea {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 13px;
+  padding: 12px 14px; font-size: 14px; margin-bottom: 10px; outline: none; resize: vertical;
+  background: var(--surface-2); color: var(--text); font-family: var(--font-body); transition: 0.35s;
+}
+input, select {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 13px;
+  padding: 12px 14px; font-size: 14px; margin-bottom: 10px; outline: none;
+  background: var(--surface-2); color: var(--text); font-family: var(--font-body); transition: 0.35s;
+}
+:root[data-theme="manifest-dark"] input, :root[data-theme="manifest-dark"] select,
+:root[data-theme="manifest-dark"] textarea {
+  border-color: transparent; background: rgba(255,255,255,0.05);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.08);
+}
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); background: var(--surface-hover); }
+.form-row { display: flex; gap: 10px; }
+.form-row > * { flex: 1; }
+.btn-primary {
+  width: 100%; border: 1px solid var(--border-strong); background: var(--cta-grad);
+  color: var(--cta-text); border-radius: 14px; padding: 13px; font-size: 15px;
+  font-weight: 600; cursor: pointer; transition: 0.35s; letter-spacing: 0.5px;
+  position: relative; overflow: hidden;
+}
+:root[data-theme="manifest-light"] .btn-primary {
+  border: 1px solid rgba(255,255,255,0.55); border-top-color: rgba(255,255,255,0.85);
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.8), 0 10px 28px rgba(244,166,189,0.28);
+}
+:root[data-theme="manifest-dark"] .btn-primary {
+  border: 1px solid transparent; box-shadow: inset 0 1px 1px rgba(255,255,255,0.15);
+  font-weight: 500;
+}
+:root[data-theme="prism"] .btn-primary {
+  border: 1px solid rgba(255,255,255,0.75);
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.85), 0 10px 30px rgba(255,170,190,0.30);
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-small { width: auto; padding: 12px 20px; flex: none; margin-bottom: 10px; }
+.current-affirm { font-size: 13px; color: var(--accent); margin-top: 4px; }
+.link-btn { border: none; background: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 4px; text-decoration: underline; }
+
+/* photo upload */
+.photo-label { display: block; font-size: 12px; color: var(--text-soft); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+.photo-label input[type="file"] { margin-bottom: 12px; font-size: 13px; padding: 8px 10px; }
+:root[data-theme="manifest-dark"] .photo-label input[type="file"] { color: var(--text-dim); }
+
+/* ---------- LISTS ---------- */
+.list-item {
+  background: var(--surface); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-top-color: rgba(255,255,255,0.6);
+  border-radius: 15px; padding: 14px 16px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 10px; transition: 0.35s;
+}
+.list-item:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+.list-item .grow { flex: 1; }
+.list-item .title { font-size: 14px; font-weight: 500; }
+.list-item .meta { font-size: 11px; color: var(--text-soft); margin-top: 3px; }
+.list-item.done .title { text-decoration: line-through; color: var(--text-dim); }
+.icon-btn { border: none; background: none; font-size: 17px; cursor: pointer; padding: 6px; color: var(--text-dim); transition: 0.2s; }
+.icon-btn:hover { color: var(--accent2); }
+.badge { font-size: 10px; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+.empty { text-align: center; color: var(--text-dim); font-size: 13px; padding: 30px 0; }
+
+/* ---------- 369 SESSIONS ---------- */
+.session { display: flex; align-items: center; gap: 14px; }
+.session-info { flex: 1; }
+.session-info h3 { font-size: 14px; font-weight: 500; }
+.session-info .meta { font-size: 11px; color: var(--text-soft); margin-top: 2px; }
+.progress { height: 6px; background: var(--surface-2); border-radius: 999px; margin-top: 8px; overflow: hidden; }
+.progress > div { height: 100%; background: var(--cta-grad); border-radius: 999px; transition: width 0.4s ease; box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent); }
+.tap-btn {
+  border: 1.5px solid var(--border-strong); background: var(--surface-2); color: var(--accent);
+  border-radius: 18px; width: 68px; height: 68px; font-size: 15px; font-weight: 700; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  transition: 0.35s; backdrop-filter: blur(8px);
+}
+:root[data-theme="manifest-dark"] .tap-btn { border-color: transparent; background: rgba(255,255,255,0.05); box-shadow: inset 0 1px 1px rgba(255,255,255,0.1); }
+.tap-btn:hover { background: var(--cta-grad); color: var(--cta-text); border-color: var(--accent); box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 25%, transparent); }
+.tap-btn:active { transform: scale(0.9); }
+.tap-btn:disabled { background: var(--surface-2); border-color: var(--border); color: var(--text-dim); cursor: default; box-shadow: none; }
+.tap-btn small { font-size: 10px; font-weight: 400; opacity: 0.8; }
+.celebration {
+  text-align: center; background: color-mix(in srgb, var(--accent3) 18%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent3) 35%, transparent); border-radius: 22px;
+  padding: 18px; font-size: 14px; color: var(--accent3); margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 8px; animation: glowPulse 2.5s ease-in-out infinite;
+}
+.cel-emoji { font-size: 22px; }
+@keyframes glowPulse { 0%,100% { box-shadow: 0 0 16px color-mix(in srgb, var(--accent3) 12%, transparent); } 50% { box-shadow: 0 0 32px color-mix(in srgb, var(--accent3) 25%, transparent); } }
+
+/* ---------- CHIPS ---------- */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.chips.center { justify-content: center; }
+.chip { border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text-soft); border-radius: 999px; padding: 8px 16px; font-size: 12px; cursor: pointer; transition: 0.35s; }
+.chip:hover { border-color: var(--accent); color: var(--text); }
+.chip.active { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 30%, transparent); }
+.chip[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: transparent; }
+
+/* ---------- SWIPE AFFIRMATIONS (Stella-style) ---------- */
+.swipe-block { margin-bottom: 18px; }
+.swipe-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.sb-title { font-size: 13px; color: var(--text-soft); font-weight: 500; }
+.swipe-deck { position: relative; height: 188px; }
+.swipe-card {
+  position: absolute; inset: 0; border-radius: 20px; padding: 24px 22px;
+  display: flex; flex-direction: column; justify-content: center; text-align: center;
+  background: var(--cta-grad); color: #fff; box-shadow: var(--shadow-card);
+  border: 1px solid rgba(255,255,255,0.4); transition: transform 0.35s ease, opacity 0.35s ease;
+  user-select: none;
+}
+.swipe-card .sc-text { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 19px; line-height: 1.5; }
+.swipe-card .sc-hint { font-size: 11px; opacity: 0.8; margin-top: 14px; }
+.swipe-card.swiped-left { transform: translateX(-120%) rotate(-12deg); opacity: 0; }
+.swipe-card.swiped-right { transform: translateX(120%) rotate(12deg); opacity: 0; }
+.swipe-card.saved-flash { animation: savedFlash 0.4s ease; }
+@keyframes savedFlash { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); } 100% { box-shadow: 0 0 0 30px rgba(255,255,255,0); } }
+.swipe-empty { position: absolute; inset: 0; border-radius: 20px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; background: var(--surface); border: 1px dashed var(--border-strong); color: var(--text-soft); font-size: 14px; }
+.swipe-actions { display: flex; justify-content: center; gap: 26px; margin-top: 14px; }
+.swipe-btn { width: 58px; height: 58px; border-radius: 50%; font-size: 24px; cursor: pointer; border: 1.5px solid var(--border-strong); background: var(--surface-2); transition: 0.3s; backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; }
+.swipe-btn.skip { color: var(--text-dim); }
+.swipe-btn.save { color: var(--accent2); }
+.swipe-btn:active { transform: scale(0.88); }
+:root[data-theme="manifest-dark"] .swipe-btn { border-color: transparent; background: rgba(255,255,255,0.06); }
+
+/* ---------- VISION BOARD ---------- */
+.vision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vision-card {
+  border-radius: 15px; padding: 18px 14px; min-height: 110px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  border: 1px solid var(--border); background: var(--surface-2); backdrop-filter: blur(8px);
+  position: relative; transition: 0.35s; box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 5%, transparent);
+  overflow: hidden;
+}
+:root[data-theme="manifest-dark"] .vision-card { border-color: transparent; box-shadow: inset 0 1px 1px rgba(255,255,255,0.06); }
+.vision-card:hover { border-color: var(--border-strong); background: var(--surface-hover); }
+.vision-card .ve { font-size: 36px; position: relative; z-index: 1; }
+.vision-card .vt { font-size: 14px; font-weight: 500; margin-top: 8px; line-height: 1.5; color: var(--text); position: relative; z-index: 1; }
+.vision-card .vdel { position: absolute; top: 8px; right: 10px; border: none; background: none; color: var(--text-dim); cursor: pointer; font-size: 14px; transition: color 0.2s; z-index: 2; }
+.vision-card .vdel:hover { color: var(--accent2); }
+.vision-card.has-photo { color: #fff; }
+.vision-card.has-photo .vt { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.55); }
+.vision-card.has-photo .ve { text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+.vision-card.has-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)); border-radius: inherit; }
+
+/* ---------- FUTURE SELF ---------- */
+.fs-script { font-size: 15px; line-height: 1.7; color: var(--text); white-space: pre-wrap; font-style: italic; }
+.fs-controls { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+
+/* ---------- MEDITATION ---------- */
+.meditate-card { text-align: center; }
+.breath-wrap { position: relative; display: flex; align-items: center; justify-content: center; padding: 34px 0 22px; }
+.breath-ring { position: absolute; width: 210px; height: 210px; border-radius: 50%; border: 1.5px solid var(--border); animation: ringPulse 3s ease-in-out infinite; }
+@keyframes ringPulse { 0%,100% { transform: scale(0.88); opacity: 0.25; } 50% { transform: scale(1.12); opacity: 0.65; } }
+.breath-circle {
+  width: 170px; height: 170px; border-radius: 50%; z-index: 1; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; font-weight: 500; letter-spacing: 1px; transition: transform 4s ease-in-out;
+  background: radial-gradient(circle at 38% 30%, #c2a8ec, #9a63d2 55%, #7a55b8);
+  box-shadow: 0 0 50px rgba(154,99,210,0.36), 0 0 100px rgba(200,140,240,0.13);
+}
+:root[data-theme="manifest-light"] .breath-circle { background: radial-gradient(circle at 38% 30%, #F5D9A0, #E8B86D 55%, #d99a4e); box-shadow: 0 0 50px rgba(232,184,109,0.4); }
+:root[data-theme="manifest-dark"] .breath-circle { background: radial-gradient(circle at 38% 30%, #B8A1E3, #6a4aa0 55%, #4a2f7a); box-shadow: 0 0 50px rgba(184,161,227,0.4); }
+:root[data-theme="prism"] .breath-circle { background: radial-gradient(circle at 38% 30%, #f8c6d8, #f7cf96 48%, #a8d0f5); box-shadow: 0 0 50px rgba(255,170,190,0.4); }
+.breath-circle.inhale { transform: scale(1.25); transition-duration: 4s; }
+.breath-circle.exhale { transform: scale(1); transition-duration: 6s; }
+.med-time { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 38px; font-weight: 600; letter-spacing: 3px; margin-bottom: 16px; font-variant-numeric: tabular-nums; color: var(--accent); }
+
+/* ---------- THEME SWITCHER ---------- */
+.theme-fab {
+  position: fixed; right: 16px; bottom: calc(92px + env(safe-area-inset-bottom));
+  z-index: 10001; width: 52px; height: 52px; border-radius: 50%;
+  border: 1.5px solid var(--border-strong); background: var(--accent);
+  color: #fff; font-size: 22px; cursor: pointer;
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 45%, transparent);
+  backdrop-filter: blur(16px); transition: 0.3s;
+  display: flex; align-items: center; justify-content: center;
+  animation: fabPulse 2.6s ease-in-out infinite;
+}
+@keyframes fabPulse {
+  0%, 100% { box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 35%, transparent); }
+  50% { box-shadow: 0 6px 34px color-mix(in srgb, var(--accent) 70%, transparent); }
+}
+.theme-fab:hover { transform: rotate(45deg) scale(1.08); }
+.theme-fab:active { transform: scale(0.94); }
+.theme-panel {
+  position: fixed; right: 16px; bottom: calc(154px + env(safe-area-inset-bottom));
+  z-index: 10001; width: 230px; padding: 12px; border-radius: 18px;
+  background: var(--surface-hover); backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid var(--border); box-shadow: var(--shadow-hover);
+  animation: popIn 0.25s ease;
+}
+@keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
+.theme-panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin: 2px 4px 8px; }
+.theme-opt {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  border: 1px solid transparent; background: transparent; border-radius: 12px;
+  padding: 9px 10px; cursor: pointer; color: var(--text); transition: 0.25s; margin-bottom: 4px;
+}
+.theme-opt:hover { background: var(--surface-2); }
+.theme-opt.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.to-ico { font-size: 18px; width: 24px; text-align: center; }
+.to-name { font-size: 13px; font-weight: 600; }
+.to-desc { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+
+/* ---------- ONBOARDING QUIZ ---------- */
+.quiz-modal {
+  position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(20,8,40,0.55); backdrop-filter: blur(6px);
+  animation: fadeSlide 0.4s ease;
+}
+.quiz-card {
+  width: 100%; max-width: 380px; border-radius: 26px; padding: 28px 24px; text-align: center;
+  background: var(--surface-hover); backdrop-filter: blur(22px) saturate(1.6);
+  border: 1px solid var(--border); box-shadow: var(--shadow-hover);
+}
+.quiz-step h3 { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 22px; margin-bottom: 10px; color: var(--text); }
+.quiz-q { font-size: 13px; color: var(--text-soft); margin-bottom: 16px; line-height: 1.6; }
+.quiz-step input, .quiz-step textarea { text-align: center; }
+.quiz-step .quiz-q + .chips { justify-content: center; margin-top: 4px; }
+.quiz-dots { display: flex; justify-content: center; gap: 7px; margin-top: 18px; }
+.qdot { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); transition: 0.3s; }
+.qdot.active { background: var(--accent); width: 18px; border-radius: 999px; }
+
+/* ---------- STANDALONE / SCROLLBAR ---------- */
+@media (display-mode: standalone) { .app-header { padding-top: max(22px, env(safe-area-inset-top)); } }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+
+/* ---------- AI VISION ---------- */
+.ai-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 28px 14px; border: 1.5px dashed var(--border-strong); border-radius: 16px;
+  color: var(--text-soft); font-size: 13px; cursor: pointer; transition: 0.3s; text-align: center;
+  background: var(--surface-2);
+}
+.ai-drop span:first-child { font-size: 26px; }
+.ai-drop:hover { border-color: var(--accent); color: var(--accent); }
+.ai-prev { margin-top: 12px; text-align: center; }
+.ai-prev img { max-width: 150px; max-height: 200px; border-radius: 14px; box-shadow: var(--shadow-card); }
+.ai-prev .chip { margin-top: 8px; }
+.ai-key-toggle {
+  width: 100%; border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text); border-radius: 12px; padding: 13px; font-size: 13px; cursor: pointer; transition: 0.3s;
+}
+.ai-key-toggle:hover { border-color: var(--accent); }
+.ai-key-toggle span { color: var(--accent); font-weight: 600; }
+.ai-key-hint { font-size: 12px; color: var(--text-soft); line-height: 1.7; margin: 10px 0 6px; }
+.ai-key-hint a { color: var(--accent); text-decoration: underline; }
+.ai-modes { display: flex; gap: 10px; flex-wrap: wrap; }
+.ai-modes .btn-primary { flex: 1; min-width: 140px; }
+.ai-tip { font-size: 12px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; }
+.ai-status { font-size: 13px; color: var(--accent); margin-top: 10px; line-height: 1.7; min-height: 18px; }
+.ai-result { position: relative; padding: 16px; margin-bottom: 14px; text-align: center; }
+.ai-result img, .ai-result video { max-width: 100%; max-height: 320px; border-radius: 16px; box-shadow: var(--shadow-card); background: #000; }
+.ai-result .ai-rl { margin-top: 10px; font-size: 12px; color: var(--text-soft); word-break: break-all; line-height: 1.6; }
+.ai-result a.ai-rl { color: var(--accent); text-decoration: underline; display: block; }
+.ai-badge { position: absolute; top: 12px; left: 12px; z-index: 2; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; padding: 4px 9px; border-radius: 999px; background: var(--accent); color: #fff; }
+.ai-badge.video { background: var(--accent2); }
+
+/* ---------- WALLPAPER ---------- */
+.wp-main-grid { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.wp-settings-col, .wp-preview-col { width: 100%; }
+.wp-bgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
+.wp-bg {
+  aspect-ratio: 9 / 16; border-radius: 12px; border: 2px solid transparent; cursor: pointer;
+  position: relative; overflow: hidden; padding: 0; transition: 0.25s; box-shadow: var(--shadow-card);
+}
+.wp-bg canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wp-bg.active { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
+.wp-bg:hover { transform: translateY(-2px); }
+
+.wp-ctrl-block { margin-top: 14px; }
+.wp-ctrl-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.wp-ctrl-head label { font-size: 13px; font-weight: 500; color: var(--text); }
+.wp-val-badge { font-size: 12px; color: var(--accent); font-weight: 600; background: var(--surface-2); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); }
+.wp-slider-row { display: flex; align-items: center; gap: 8px; }
+.wp-slider-row input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+.btn-mini { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; border-radius: 8px; }
+
+.wp-photo-controls { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); animation: fadeSlide 0.3s ease; }
+.wp-photo-actions { margin-top: 10px; display: flex; gap: 8px; }
+.wp-photo-actions .chip { flex: 1; text-align: center; }
+
+.wp-layer-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+.wp-layer-title { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+.wp-layer-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; }
+
+.wp-canvas-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 4px 0 14px;
+  background: transparent;
+  border: none;
+  margin-bottom: 8px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+.wp-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 58vh;
+  width: auto;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: #000000;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.wp-canvas.dragging { cursor: grabbing; }
+.wp-canvas.resizing { cursor: nwse-resize; }
+.wp-pos-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.wp-hint { font-size: 12px; color: var(--text-soft); line-height: 1.5; }
+.wp-quick-resets { display: flex; gap: 6px; }
+.wp-guide { margin-top: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.wp-guide-t { font-size: 13px; color: var(--text); margin-bottom: 6px; }
+.wp-guide-b { font-size: 12px; color: var(--text-soft); line-height: 1.7; }
+
+/* ---------- AI AVATAR ---------- */
+.av-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.av-preset {
+  border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text);
+  border-radius: 14px; padding: 10px 6px; font-size: 12px; cursor: pointer; transition: 0.25s; line-height: 1.4;
+}
+.av-preset .ap-ico { display: block; font-size: 22px; margin-bottom: 4px; }
+.av-preset:hover { border-color: var(--accent); color: var(--accent); }
+.av-preset.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.av-actions { display: flex; gap: 10px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+.av-note { font-size: 12px; color: var(--text-dim); margin-top: 10px; }
+.av-stage { text-align: center; padding: 26px 16px; }
+.av-face {
+  position: relative; width: 180px; height: 180px; margin: 0 auto; border-radius: 50%;
+  overflow: hidden; border: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-hover); background: var(--surface-2);
+}
+.av-face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.av-mouth {
+  position: absolute; left: 50%; bottom: 21%; width: 30px; height: 8px; margin-left: -15px;
+  border-radius: 0 0 50% 50%; background: rgba(120,40,60,0.85); transform: scaleY(0.35); transform-origin: center;
+  transition: transform 0.12s ease;
+}
+.av-face.talking .av-mouth { animation: avTalk 0.38s ease-in-out infinite alternate; }
+@keyframes avTalk { from { transform: scaleY(0.35); } to { transform: scaleY(1.6); } }
+.av-face.talking img { animation: avNod 0.9s ease-in-out infinite; }
+@keyframes avNod { 0%,100% { transform: translateY(0); } 50% { transform: translateY(4px) scale(1.01); } }
+.av-halo {
+  position: absolute; inset: -10px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, transparent 62%, color-mix(in srgb, var(--accent) 26%, transparent) 100%);
+  opacity: 0.5; animation: avHalo 3.2s ease-in-out infinite;
+}
+.av-face.talking .av-halo { opacity: 1; animation-duration: 1.6s; }
+@keyframes avHalo { 0%,100% { transform: scale(1); opacity: 0.45; } 50% { transform: scale(1.07); opacity: 0.9; } }
+.av-state { margin-top: 14px; font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+.av-controls { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.av-voice {
+  flex: 1; min-width: 140px; border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text); border-radius: 10px; padding: 10px; font-size: 13px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DESKTOP LAYOUT — applied when the device is detected as a computer
+   (UA detection in index.html <head> adds html.device-desktop).
+   Phones & tablets keep the mobile UI untouched.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Sidebar hidden on mobile / tablet */
+.desktop-sidebar { display: none; }
+
+/* ── Fixed left sidebar ── */
+html.device-desktop .desktop-sidebar {
+  display: flex; flex-direction: column;
+  position: fixed; inset: 0 auto 0 0; width: 252px; z-index: 50;
+  padding: 24px 16px 20px;
+  background: var(--surface-hover); backdrop-filter: blur(26px) saturate(1.6);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+html.device-desktop .ds-brand { display: flex; align-items: center; gap: 9px; padding: 2px 10px 18px; border-bottom: 1px solid var(--border); }
+html.device-desktop .ds-nav { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; gap: 3px; }
+html.device-desktop .side-link {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 11px 13px; border: none; border-radius: 11px; background: transparent;
+  color: var(--text-soft); font-size: 14px; text-align: left; cursor: pointer; transition: 0.22s;
+}
+html.device-desktop .side-link:hover { background: var(--surface-2); color: var(--text); }
+html.device-desktop .side-link.active { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-weight: 500; }
+html.device-desktop .ds-foot { padding: 14px 10px 0; border-top: 1px solid var(--border); }
+html.device-desktop .ds-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 10px; }
+html.device-desktop .ds-themes { display: flex; gap: 12px; }
+html.device-desktop .ds-theme { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: var(--shadow-card); transition: 0.2s; }
+html.device-desktop .ds-theme:hover { transform: scale(1.12); }
+html.device-desktop .ds-theme.active { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* Hide mobile-only chrome on desktop */
+html.device-desktop .app-header, html.device-desktop .tab-bar,
+html.device-desktop .theme-fab, html.device-desktop .theme-panel { display: none; }
+
+/* ── Main content area ── */
+html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }
+html.device-desktop main { padding: 30px 0 0; }
+html.device-desktop .page-title { font-size: 30px; margin: 6px 0 8px; }
+html.device-desktop .page-sub { font-size: 15px; margin-bottom: 22px; }
+html.device-desktop .tab-page.active { max-width: 1240px; margin: 0 auto; }
+
+/* ── Today dashboard ── */
+html.device-desktop #tab-today.active { display: block; }
+html.device-desktop #tab-today .hero {
+  display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 34px; align-items: center;
+  text-align: left; padding: 42px 46px; margin-bottom: 26px;
+}
+html.device-desktop #tab-today .hero-date { grid-column: 1; }
+html.device-desktop #tab-today .hero-greeting { grid-column: 1; font-size: 36px; }
+html.device-desktop #tab-today .daily-mantra { grid-column: 1; text-align: left; margin-top: 8px; }
+html.device-desktop .hero-quote, html.device-desktop .dm-text { font-size: 17px; }
+html.device-desktop #tab-today .hero-stats { grid-column: 2; grid-row: 1 / 4; margin: 0; display: flex; flex-direction: column; gap: 16px; }
+html.device-desktop .stat { display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; }
+html.device-desktop .stat-num { font-size: 30px; }
+html.device-desktop #tab-today .focus-card { display: inline-block; vertical-align: top; width: calc(33.333% - 12px); margin-right: 16px; margin-bottom: 0; }
+
+/* ── Grids ── */
+html.device-desktop .more-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+html.device-desktop .vision-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* ── Two-column feature pages ── */
+html.device-desktop .wp-main-grid { display: grid; grid-template-columns: minmax(320px, 440px) minmax(360px, 1fr); gap: 28px; align-items: start; }
+html.device-desktop .wp-preview-col { position: sticky; top: 24px; }
+html.device-desktop .wp-canvas { max-height: 580px; }
+
+html.device-desktop #tab-ai-vision.active { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+html.device-desktop #tab-ai-vision > .form-card { grid-column: 1; margin-bottom: 0; }
+html.device-desktop #tab-ai-vision #aiResults { grid-column: 2; grid-row: 1 / 6; }
+html.device-desktop #tab-ai-vision #aiResults .ai-result { margin-bottom: 16px; }
+
+html.device-desktop #tab-avatar.active { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+html.device-desktop #tab-avatar .form-card { margin-bottom: 0; }
+
+html.device-desktop #tab-meditate .meditate-card { max-width: 560px; margin: 0 auto 16px; }
+html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form-card { max-width: 820px; margin-left: auto; margin-right: auto; }
+
+html.device-desktop .btn-primary { padding: 14px; }
+html.device-desktop .quiz-card { max-width: 480px; }
+
+/* ════════════════════════════════════════════════════════════════
+   DESKTOP REFINEMENT — cleaner, product-grade desktop UI (overrides)
+   Linear/Stripe-dashboard feel: white cards, refined sidebar, generous space.
+   ════════════════════════════════════════════════════════════════ */
+html.device-desktop body { background: linear-gradient(150deg, #fbf9fd 0%, #fdf6fa 100%); }
+html.device-desktop #app { margin-left: 240px; max-width: none; padding: 0; }
+html.device-desktop main { padding: 30px 44px 90px; }
+
+/* Refined sidebar */
+html.device-desktop .desktop-sidebar {
+  width: 240px; padding: 20px 12px 18px;
+  background: rgba(255,255,255,0.66); backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  border-right: 1px solid var(--border); box-shadow: none;
+}
+html.device-desktop .ds-brand { gap: 9px; padding: 2px 8px 16px; border-bottom: 1px solid var(--border); }
+html.device-desktop .ds-brand .brand-logo { font-size: 21px; }
+html.device-desktop .ds-brand .brand-name { font-size: 18px; letter-spacing: 1px; }
+html.device-desktop .ds-nav { padding: 10px 4px 0; gap: 1px; }
+html.device-desktop .ds-group { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); padding: 16px 9px 6px; }
+html.device-desktop .side-link {
+  position: relative; gap: 11px;
+  padding: 9px 10px 9px 14px; border-radius: 9px;
+  color: var(--text-soft); font-size: 13.5px; transition: 0.18s;
+}
+html.device-desktop .side-link::before {
+  content: ""; position: absolute; left: 0; top: 24%; bottom: 24%; width: 3px;
+  border-radius: 3px; background: transparent; transition: 0.18s;
+}
+html.device-desktop .side-link:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--text); }
+html.device-desktop .side-link.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-weight: 500; }
+html.device-desktop .side-link.active::before { background: var(--accent); }
+html.device-desktop .ds-theme { width: 22px; height: 22px; border-width: 2px; }
+
+/* Cleaner content */
+html.device-desktop .tab-page.active { max-width: 1140px; margin: 0 auto; }
+html.device-desktop .page-title { font-size: 26px; margin: 4px 0 6px; letter-spacing: 0.5px; }
+html.device-desktop .page-sub { font-size: 14px; color: var(--text-soft); margin-bottom: 24px; }
+html.device-desktop .glass, html.device-desktop .card {
+  background: rgba(255,255,255,0.78); backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.9); border-bottom-color: rgba(180,150,210,0.28);
+  border-radius: 16px; padding: 22px 24px; margin-bottom: 18px;
+  box-shadow: 0 2px 12px rgba(150,120,200,0.07);
+}
+html.device-desktop .glass:hover, html.device-desktop .card:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 8px 28px rgba(150,120,200,0.14);
+}
+html.device-desktop .glass::before, html.device-desktop .card::before { display: none; }
+
+/* Today dashboard */
+html.device-desktop #tab-today .hero {
+  display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 30px; align-items: center;
+  text-align: left; padding: 30px 34px; margin-bottom: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(248,240,255,0.68));
+}
+html.device-desktop #tab-today .hero-date { grid-column: 1; font-size: 13px; color: var(--text-dim); }
+html.device-desktop #tab-today .hero-greeting { grid-column: 1; font-size: 28px; margin: 4px 0 12px; letter-spacing: 0.5px; }
+html.device-desktop #tab-today .daily-mantra { grid-column: 1; text-align: left; margin-top: 0; }
+html.device-desktop #tab-today .dm-label { margin-bottom: 7px; }
+html.device-desktop #tab-today .dm-text { font-size: 18px; line-height: 1.6; }
+html.device-desktop #tab-today .hero-stats { grid-column: 2; grid-row: 1 / 4; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+html.device-desktop .stat { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.85); border: 1px solid var(--border); border-radius: 12px; padding: 13px 16px; box-shadow: none; }
+html.device-desktop .stat-num { font-size: 24px; }
+html.device-desktop .stat-label { font-size: 11px; }
+html.device-desktop #tab-today .focus-card { display: inline-block; vertical-align: top; width: calc(33.333% - 12px); margin-right: 16px; margin-bottom: 0; }
+
+/* Grids & two-column pages */
+html.device-desktop .more-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+html.device-desktop .vision-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+html.device-desktop #tab-ai-vision.active, html.device-desktop #tab-avatar.active { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+html.device-desktop #tab-ai-vision .form-card, html.device-desktop #tab-avatar .form-card { margin-bottom: 0; }
+html.device-desktop #tab-ai-vision #aiResults { grid-column: 2; grid-row: 1 / 6; }
+html.device-desktop #tab-meditate .meditate-card { max-width: 560px; margin: 0 auto 16px; }
+html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form-card { max-width: 780px; margin-left: auto; margin-right: auto; }
+
+/* Custom affirmations */
+.list-head { font-size: 11.5px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); padding: 12px 4px 6px; }
+.list-sep { border-top: 1px solid var(--border); margin: 8px 0 12px; }
+
+/* Saved inspiration */
+.saved-link { display: block; font-size: 14px; color: var(--accent); text-decoration: underline; word-break: break-all; line-height: 1.5; }
+
+/* Manifest Song */
+.song-card { text-align: center; padding: 28px 22px; min-height: 220px; }
+.sl-section { font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px; color: var(--text-dim); margin: 22px 0 8px; }
+.sl-line { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 17px; line-height: 1.7; color: var(--text-soft); transition: 0.45s; padding: 4px 0; }
+.sl-line.active { color: var(--accent); font-size: 20px; transform: scale(1.03); }
+.song-controls { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 4px; min-height: 46px; }
+
+/* ════════════════════════════════════════════════════════════════
+   LIQUID GLASS THEME — Apple iOS 26/27 glassmorphism
+   Translucent glass, reflective sheen, blue accent.
+   ════════════════════════════════════════════════════════════════ */
+:root[data-theme="ios"] {
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Barlow', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Barlow', 'Inter', sans-serif;
+  --bg-grad: linear-gradient(180deg, #f4f7fd 0%, #edf2fc 45%, #e6edfb 100%);
+  --surface: linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.28) 60%, rgba(228,237,255,0.35) 100%);
+  --surface-hover: linear-gradient(145deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.42) 60%, rgba(228,237,255,0.5) 100%);
+  --surface-2: rgba(255,255,255,0.55);
+  --border: rgba(255,255,255,0.68);
+  --border-strong: rgba(120,150,220,0.38);
+  --text: #1b1f2b;
+  --text-soft: #4a5568;
+  --text-dim: #8b95a8;
+  --accent: #007aff;
+  --accent2: #5ac8fa;
+  --accent3: #34c759;
+  --cta-grad: linear-gradient(180deg, #0a84ff 0%, #0066ff 100%);
+  --cta-text: #ffffff;
+  --stat-color: #007aff;
+  --heading-italic: normal;
+  --shadow-card: 0 10px 34px rgba(90,120,190,0.16), inset 0 1px 1px rgba(255,255,255,0.9);
+  --shadow-hover: 0 16px 46px rgba(90,120,190,0.24), inset 0 1px 1px rgba(255,255,255,0.95);
+  --aur-a: radial-gradient(circle, rgba(90,200,250,0.35) 0%, transparent 70%);
+  --aur-b: radial-gradient(circle, rgba(160,180,255,0.32) 0%, transparent 70%);
+  --aur-c: radial-gradient(circle, rgba(200,220,255,0.4) 0%, transparent 70%);
+  --aur-op: 0.5;
+  --heading-gradient: linear-gradient(135deg, #007aff, #5ac8fa);
+}
+
+:root[data-theme="ios"] .brand-logo,
+:root[data-theme="ios"] .brand-name { background: var(--heading-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+:root[data-theme="ios"] .glass::before,
+:root[data-theme="ios"] .card::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.4) 26%, rgba(255,255,255,0) 55%, rgba(255,255,255,0.16) 100%);
+  opacity: 0.6;
+}
+:root[data-theme="ios"] .glass, :root[data-theme="ios"] .card {
+  border: 1px solid rgba(255,255,255,0.75);
+  border-top-color: rgba(255,255,255,0.95);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 1px rgba(120,150,220,0.12), 0 10px 34px rgba(90,120,190,0.16);
+}
+:root[data-theme="ios"] .hero {
+  background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(235,242,255,0.45));
+  border: 1px solid rgba(255,255,255,0.8);
+  border-top-color: rgba(255,255,255,0.95);
+}
+:root[data-theme="ios"] .hero-greeting,
+:root[data-theme="ios"] .dm-text { background: var(--heading-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+:root[data-theme="ios"] .btn-primary {
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 16px;
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.45), 0 10px 26px rgba(0,122,255,0.35);
+}
+:root[data-theme="ios"] .tab-bar {
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.32));
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-top-color: rgba(255,255,255,0.9);
+  border-radius: 30px;
+  margin: 0 14px calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 8px 30px rgba(80,110,180,0.18), inset 0 1px 1px rgba(255,255,255,0.9);
+}
+:root[data-theme="ios"] input, :root[data-theme="ios"] select, :root[data-theme="ios"] textarea {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.75);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 3px rgba(80,110,180,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+:root[data-theme="ios"] .breath-circle { background: radial-gradient(circle at 38% 30%, #5ac8fa, #007aff 55%, #0055d4); box-shadow: 0 0 50px rgba(0,122,255,0.4); }
+:root[data-theme="ios"] .more-card { border-color: rgba(255,255,255,0.6); }
+
+</style>
 
   <script>
   (function () {
@@ -590,7 +1563,1997 @@
     </div>
   </div>
 
-  <script src="/app.js?v=2026.6"></script>
+  <script id="luminara-app">
+/* Luminara — Manifest Your Reality */
+(function () {
+  'use strict';
+
+  /* ═══════ Starfield Canvas ═══════ */
+  var canvas = document.getElementById('starfield');
+  var ctx = canvas.getContext('2d');
+  var stars = [], W, H;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  var STAR_PALETTES = {
+    'luminara': ['255,220,170', '210,170,240'],
+    'manifest-light': ['232,184,109', '244,166,189', '184,161,227'],
+    'manifest-dark': ['255,255,255', '220,210,255', '255,230,200'],
+    'prism': ['255,255,255', '255,170,190', '255,209,128', '143,195,245'],
+    'ios': ['90,200,250', '0,122,255', '255,255,255']
+  };
+  var starPalette = STAR_PALETTES['luminara'];
+
+  for (var i = 0; i < 140; i++) {
+    stars.push({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.8 + 0.3,
+      speed: Math.random() * 0.35 + 0.08,
+      twinkle: Math.random() * Math.PI * 2,
+      twinkleSpeed: Math.random() * 0.02 + 0.004,
+      pi: i % 2
+    });
+  }
+
+  function drawStars() {
+    ctx.clearRect(0, 0, W, H);
+    stars.forEach(function (s) {
+      var hue = starPalette[s.pi % starPalette.length];
+      var alpha = 0.3 + 0.7 * (Math.sin(s.twinkle) * 0.5 + 0.5);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + hue + ',' + alpha + ')';
+      ctx.fill();
+      if (s.r > 1.0) {
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + hue + ',' + (alpha * 0.06) + ')';
+        ctx.fill();
+      }
+      s.y -= s.speed;
+      s.twinkle += s.twinkleSpeed;
+      if (s.y < -10) { s.y = H + 10; s.x = Math.random() * W; }
+    });
+    if (Math.random() < 0.004) {
+      var sx = Math.random() * W * 0.8, sy = Math.random() * H * 0.5;
+      var len = 60 + Math.random() * 50;
+      var grd = ctx.createLinearGradient(sx, sy, sx + len * 1.5, sy + len);
+      var sc = starPalette[0];
+      grd.addColorStop(0, 'rgba(' + sc + ',0.8)');
+      grd.addColorStop(1, 'rgba(' + sc + ',0)');
+      ctx.beginPath(); ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + len * 1.5, sy + len);
+      ctx.strokeStyle = grd; ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    requestAnimationFrame(drawStars);
+  }
+  drawStars();
+
+  /* ═══════ Data Layer ═══════ */
+  var KEY = 'manifest_data_v1';
+  var defaults = {
+    goals: [], gratitude: {}, affirmFavs: [], affirmCustom: [],
+    vision: [], activeDays: [], meditationMin: 0, saved: [],
+    profile: { name: '', area: '', desire: '' }
+  };
+
+  var db = load();
+  function load() {
+    try { var raw = localStorage.getItem(KEY); if (raw) return Object.assign({}, defaults, JSON.parse(raw)); } catch (e) {}
+    return Object.assign({}, defaults);
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function markActive() {
+    var t = todayStr();
+    if (db.activeDays.indexOf(t) === -1) { db.activeDays.push(t); save(); }
+  }
+  function streak() {
+    var set = {};
+    db.activeDays.forEach(function (d) { set[d] = 1; });
+    var n = 0, d = new Date();
+    if (!set[fmt(d)]) d.setDate(d.getDate() - 1);
+    while (set[fmt(d)]) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  function fmt(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  /* ═══════ Affirmation Library ═══════ */
+  var AFFIRMATIONS = {
+    'Abundance': [
+      'Money flows to me effortlessly from expected and unexpected sources.',
+      'I am a magnet for wealth, prosperity, and abundance.',
+      'I deserve to live a life of financial freedom.',
+      'Abundance is my natural state of being.',
+      'I am open to receive unlimited abundance from the Universe.'
+    ],
+    'Love': [
+      'I am deeply loved and cherished.',
+      'My soulmate is on their way to me right now.',
+      'I am worthy of a passionate, healthy, and fulfilling relationship.',
+      'Love surrounds me everywhere I go.',
+      'I radiate love and attract love effortlessly.'
+    ],
+    'Career': [
+      'My talents are seen, valued, and rewarded.',
+      'The perfect opportunity is already making its way to me.',
+      'I do what I love and prosper abundantly from it.',
+      'Every step I take leads me to my highest purpose.',
+      'I am confident, capable, and successful in all I do.'
+    ],
+    'Wellness': [
+      'Every cell in my body vibrates with energy and health.',
+      'I am radiant, vibrant, and full of life force.',
+      'My body heals, restores, and strengthens each day.',
+      'I treat my body with love, and it loves me back.',
+      'Perfect health is my birthright.'
+    ],
+    'Growth': [
+      'I trust myself completely and believe in my journey.',
+      'Everything is unfolding perfectly for my highest good.',
+      'I have the power to create the life of my dreams.',
+      'I live in the present moment, peaceful and powerful.',
+      'The Universe always has my back.'
+    ]
+  };
+  var QUOTES = [
+    'What you focus on, you attract.',
+    'Imagination is the beginning of creation.',
+    'Gratitude for what you have opens the door to more.',
+    'The Universe responds to your frequency, not your words.',
+    'Become it first, then you shall have it.',
+    'Believe it, and you will see it.',
+    'Your beliefs are shaping your reality right now.'
+  ];
+
+  /* ═══════ Helpers ═══════ */
+  function $(s) { return document.querySelector(s); }
+  function $(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e;
+  }
+
+  /* ═══════ Tab Navigation ═══════ */
+  $('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { goTab(btn.dataset.tab); });
+  });
+  function goTab(id) {
+    stopFutureAudio();
+    var hasNav = false;
+    $('.tab-btn').forEach(function (b) {
+      var on = b.dataset.tab === id;
+      if (on) hasNav = true;
+      b.classList.toggle('active', on);
+    });
+    if (!hasNav) {
+      var more = $('.tab-btn').filter(function (b) { return b.dataset.tab === 'tab-more'; })[0];
+      if (more) more.classList.add('active');
+    }
+    $('.side-link').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
+    $('.tab-page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
+    window.scrollTo(0, 0);
+  }
+  $('.mini-card, .focus-card, .more-card').forEach(function (c) {
+    c.addEventListener('click', function () { goTab(c.dataset.goto); });
+  });
+  $('.side-link').forEach(function (b) {
+    b.addEventListener('click', function () { goTab(b.dataset.tab); });
+  });
+
+  /* ═══════ Dashboard ═══════ */
+  function renderToday() {
+    var now = new Date();
+    var week = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    $('#todayDate').textContent = week[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+    var h = now.getHours();
+    var base = h < 6 ? 'The stars are still dreaming' : h < 12 ? 'A beautiful morning to create' : h < 18 ? 'The Universe is listening' : 'Reflect on today\'s magic';
+    var name = db.profile && db.profile.name ? ', ' + db.profile.name : '';
+    $('#greeting').textContent = base + name;
+    var doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 864e5);
+    $('#dailyQuote').textContent = '“' + QUOTES[doy % QUOTES.length] + '”';
+    $('#statStreak').textContent = streak();
+    $('#statGoals').textContent = db.goals.filter(function (g) { return !g.done; }).length;
+    $('#statMeditation').textContent = db.meditationMin;
+
+    var g = db.gratitude[todayStr()];
+    $('#glanceGratitude').textContent = g && g.length ? g.length + ' blessing' + (g.length > 1 ? 's' : '') + ' recorded ✿' : 'Write 3 things you\'re grateful for';
+  }
+
+  /* ═══════ Goals ═══════ */
+  $('#goalForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var title = $('#goalTitle').value.trim();
+    if (!title) return;
+    db.goals.unshift({ id: uid(), title: title, category: $('#goalCategory').value, date: $('#goalDate').value || '', done: false, createdAt: todayStr() });
+    $('#goalTitle').value = ''; $('#goalDate').value = '';
+    markActive(); save(); renderGoals(); renderToday();
+  });
+
+  var CAT_EMOJI = { 'abundance': '💎', 'love': '💖', 'career': '⭐', 'wellness': '🌙', 'growth': '🌱' };
+  var CAT_LABEL = { 'abundance': 'Abundance', 'love': 'Love', 'career': 'Purpose', 'wellness': 'Wellness', 'growth': 'Growth' };
+  function renderGoals() {
+    var wrap = $('#goalList');
+    wrap.innerHTML = '';
+    if (!db.goals.length) { wrap.appendChild(el('div', 'empty', 'No desires yet. Plant your first seed ✦')); return; }
+    db.goals.forEach(function (g) {
+      var item = el('div', 'list-item' + (g.done ? ' done' : ''));
+      var toggle = el('button', 'icon-btn', g.done ? '✧' : '○');
+      toggle.title = g.done ? 'Manifested' : 'Mark as manifested';
+      toggle.addEventListener('click', function () { g.done = !g.done; save(); renderGoals(); renderToday(); });
+      var mid = el('div', 'grow');
+      mid.appendChild(el('div', 'title', g.title));
+      var meta = (CAT_EMOJI[g.category] || '✦') + ' ' + (CAT_LABEL[g.category] || g.category) + ' · Planted ' + g.createdAt + (g.date ? ' · By ' + g.date : '');
+      mid.appendChild(el('div', 'meta', g.done ? meta + ' · ✦ Manifested' : meta));
+      var del = el('button', 'icon-btn', '✕');
+      del.addEventListener('click', function () { db.goals = db.goals.filter(function (x) { return x.id !== g.id; }); save(); renderGoals(); renderToday(); });
+      item.appendChild(toggle); item.appendChild(mid); item.appendChild(del);
+      wrap.appendChild(item);
+    });
+  }
+
+  /* ═══════ Affirmations (List) ═══════ */
+  var curCat = 'Abundance';
+  var catsWrap = $('#affirmCats');
+  Object.keys(AFFIRMATIONS).forEach(function (c) {
+    var b = el('button', 'chip' + (c === curCat ? ' active' : ''), c);
+    b.addEventListener('click', function () {
+      curCat = c;
+      $('#affirmCats .chip').forEach(function (x) { x.classList.toggle('active', x.textContent === c); });
+      renderAffirm();
+    });
+    catsWrap.appendChild(b);
+  });
+  $('#affirmAdd').addEventListener('click', function () {
+    var t = $('#affirmNew').value.trim();
+    if (!t) return;
+    if (db.affirmCustom.indexOf(t) === -1) db.affirmCustom.push(t);
+    $('#affirmNew').value = '';
+    save(); renderAffirm(); initSwipe();
+  });
+  $('#affirmNew').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $('#affirmAdd').click(); }
+  });
+  function renderAffirm() {
+    var wrap = $('#affirmList');
+    wrap.innerHTML = '';
+    if (db.affirmCustom && db.affirmCustom.length) {
+      wrap.appendChild(el('div', 'list-head', 'My affirmations'));
+      db.affirmCustom.forEach(function (text) {
+        var item = el('div', 'list-item');
+        var mid = el('div', 'grow');
+        mid.appendChild(el('div', 'title', text));
+        var delBtn = el('button', 'icon-btn', '✕');
+        delBtn.title = 'Remove';
+        delBtn.addEventListener('click', function () {
+          var i = db.affirmCustom.indexOf(text);
+          if (i !== -1) db.affirmCustom.splice(i, 1);
+          save(); renderAffirm(); initSwipe();
+        });
+        item.appendChild(mid); item.appendChild(delBtn);
+        wrap.appendChild(item);
+      });
+      wrap.appendChild(el('div', 'list-sep', ''));
+    }
+    AFFIRMATIONS[curCat].forEach(function (text) {
+      var fav = db.affirmFavs.indexOf(text) !== -1;
+      var item = el('div', 'list-item');
+      var mid = el('div', 'grow');
+      mid.appendChild(el('div', 'title', text));
+      var favBtn = el('button', 'icon-btn', fav ? '✦' : '✧');
+      favBtn.title = fav ? 'Unfavorite' : 'Favorite';
+      favBtn.addEventListener('click', function () {
+        var i = db.affirmFavs.indexOf(text);
+        if (i === -1) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
+        save(); renderAffirm();
+      });
+      item.appendChild(mid); item.appendChild(favBtn);
+      wrap.appendChild(item);
+    });
+  }
+
+  /* ═══════ Swipe Affirmations (Stella-style) ═══════ */
+  var swipeQueue = [];
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function initSwipe() {
+    var pool = [];
+    Object.keys(AFFIRMATIONS).forEach(function (c) { AFFIRMATIONS[c].forEach(function (t) { pool.push(t); }); });
+    (db.affirmCustom || []).forEach(function (t) { pool.push(t); });
+    swipeQueue = shuffle(pool);
+    renderSwipe();
+  }
+  function renderSwipe() {
+    var deck = $('#swipeDeck'); deck.innerHTML = '';
+    if (!swipeQueue.length) {
+      deck.appendChild(el('div', 'swipe-empty', "You've collected them all ✧\nTap Reset to begin again"));
+      return;
+    }
+    var card = el('div', 'swipe-card');
+    card.innerHTML = '<div class="sc-text">' + swipeQueue[swipeQueue.length - 1] + '</div><div class="sc-hint">♥ save · ✕ skip</div>';
+    deck.appendChild(card);
+  }
+  function swipeOut(dir, after) {
+    var card = $('#swipeDeck .swipe-card');
+    if (!card) { after(); return; }
+    card.classList.add(dir === 'save' ? 'swiped-right' : 'swiped-left');
+    if (dir === 'save') card.classList.add('saved-flash');
+    setTimeout(after, 320);
+  }
+  $('#swipeSave').addEventListener('click', function () {
+    var text = swipeQueue[swipeQueue.length - 1];
+    swipeOut('save', function () {
+      swipeQueue.pop();
+      if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
+      save(); renderSwipe(); renderAffirm();
+    });
+  });
+  $('#swipeSkip').addEventListener('click', function () {
+    swipeOut('skip', function () { swipeQueue.pop(); renderSwipe(); });
+  });
+  $('#swipeReset').addEventListener('click', function () { initSwipe(); });
+
+  /* ═══════ Gratitude Journal ═══════ */
+  var gratInputs = $('.grat-input');
+  $('#gratForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var items = gratInputs.map(function (i) { return i.value.trim(); }).filter(Boolean);
+    if (!items.length) return;
+    db.gratitude[todayStr()] = items;
+    gratInputs.forEach(function (i) { i.value = ''; });
+    markActive(); save(); renderGrat(); renderToday();
+  });
+  function renderGrat() {
+    var wrap = $('#gratHistory');
+    wrap.innerHTML = '';
+    var days = Object.keys(db.gratitude).sort().reverse();
+    if (!days.length) { wrap.appendChild(el('div', 'empty', 'Your gratitude journal awaits ✿')); return; }
+    days.slice(0, 14).forEach(function (day) {
+      var card = el('div', 'card glass');
+      card.appendChild(el('div', 'meta', day + (day === todayStr() ? ' · Today' : '')));
+      db.gratitude[day].forEach(function (g) {
+        var p = el('div', 'title', '✿  ' + g);
+        p.style.marginTop = '8px'; p.style.lineHeight = '1.6';
+        card.appendChild(p);
+      });
+      wrap.appendChild(card);
+    });
+    var tg = db.gratitude[todayStr()];
+    if (tg) gratInputs.forEach(function (inp, i) { inp.value = tg[i] || ''; });
+  }
+
+  /* ═══════ Vision Board (with photo) ═══════ */
+  $('#visionForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var text = $('#visionText').value.trim();
+    if (!text) return;
+    var fileInput = $('#visionPhoto');
+    var finish = function (photo) {
+      db.vision.unshift({ id: uid(), emoji: $('#visionEmoji').value.trim() || '✦', text: text, photo: photo || null });
+      $('#visionText').value = ''; $('#visionPhoto').value = '';
+      markActive(); save(); renderVision();
+    };
+    if (fileInput.files && fileInput.files[0]) compressImage(fileInput.files[0], finish);
+    else finish(null);
+  });
+  function compressImage(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      var img = new Image();
+      img.onload = function () {
+        var maxW = 600, scale = Math.min(1, maxW / img.width);
+        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        try { cb(c.toDataURL('image/jpeg', 0.7)); } catch (err) { cb(null); }
+      };
+      img.onerror = function () { cb(null); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function () { cb(null); };
+    reader.readAsDataURL(file);
+  }
+  function renderVision() {
+    var wrap = $('#visionBoard');
+    wrap.innerHTML = '';
+    if (!db.vision.length) { wrap.appendChild(el('div', 'empty', 'Pin your first vision card ◈')); return; }
+    db.vision.forEach(function (v) {
+      var card = el('div', 'vision-card');
+      card.appendChild(el('div', 've', v.emoji));
+      card.appendChild(el('div', 'vt', v.text));
+      if (v.photo) {
+        card.classList.add('has-photo');
+        card.style.backgroundImage = 'url(' + v.photo + ')';
+        card.style.backgroundSize = 'cover';
+        card.style.backgroundPosition = 'center';
+      }
+      var del = el('button', 'vdel', '✕');
+      del.addEventListener('click', function () { db.vision = db.vision.filter(function (x) { return x.id !== v.id; }); save(); renderVision(); });
+      card.appendChild(del);
+      wrap.appendChild(card);
+    });
+  }
+
+  /* ═══════ Future Self (audio manifestation) ═══════ */
+  function buildFutureScript(name, desire) {
+    var n = name ? name : 'friend';
+    var d = desire || (db.profile && db.profile.area ? 'your ' + db.profile.area.toLowerCase() + ' dream' : 'your deepest desire');
+    return 'Hello ' + n + '. I am you — from a future where ' + d + ' is already completely real.\n\n' +
+      'I want you to know: it happened. Gently, surely, exactly as it was meant to. Every small step you took mattered. The doubt you felt was only the old you loosening its grip.\n\n' +
+      'In my reality now, ' + d + ' fills my days with ease and quiet joy. You are already on the way. Keep going — I am already here, waiting for you with open arms.\n\n' +
+      'Breathe. You have got this. ✧';
+  }
+  var fsPlaying = false;
+  function pickVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    var vs = window.speechSynthesis.getVoices();
+    if (!vs.length) return null;
+    return vs.filter(function (v) { return /en/i.test(v.lang) && /female|samantha|victoria|zira|karen|moira|google US|woman|girl/i.test(v.name); })[0] ||
+           vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
+           vs.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+  }
+  function fsSpeak(text) {
+    if (!('speechSynthesis' in window)) { alert('Text-to-speech is not supported on this device.'); return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9; u.pitch = 1.0;
+    var v = pickVoice(); if (v) u.voice = v;
+    u.onend = function () { fsPlaying = false; $('#fsPlay').textContent = '▶ Play'; };
+    u.onerror = function () { fsPlaying = false; $('#fsPlay').textContent = '▶ Play'; };
+    window.speechSynthesis.speak(u);
+    fsPlaying = true; $('#fsPlay').textContent = '⏸ Pause';
+  }
+  $('#fsForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var raw = $('#fsDesire').value.trim();
+    var desire = raw || (db.profile && db.profile.desire) || '';
+    if (!desire) return;
+    var script = buildFutureScript(db.profile && db.profile.name, desire);
+    $('#fsScript').textContent = script;
+    $('#fsScript').setAttribute('contenteditable', 'true');
+    $('#fsPlayer').classList.remove('hidden');
+    fsSpeak(script);
+  });
+  $('#fsPlay').addEventListener('click', function () {
+    var txt = $('#fsScript').textContent;
+    if (fsPlaying) { window.speechSynthesis.pause(); fsPlaying = false; $('#fsPlay').textContent = '▶ Resume'; }
+    else if (window.speechSynthesis && window.speechSynthesis.paused && window.speechSynthesis.speaking) {
+      window.speechSynthesis.resume(); fsPlaying = true; $('#fsPlay').textContent = '⏸ Pause';
+    } else { if (!txt) return; fsSpeak(txt); }
+  });
+  /* Ambient pad via Web Audio */
+  var ambCtx = null, ambNodes = null, ambOn = false;
+  function startAmbient() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      ambCtx = new AC();
+      var o1 = ambCtx.createOscillator(); o1.type = 'sine'; o1.frequency.value = 110;
+      var o2 = ambCtx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 164.81;
+      var filter = ambCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 600;
+      var gain = ambCtx.createGain(); gain.gain.value = 0.045;
+      o1.connect(filter); o2.connect(filter); filter.connect(gain); gain.connect(ambCtx.destination);
+      o1.start(); o2.start();
+      ambNodes = { o1: o1, o2: o2 };
+      ambOn = true;
+      $('#fsAmbient').textContent = 'Ambient: On'; $('#fsAmbient').setAttribute('aria-pressed', 'true');
+    } catch (e) { /* ignore */ }
+  }
+  function stopAmbient() {
+    if (ambNodes) { try { ambNodes.o1.stop(); ambNodes.o2.stop(); } catch (e) {} ambNodes = null; }
+    if (ambCtx) { try { ambCtx.close(); } catch (e) {} ambCtx = null; }
+    ambOn = false;
+    var b = $('#fsAmbient'); if (b) { b.textContent = 'Ambient: Off'; b.setAttribute('aria-pressed', 'false'); }
+  }
+  $('#fsAmbient').addEventListener('click', function () { if (ambOn) stopAmbient(); else startAmbient(); });
+  function stopFutureAudio() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if (fsPlaying) { fsPlaying = false; var p = $('#fsPlay'); if (p) p.textContent = '▶ Play'; }
+    if (ambOn) stopAmbient();
+  }
+
+  /* ═══════ Cosmic Meditation ═══════ */
+  var medState = { min: 5, left: 300, timer: null, breathTimer: null, running: false };
+  $('.dur-chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      if (medState.running) return;
+      medState.min = parseInt(c.dataset.min, 10);
+      medState.left = medState.min * 60;
+      $('.dur-chip').forEach(function (x) { x.classList.toggle('active', x === c); });
+      renderMedTime();
+    });
+  });
+  function renderMedTime() {
+    var m = Math.floor(medState.left / 60), s = medState.left % 60;
+    $('#medTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+  function breathLoop() {
+    var circle = $('#breathCircle'), txt = $('#breathText');
+    var phases = [
+      { label: 'Breathe in', cls: 'inhale', dur: 4000 },
+      { label: 'Hold', cls: 'inhale', dur: 4000 },
+      { label: 'Release', cls: 'exhale', dur: 6000 }
+    ];
+    var i = 0;
+    function next() {
+      if (!medState.running) return;
+      var p = phases[i % phases.length];
+      txt.textContent = p.label;
+      circle.className = 'breath-circle ' + p.cls;
+      medState.breathTimer = setTimeout(next, p.dur);
+      i++;
+    }
+    next();
+  }
+  $('#medStart').addEventListener('click', function () {
+    if (medState.running) { stopMed(false); return; }
+    medState.running = true;
+    medState.left = medState.min * 60;
+    $('#medStart').textContent = 'End Journey ✦';
+    renderMedTime();
+    breathLoop();
+    medState.timer = setInterval(function () {
+      medState.left--;
+      renderMedTime();
+      if (medState.left <= 0) stopMed(true);
+    }, 1000);
+  });
+  function stopMed(completed) {
+    clearInterval(medState.timer);
+    clearTimeout(medState.breathTimer);
+    medState.running = false;
+    var doneMin = completed ? medState.min : Math.round((medState.min * 60 - medState.left) / 60);
+    if (doneMin > 0) { db.meditationMin += doneMin; markActive(); save(); }
+    medState.left = medState.min * 60;
+    $('#medStart').textContent = 'Begin Journey ✦';
+    $('#breathText').textContent = completed ? '✦ Complete' : 'Ready';
+    $('#breathCircle').className = 'breath-circle';
+    renderMedTime(); renderToday();
+    if (completed) setTimeout(function () { $('#breathText').textContent = 'Ready'; }, 3000);
+  }
+
+  /* ═══════ Onboarding Quiz ═══════ */
+  var qStep = 1;
+  function setQuizStep(n) {
+    qStep = n;
+    $('.quiz-step').forEach(function (s) { s.classList.toggle('hidden', parseInt(s.dataset.step, 10) !== n); });
+    $('.qdot').forEach(function (d, i) { d.classList.toggle('active', i === n - 1); });
+  }
+  function showQuiz() { $('#quizModal').classList.remove('hidden'); setQuizStep(1); }
+  function maybeShowQuiz() { if (!db.profile || !db.profile.name) { if (!db.quizSkipped) showQuiz(); } }
+  $('#qSkip').addEventListener('click', function () {
+    db.quizSkipped = true; save();
+    $('#quizModal').classList.add('hidden');
+  });
+  $('.q-next').forEach(function (b) {
+    b.addEventListener('click', function () { setQuizStep(Math.min(3, qStep + 1)); });
+  });
+  $('#qCats .chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      $('#qCats .chip').forEach(function (x) { x.classList.remove('active'); });
+      c.classList.add('active');
+      db.profile = db.profile || {}; db.profile.area = c.dataset.cat;
+    });
+  });
+  $('#qFinish').addEventListener('click', function () {
+    db.profile = db.profile || {};
+    db.profile.name = $('#qName').value.trim();
+    db.profile.desire = $('#qDesire').value.trim();
+    save();
+    $('#quizModal').classList.add('hidden');
+    renderToday();
+  });
+
+  /* ═══════ Theme Switcher ═══════ */
+  var THEME_KEY = 'luminara_theme_v1';
+  var THEMES = ['luminara', 'manifest-light', 'manifest-dark', 'prism', 'ios'];
+  function applyTheme(t) {
+    if (THEMES.indexOf(t) === -1) t = 'luminara';
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+    starPalette = STAR_PALETTES[t] || STAR_PALETTES['luminara'];
+    $('.theme-opt').forEach(function (o) { o.classList.toggle('active', o.dataset.theme === t); });
+    $('.ds-theme').forEach(function (o) { o.classList.toggle('active', o.dataset.theme === t); });
+  }
+  var savedTheme = null;
+  try { savedTheme = localStorage.getItem(THEME_KEY); } catch (e) {}
+  if (savedTheme) applyTheme(savedTheme);
+
+  var fab = $('#themeFab'), panel = $('#themePanel');
+  fab.addEventListener('click', function (e) { e.stopPropagation(); panel.classList.toggle('hidden'); });
+  document.addEventListener('click', function (e) {
+    if (!panel.contains(e.target) && e.target !== fab) panel.classList.add('hidden');
+  });
+  $('.theme-opt').forEach(function (o) {
+    o.addEventListener('click', function () { applyTheme(o.dataset.theme); panel.classList.add('hidden'); });
+  });
+  $('.ds-theme').forEach(function (o) {
+    o.addEventListener('click', function () { applyTheme(o.dataset.theme); });
+  });
+
+  /* ═══════ AI Vision (Kling AI) ═══════ */
+  var AI_BASE = 'https://api.klingai.com';
+  var aiKeys = db.aiKeys || {};
+  var aiPhotoB64 = null, aiB64Raw = null;
+
+  function b64url(buf) {
+    var bin = '';
+    var bytes = new Uint8Array(buf);
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function makeJwt(ak, sk) {
+    var enc = new TextEncoder();
+    var header = b64url(enc.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+    var now = Math.floor(Date.now() / 1000);
+    var payload = b64url(enc.encode(JSON.stringify({ iss: ak, exp: now + 1800, nbf: now - 5 })));
+    var data = enc.encode(header + '.' + payload);
+    return crypto.subtle.importKey('raw', enc.encode(sk), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+      .then(function (key) { return crypto.subtle.sign('HMAC', key, data); })
+      .then(function (sig) { return header + '.' + payload + '.' + b64url(sig); });
+  }
+  function aiAuthHeaders() {
+    if (aiKeys.key) return Promise.resolve({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + aiKeys.key });
+    return makeJwt(aiKeys.ak, aiKeys.sk).then(function (t) { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t }; });
+  }
+  function klingReq(path, method, body) {
+    return aiAuthHeaders().then(function (headers) {
+      return fetch(AI_BASE + path, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+    }).then(function (res) { return res.json(); }).then(function (j) {
+      if (j.code !== 0) throw new Error(j.message || ('API error ' + j.code));
+      return j.data;
+    });
+  }
+  function pollTask(path, taskId, statusEl, done) {
+    var tries = 0, start = Date.now();
+    var timer = setInterval(function () {
+      tries++;
+      var secs = Math.round((Date.now() - start) / 1000);
+      klingReq(path + '/' + taskId, 'GET').then(function (d) {
+        var st = d.task_status;
+        if (st === 'succeed') { clearInterval(timer); done(null, d); }
+        else if (st === 'failed') { clearInterval(timer); done(d.task_status_msg || 'Task failed', null); }
+        else {
+          statusEl.textContent = 'Creating… ' + fmtSec(secs) + ' (status: ' + st + ')';
+          if (tries >= 90) { clearInterval(timer); done('Timed out after ~15 min', null); }
+        }
+      }).catch(function (e) { clearInterval(timer); done(e.message, null); });
+    }, 10000);
+  }
+  function fmtSec(s) { var m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; }
+  function aiHasKeys() { return !!(aiKeys.key || (aiKeys.ak && aiKeys.sk)); }
+  function aiStatus(msg) { $('#aiStatus').textContent = msg; }
+  function aiKeyStateTxt() { return aiHasKeys() ? (aiKeys.key ? 'API key ✓' : 'AK/SK ✓') : 'not set'; }
+
+  $('#aiDrop').addEventListener('click', function () { $('#aiPhoto').click(); });
+  $('#aiPhoto').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    compressImage(f, function (data) {
+      if (!data) { aiStatus('Could not read that image.'); return; }
+      aiPhotoB64 = data; aiB64Raw = data.split(',')[1];
+      $('#aiPrevImg').src = data;
+      $('#aiPrevBox').classList.remove('hidden');
+      aiStatus('Photo ready ✓');
+    });
+  });
+  $('#aiPrevClear').addEventListener('click', function () {
+    aiPhotoB64 = null; aiB64Raw = null;
+    $('#aiPrevBox').classList.add('hidden');
+    $('#aiPhoto').value = '';
+    aiStatus('');
+  });
+  $('#aiKeyToggle').addEventListener('click', function () { $('#aiKeyBox').classList.toggle('hidden'); });
+  $('#aiKeySave').addEventListener('click', function () {
+    aiKeys.ak = $('#aiAk').value.trim(); aiKeys.sk = $('#aiSk').value.trim();
+    aiKeys.key = $('#aiKey').value.trim();
+    if (!aiKeys.ak && !aiKeys.key) aiKeys.sk = '';
+    db.aiKeys = aiKeys; save();
+    $('#aiKeyState').textContent = aiKeyStateTxt();
+    aiStatus(aiHasKeys() ? 'Keys saved ✓' : 'Keys cleared.');
+    $('#aiKeyBox').classList.add('hidden');
+  });
+
+  function aiGenerate(kind) {
+    var prompt = $('#aiPrompt').value.trim();
+    if (!prompt) { aiStatus('Describe the self you are becoming first ✍️'); return; }
+    if (!aiHasKeys()) { aiStatus('Set your AI service key first ⚙ — tap the key section above'); return; }
+    var srcInput = aiB64Raw;
+    if (!srcInput) {
+      var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
+      if (lastPhoto && lastPhoto.url) srcInput = lastPhoto.url;
+    }
+    if (!srcInput) { aiStatus(kind === 'video' ? 'Add a photo to animate 📷' : 'Add your photo first 📷'); return; }
+    $('#aiBtnPhoto').disabled = true; $('#aiBtnVideo').disabled = true;
+
+    var body, path, pollPath;
+    if (kind === 'photo') {
+      body = { model_name: 'kling-v1', prompt: prompt, image: srcInput, aspect_ratio: '1:1', mode: 'std' };
+      path = '/v1/images/generations'; pollPath = path;
+      aiStatus('Sending to Kling AI…');
+    } else {
+      body = { model_name: 'kling-v1-6', image: srcInput, prompt: prompt, duration: '5', aspect_ratio: '9:16' };
+      path = '/v1/videos/image2video'; pollPath = path;
+      aiStatus('Sending photo to Kling AI…');
+    }
+
+    klingReq(path, 'POST', body).then(function (d) {
+      aiStatus(kind === 'photo' ? 'Generating photo… (≈30 s)' : 'Generating video… (5–15 min, you can leave)');
+      pollTask(pollPath, d.task_id, $('#aiStatus'), function (err, res) {
+        $('#aiBtnPhoto').disabled = false; $('#aiBtnVideo').disabled = false;
+        if (err) { aiStatus('❌ ' + err); return; }
+        var url = kind === 'photo' ? res.task_result.images[0].url : res.task_result.videos[0].url;
+        db.aiVision = db.aiVision || [];
+        db.aiVision.unshift({ id: uid(), kind: kind, ts: Date.now(), prompt: prompt, url: url });
+        save();
+        aiStatus('Done ✓ — links expire in a few hours, download now ↓');
+        renderAiResults();
+      });
+    }).catch(function (e) {
+      $('#aiBtnPhoto').disabled = false; $('#aiBtnVideo').disabled = false;
+      aiStatus('❌ ' + e.message);
+    });
+  }
+  $('#aiBtnFree').addEventListener('click', function () {
+    var prompt = $('#aiPrompt').value.trim();
+    if (!prompt) { aiStatus('Describe the self you are becoming first ✍️'); return; }
+    $('#aiBtnPhoto').disabled = true; $('#aiBtnFree').disabled = true; $('#aiBtnVideo').disabled = true;
+    aiStatus('Generating with free AI (Pollinations)… ~10 s');
+    var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt + ', photorealistic portrait, elegant, soft cinematic light') + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6);
+    var img = new Image();
+    img.onload = function () {
+      db.aiVision = db.aiVision || [];
+      db.aiVision.unshift({ id: uid(), kind: 'photo', ts: Date.now(), prompt: prompt, url: url, source: 'free' });
+      save();
+      $('#aiBtnPhoto').disabled = false; $('#aiBtnFree').disabled = false; $('#aiBtnVideo').disabled = false;
+      aiStatus('Done ✓ — free photo below ↓');
+      renderAiResults();
+    };
+    img.onerror = function () {
+      $('#aiBtnPhoto').disabled = false; $('#aiBtnFree').disabled = false; $('#aiBtnVideo').disabled = false;
+      aiStatus('❌ Free AI is busy right now — retry, or use ✦ Generate Photo (Kling key).');
+    };
+    img.src = url;
+  });
+  $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
+  $('#aiBtnVideo').addEventListener('click', function () { aiGenerate('video'); });
+
+  function renderAiResults() {
+    var wrap = $('#aiResults');
+    wrap.innerHTML = '';
+    if (!db.aiVision || !db.aiVision.length) { wrap.appendChild(el('div', 'empty', 'Your future self will appear here 🪞')); return; }
+    db.aiVision.forEach(function (v) {
+      var card = el('div', 'card glass ai-result');
+      var badgeTxt = v.kind === 'video' ? 'Video' : (v.source === 'free' ? 'Free Photo' : 'Photo');
+      card.appendChild(el('span', 'ai-badge ' + (v.source === 'free' ? 'video' : v.kind), badgeTxt));
+      if (v.kind === 'photo') {
+        var img = document.createElement('img'); img.src = v.url; card.appendChild(img);
+      } else {
+        var vid = document.createElement('video'); vid.src = v.url; vid.controls = true; vid.playsInline = true; card.appendChild(vid);
+      }
+      var when = new Date(v.ts).toLocaleString();
+      card.appendChild(el('p', 'ai-rl', '“' + v.prompt + '” · ' + when));
+      var dl = el('a', 'ai-rl', 'Download ' + (v.kind === 'photo' ? 'photo' : 'video') + ' ↓');
+      dl.href = v.url;
+      dl.setAttribute('download', 'luminara-future-self-' + v.id + (v.kind === 'photo' ? '.jpg' : '.mp4'));
+      dl.addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch(v.url).then(function (r) { return r.blob(); }).then(function (b) {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(b);
+          a.download = 'luminara-future-self-' + v.id + (v.kind === 'photo' ? '.jpg' : '.mp4');
+          document.body.appendChild(a); a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }).catch(function () { window.open(v.url, '_blank'); });
+      });
+      card.appendChild(dl);
+      wrap.appendChild(card);
+    });
+  }
+  renderAiResults();
+  $('#aiKeyState').textContent = aiKeyStateTxt();
+
+  /* ═══════ Affirmation Wallpaper ═══════ */
+  var WP_QUOTES = [
+    'I am becoming who I am meant to be',
+    'Everything I desire is already on its way',
+    'I am worthy of my wildest dreams',
+    'Abundance flows to me with ease',
+    'I trust the timing of my life',
+    'Today I choose peace and clarity',
+    'I am aligned with the universe',
+    'My energy attracts my desires',
+    'I release what no longer serves me',
+    'Every breath renews my power',
+    'I am grateful for this beautiful life',
+    'I am enough, exactly as I am',
+    'Magic happens when I believe',
+    'I radiate confidence and love',
+    'My future self is proud of me',
+    'I open my heart to endless possibilities'
+  ];
+
+  var wpState = {
+    preset: 0,
+    ratio: 'phone',
+    pos: 'center',
+    tone: 'light',
+    size: 48,
+    photo: null,
+    textNX: 0.5,
+    textNY: 0.5,
+    photoScale: 1.0,
+    photoOffsetX: 0,
+    photoOffsetY: 0,
+    activeLayer: 'text', // 'text' | 'photo'
+    _dragging: false,
+    _dragTarget: null,
+    _activeHandle: null,
+    _box: null
+  };
+
+  var WP_RATIOS = {
+    phone: { w: 1080, h: 1920 },
+    desktop: { w: 1920, h: 1080 }
+  };
+
+  function wpBlob(c, x, y, r, col) {
+    var g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+  }
+  // 确定性伪随机：保证每次重绘（含拖拽）星点位置不抖动
+  function wpRand(i) { var x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+  function wpStars(c, w, h, n, opts) {
+    opts = opts || {};
+    for (var i = 0; i < n; i++) {
+      var rx = wpRand(i * 3 + 1), ry = wpRand(i * 3 + 2), rb = wpRand(i * 3 + 3);
+      var x = rx * w, y = ry * h, rad = rb * 1.7 + 0.5, a = rb * 0.55 + 0.28;
+      if (opts.dim) a *= 0.6;
+      c.fillStyle = 'rgba(255,255,255,' + a + ')';
+      c.beginPath(); c.arc(x, y, rad, 0, Math.PI * 2); c.fill();
+      if (opts.spark && rad > 1.7) {
+        c.save(); c.globalAlpha = a * 0.85;
+        c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = Math.max(1, rad * 0.45);
+        var s = rad * 4.5;
+        c.beginPath(); c.moveTo(x - s, y); c.lineTo(x + s, y); c.moveTo(x, y - s); c.lineTo(x, y + s); c.stroke();
+        c.restore();
+      }
+    }
+  }
+  function wpVignette(c, w, h, amt) {
+    var g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.22, w / 2, h / 2, Math.max(w, h) * 0.78);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,' + amt + ')');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+  }
+  var WP_PRESETS = [
+    // 1 · Aurora Veil 极光纱幔
+    function (c, w, h) {
+      var g = c.createLinearGradient(0, 0, w * 0.4, h);
+      g.addColorStop(0, '#0a0e27'); g.addColorStop(0.55, '#0c1230'); g.addColorStop(1, '#05060f');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      wpBlob(c, w * 0.5, h * 0.22, w * 0.85, 'rgba(40,220,180,0.28)');
+      wpBlob(c, w * 0.3, h * 0.34, w * 0.70, 'rgba(90,120,240,0.26)');
+      wpBlob(c, w * 0.72, h * 0.30, w * 0.60, 'rgba(200,90,220,0.24)');
+      wpStars(c, w, h, 90, { dim: true });
+      wpVignette(c, w, h, 0.34);
+    },
+    // 2 · Midnight Bloom 午夜花
+    function (c, w, h) {
+      var g = c.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, Math.max(w, h) * 0.9);
+      g.addColorStop(0, '#241033'); g.addColorStop(1, '#0a0510');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      wpBlob(c, w * 0.72, h * 0.26, w * 0.70, 'rgba(220,90,180,0.40)');
+      wpBlob(c, w * 0.22, h * 0.82, w * 0.60, 'rgba(120,80,225,0.34)');
+      wpStars(c, w, h, 70, { dim: true });
+      wpVignette(c, w, h, 0.30);
+    },
+    // 3 · Cosmic Drift 星河漂流（银河带）
+    function (c, w, h) {
+      var g = c.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, '#070a1c'); g.addColorStop(0.5, '#05070f'); g.addColorStop(1, '#02030a');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      wpBlob(c, w * 0.20, h * 0.30, w * 0.50, 'rgba(150,170,255,0.18)');
+      wpBlob(c, w * 0.50, h * 0.46, w * 0.55, 'rgba(180,150,240,0.16)');
+      wpBlob(c, w * 0.82, h * 0.62, w * 0.50, 'rgba(120,180,255,0.16)');
+      wpStars(c, w, h, 170, { spark: true });
+      wpVignette(c, w, h, 0.30);
+    },
+    // 4 · Ember Glow 余烬暖光
+    function (c, w, h) {
+      var g = c.createRadialGradient(w * 0.3, h * 0.9, 0, w * 0.5, h * 0.6, Math.max(w, h));
+      g.addColorStop(0, '#2a1606'); g.addColorStop(1, '#0a0604');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      wpBlob(c, w * 0.28, h * 0.86, w * 0.80, 'rgba(255,150,60,0.34)');
+      wpBlob(c, w * 0.82, h * 0.20, w * 0.50, 'rgba(255,120,90,0.20)');
+      wpStars(c, w, h, 50, { dim: true });
+      wpVignette(c, w, h, 0.42);
+    },
+    // 5 · Ocean Depths 深海
+    function (c, w, h) {
+      var g = c.createLinearGradient(0, h, 0, 0);
+      g.addColorStop(0, '#021a1e'); g.addColorStop(1, '#01090c');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      wpBlob(c, w * 0.5, h * 0.64, w * 0.95, 'rgba(40,200,210,0.30)');
+      wpBlob(c, w * 0.32, h * 0.30, w * 0.50, 'rgba(60,120,205,0.26)');
+      wpStars(c, w, h, 45, { dim: true });
+      wpVignette(c, w, h, 0.34);
+    },
+    // 6 · Rose Quartz Night 玫瑰夜
+    function (c, w, h) {
+      var g = c.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, Math.max(w, h) * 0.85);
+      g.addColorStop(0, '#1c0712'); g.addColorStop(1, '#0a0308');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      wpBlob(c, w * 0.5, h * 0.34, w * 0.85, 'rgba(240,150,190,0.30)');
+      wpBlob(c, w * 0.74, h * 0.80, w * 0.50, 'rgba(150,90,205,0.28)');
+      wpStars(c, w, h, 55, { dim: true });
+      wpVignette(c, w, h, 0.30);
+    }
+  ];
+
+  function wpThumb(preset) {
+    var cnv = document.createElement('canvas'); cnv.width = 180; cnv.height = 320;
+    WP_PRESETS[preset](cnv.getContext('2d'), 180, 320);
+    return cnv;
+  }
+  function renderWpPresets() {
+    var wrap = $('#wpBgs'); if (!wrap) return;
+    wrap.innerHTML = '';
+    WP_PRESETS.forEach(function (p, i) {
+      var btn = document.createElement('button');
+      btn.className = 'wp-bg' + (wpState.preset === i && !wpState.photo ? ' active' : '');
+      btn.type = 'button'; btn.dataset.preset = i;
+      btn.appendChild(wpThumb(i));
+      btn.addEventListener('click', function () {
+        wpState.preset = i; wpState.photo = null;
+        $('#wpPrevBox').classList.add('hidden'); $('#wpPhoto').value = '';
+        $('#wpPhotoControls').classList.add('hidden');
+        $('#wpLayerPhoto').classList.add('hidden');
+        $('#wpResetPhotoBtn').classList.add('hidden');
+        setActiveLayer('text');
+        $('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
+        renderWallpaper();
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function setActiveLayer(layer) {
+    wpState.activeLayer = layer;
+    var btnT = $('#wpLayerText');
+    var btnP = $('#wpLayerPhoto');
+    if (btnT) btnT.classList.toggle('active', layer === 'text');
+    if (btnP) btnP.classList.toggle('active', layer === 'photo');
+    var hint = $('#wpGestureHint');
+    if (hint) {
+      if (layer === 'photo' && wpState.photo) {
+        hint.textContent = '🖼 Photo active: Drag to pan · Pinch, scroll wheel, or use slider to zoom';
+      } else {
+        hint.textContent = '✦ Text active: Drag to move · Drag corners, pinch, scroll, or use slider to resize';
+      }
+    }
+    renderWallpaper();
+  }
+
+  if ($('#wpLayerText')) {
+    $('#wpLayerText').addEventListener('click', function () { setActiveLayer('text'); });
+  }
+  if ($('#wpLayerPhoto')) {
+    $('#wpLayerPhoto').addEventListener('click', function () { setActiveLayer('photo'); });
+  }
+
+  function loadWpHighResPhoto(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      var img = new Image();
+      img.onload = function () {
+        var maxDim = 2560;
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        if (w <= maxDim && h <= maxDim) {
+          cb(ev.target.result);
+          return;
+        }
+        var scale = Math.min(maxDim / w, maxDim / h);
+        var targetW = Math.round(w * scale);
+        var targetH = Math.round(h * scale);
+        var c = document.createElement('canvas');
+        c.width = targetW; c.height = targetH;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        try {
+          cb(c.toDataURL('image/jpeg', 0.92));
+        } catch (err) {
+          cb(ev.target.result);
+        }
+      };
+      img.onerror = function () { cb(null); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function () { cb(null); };
+    reader.readAsDataURL(file);
+  }
+
+  $('#wpDrop').addEventListener('click', function () { $('#wpPhoto').click(); });
+  $('#wpPhoto').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    loadWpHighResPhoto(f, function (data) {
+      if (!data) return;
+      wpState.photo = data;
+      wpState.photoScale = 1.0;
+      wpState.photoOffsetX = 0;
+      wpState.photoOffsetY = 0;
+      $('#wpPrevImg').src = data;
+      $('#wpPrevBox').classList.remove('hidden');
+      $('#wpPhotoControls').classList.remove('hidden');
+      $('#wpLayerPhoto').classList.remove('hidden');
+      $('#wpResetPhotoBtn').classList.remove('hidden');
+      $('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
+      updateWpPhotoControls();
+      setActiveLayer('photo');
+      renderWallpaper();
+      saveWpSettings();
+    });
+  });
+
+  $('#wpPrevClear').addEventListener('click', function () {
+    wpState.photo = null;
+    wpState.photoScale = 1.0;
+    wpState.photoOffsetX = 0;
+    wpState.photoOffsetY = 0;
+    $('#wpPrevBox').classList.add('hidden');
+    $('#wpPhoto').value = '';
+    $('#wpPhotoControls').classList.add('hidden');
+    $('#wpLayerPhoto').classList.add('hidden');
+    $('#wpResetPhotoBtn').classList.add('hidden');
+    setActiveLayer('text');
+    renderWpPresets();
+    renderWallpaper();
+    saveWpSettings();
+  });
+
+  $('#wpShuffle').addEventListener('click', function () {
+    $('#wpText').value = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
+    renderWallpaper();
+  });
+  $('#wpText').addEventListener('input', renderWallpaper);
+
+  $('.wp-ratio').forEach(function (b) {
+    b.addEventListener('click', function () {
+      wpState.ratio = b.dataset.ratio;
+      $('.wp-ratio').forEach(function (x) { x.classList.toggle('active', x === b); });
+      renderWallpaper();
+      saveWpSettings();
+    });
+  });
+
+  $('.wp-pos').forEach(function (b) {
+    b.addEventListener('click', function () {
+      wpState.pos = b.dataset.pos;
+      $('.wp-pos').forEach(function (x) { x.classList.toggle('active', x === b); });
+      if (b.dataset.pos === 'top') { wpState.textNX = 0.5; wpState.textNY = 0.18; }
+      else if (b.dataset.pos === 'bottom') { wpState.textNX = 0.5; wpState.textNY = 0.72; }
+      else { wpState.textNX = 0.5; wpState.textNY = 0.5; }
+      renderWallpaper();
+      saveWpSettings();
+    });
+  });
+
+  $('.wp-tone').forEach(function (b) {
+    b.addEventListener('click', function () {
+      wpState.tone = b.dataset.tone;
+      $('.wp-tone').forEach(function (x) { x.classList.toggle('active', x === b); });
+      renderWallpaper();
+      saveWpSettings();
+    });
+  });
+
+  function updateWpSizeControls() {
+    var sz = Math.round(wpState.size);
+    var input = $('#wpSize'); if (input) input.value = sz;
+    var badge = $('#wpSizeVal'); if (badge) badge.textContent = sz + 'px';
+  }
+
+  function updateWpPhotoControls() {
+    var pct = Math.round(wpState.photoScale * 100);
+    var input = $('#wpPhotoZoom'); if (input) input.value = pct;
+    var badge = $('#wpPhotoZoomVal'); if (badge) badge.textContent = pct + '%';
+  }
+
+  $('#wpSize').addEventListener('input', function () {
+    wpState.size = +this.value;
+    updateWpSizeControls();
+    renderWallpaper();
+    saveWpSettings();
+  });
+
+  if ($('#wpSizeMinus')) {
+    $('#wpSizeMinus').addEventListener('click', function () {
+      wpState.size = Math.max(20, wpState.size - 4);
+      updateWpSizeControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpSizePlus')) {
+    $('#wpSizePlus').addEventListener('click', function () {
+      wpState.size = Math.min(100, wpState.size + 4);
+      updateWpSizeControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+
+  if ($('#wpPhotoZoom')) {
+    $('#wpPhotoZoom').addEventListener('input', function () {
+      wpState.photoScale = (+this.value) / 100;
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpZoomMinus')) {
+    $('#wpZoomMinus').addEventListener('click', function () {
+      wpState.photoScale = Math.max(0.3, wpState.photoScale - 0.1);
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpZoomPlus')) {
+    $('#wpZoomPlus').addEventListener('click', function () {
+      wpState.photoScale = Math.min(3.5, wpState.photoScale + 0.1);
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+
+  if ($('#wpFitPhoto')) {
+    $('#wpFitPhoto').addEventListener('click', function () {
+      if (!wpImgCache) return;
+      var ratio = WP_RATIOS[wpState.ratio];
+      var ir = wpImgCache.width / wpImgCache.height, cr = ratio.w / ratio.h;
+      var fitScale = (ir > cr) ? (cr / ir) : (ir / cr);
+      wpState.photoScale = Math.max(0.3, Math.min(1.0, fitScale));
+      wpState.photoOffsetX = 0;
+      wpState.photoOffsetY = 0;
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpFillPhoto')) {
+    $('#wpFillPhoto').addEventListener('click', function () {
+      wpState.photoScale = 1.0;
+      wpState.photoOffsetX = 0;
+      wpState.photoOffsetY = 0;
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  function resetPhotoTransform() {
+    wpState.photoScale = 1.0;
+    wpState.photoOffsetX = 0;
+    wpState.photoOffsetY = 0;
+    updateWpPhotoControls();
+    renderWallpaper();
+    saveWpSettings();
+  }
+  if ($('#wpResetPhoto')) $('#wpResetPhoto').addEventListener('click', resetPhotoTransform);
+  if ($('#wpResetPhotoBtn')) $('#wpResetPhotoBtn').addEventListener('click', resetPhotoTransform);
+
+  /* ---- Persistence ---- */
+  function saveWpSettings() {
+    try {
+      localStorage.setItem('luminara_wp_settings', JSON.stringify({
+        textNX: wpState.textNX,
+        textNY: wpState.textNY,
+        size: wpState.size,
+        photoScale: wpState.photoScale,
+        photoOffsetX: wpState.photoOffsetX,
+        photoOffsetY: wpState.photoOffsetY,
+        ratio: wpState.ratio,
+        tone: wpState.tone
+      }));
+    } catch (e) {}
+  }
+  (function () {
+    try {
+      var s = JSON.parse(localStorage.getItem('luminara_wp_settings') || 'null');
+      if (s) {
+        if (typeof s.textNX === 'number') wpState.textNX = s.textNX;
+        if (typeof s.textNY === 'number') wpState.textNY = s.textNY;
+        if (typeof s.size === 'number') wpState.size = s.size;
+        if (typeof s.photoScale === 'number') wpState.photoScale = s.photoScale;
+        if (typeof s.photoOffsetX === 'number') wpState.photoOffsetX = s.photoOffsetX;
+        if (typeof s.photoOffsetY === 'number') wpState.photoOffsetY = s.photoOffsetY;
+        if (s.ratio && WP_RATIOS[s.ratio]) wpState.ratio = s.ratio;
+        if (s.tone) wpState.tone = s.tone;
+      }
+    } catch (e) {}
+  })();
+
+  /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
+  var wpCanvas = $('#wpCanvas');
+  function wpCanvasPoint(clientX, clientY) {
+    var ratio = WP_RATIOS[wpState.ratio];
+    var rect = wpCanvas.getBoundingClientRect();
+    return {
+      x: ((clientX - rect.left) / rect.width) * ratio.w,
+      y: ((clientY - rect.top) / rect.height) * ratio.h
+    };
+  }
+
+  var WP_SNAP = 0.035;
+  function wpSnap(v) {
+    var targets = [1 / 3, 0.5, 2 / 3];
+    for (var i = 0; i < targets.length; i++) {
+      if (Math.abs(v - targets[i]) < WP_SNAP) return targets[i];
+    }
+    return null;
+  }
+
+  function wpHitTest(p) {
+    if (wpState._box) {
+      var b = wpState._box;
+      var handleHitR = Math.max(45, b.px * 0.65);
+      var corners = [
+        { id: 'tl', x: b.x, y: b.y },
+        { id: 'tr', x: b.x + b.w, y: b.y },
+        { id: 'br', x: b.x + b.w, y: b.y + b.h },
+        { id: 'bl', x: b.x, y: b.y + b.h }
+      ];
+      for (var i = 0; i < corners.length; i++) {
+        var c = corners[i];
+        if (Math.hypot(p.x - c.x, p.y - c.y) <= handleHitR) {
+          return { target: 'text-handle', handle: c.id, box: b };
+        }
+      }
+      if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+        return { target: 'text', box: b };
+      }
+    }
+    if (wpState.photo) {
+      return { target: 'photo' };
+    }
+    return { target: 'text' };
+  }
+
+  // Update canvas hover cursor
+  wpCanvas.addEventListener('pointermove', function (e) {
+    if (!wpState._dragging && wpActivePointers.size === 0) {
+      var p = wpCanvasPoint(e.clientX, e.clientY);
+      var hit = wpHitTest(p);
+      if (hit.target === 'text-handle') {
+        wpCanvas.style.cursor = (hit.handle === 'tl' || hit.handle === 'br') ? 'nwse-resize' : 'nesw-resize';
+      } else if (hit.target === 'text') {
+        wpCanvas.style.cursor = 'move';
+      } else if (wpState.photo) {
+        wpCanvas.style.cursor = 'grab';
+      } else {
+        wpCanvas.style.cursor = 'default';
+      }
+    }
+  });
+
+  // Pointer tracking & multi-touch pinch state
+  var wpActivePointers = new Map();
+  var wpDragStartData = null;
+  var wpPinchStart = null;
+
+  wpCanvas.addEventListener('pointerdown', function (e) {
+    wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (wpActivePointers.size === 1) {
+      var p = wpCanvasPoint(e.clientX, e.clientY);
+      var ratio = WP_RATIOS[wpState.ratio];
+      var hit = wpHitTest(p);
+
+      wpState._dragging = true;
+      wpState._dragTarget = hit.target;
+      wpState._activeHandle = hit.handle || null;
+
+      if (hit.target === 'text-handle') {
+        wpCanvas.classList.add('resizing');
+        wpDragStartData = {
+          initP: p,
+          initSize: wpState.size,
+          cx: hit.box.cx,
+          cy: hit.box.cy,
+          initDist: Math.hypot(p.x - hit.box.cx, p.y - hit.box.cy) || 1
+        };
+        setActiveLayer('text');
+      } else if (hit.target === 'text') {
+        wpCanvas.classList.add('dragging');
+        wpDragStartData = {
+          offX: p.x - wpState.textNX * ratio.w,
+          offY: p.y - wpState.textNY * ratio.h
+        };
+        setActiveLayer('text');
+      } else if (hit.target === 'photo') {
+        wpCanvas.classList.add('dragging');
+        wpDragStartData = {
+          startP: p,
+          startOffX: wpState.photoOffsetX,
+          startOffY: wpState.photoOffsetY,
+          rw: ratio.w,
+          rh: ratio.h
+        };
+        setActiveLayer('photo');
+      }
+
+      if (wpCanvas.setPointerCapture) {
+        try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+    } else if (wpActivePointers.size === 2) {
+      // 2-finger Pinch to zoom
+      var pts = Array.from(wpActivePointers.values());
+      var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      wpPinchStart = {
+        dist: dist || 1,
+        initSize: wpState.size,
+        initPhotoScale: wpState.photoScale,
+        layer: wpState.activeLayer
+      };
+    }
+
+    e.preventDefault();
+    renderWallpaper();
+  });
+
+  wpCanvas.addEventListener('pointermove', function (e) {
+    if (!wpActivePointers.has(e.pointerId)) return;
+    wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Handle 2-finger pinch
+    if (wpActivePointers.size === 2 && wpPinchStart) {
+      var pts = Array.from(wpActivePointers.values());
+      var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      var pinchFactor = dist / wpPinchStart.dist;
+
+      if (wpPinchStart.layer === 'photo' && wpState.photo) {
+        wpState.photoScale = Math.max(0.3, Math.min(3.5, wpPinchStart.initPhotoScale * pinchFactor));
+        updateWpPhotoControls();
+      } else {
+        wpState.size = Math.round(Math.max(20, Math.min(100, wpPinchStart.initSize * pinchFactor)));
+        updateWpSizeControls();
+      }
+      renderWallpaper();
+      return;
+    }
+
+    if (!wpState._dragging || !wpDragStartData) return;
+    var p = wpCanvasPoint(e.clientX, e.clientY);
+    var ratio = WP_RATIOS[wpState.ratio];
+
+    if (wpState._dragTarget === 'text-handle') {
+      var currDist = Math.hypot(p.x - wpDragStartData.cx, p.y - wpDragStartData.cy);
+      var factor = currDist / wpDragStartData.initDist;
+      wpState.size = Math.round(Math.max(20, Math.min(100, wpDragStartData.initSize * factor)));
+      updateWpSizeControls();
+      renderWallpaper();
+    } else if (wpState._dragTarget === 'text') {
+      var nx = (p.x - wpDragStartData.offX) / ratio.w;
+      var ny = (p.y - wpDragStartData.offY) / ratio.h;
+      var sx = wpSnap(nx), sy = wpSnap(ny);
+      if (sx !== null) nx = sx;
+      if (sy !== null) ny = sy;
+      wpState.textNX = Math.max(0.04, Math.min(0.96, nx));
+      wpState.textNY = Math.max(0.04, Math.min(0.96, ny));
+      renderWallpaper();
+    } else if (wpState._dragTarget === 'photo') {
+      var dx = (p.x - wpDragStartData.startP.x) / wpDragStartData.rw;
+      var dy = (p.y - wpDragStartData.startP.y) / wpDragStartData.rh;
+      wpState.photoOffsetX = Math.max(-1.5, Math.min(1.5, wpDragStartData.startOffX + dx));
+      wpState.photoOffsetY = Math.max(-1.5, Math.min(1.5, wpDragStartData.startOffY + dy));
+      renderWallpaper();
+    }
+  });
+
+  function wpEndPointer(e) {
+    wpActivePointers.delete(e.pointerId);
+    if (wpActivePointers.size === 0) {
+      wpState._dragging = false;
+      wpState._dragTarget = null;
+      wpState._activeHandle = null;
+      wpDragStartData = null;
+      wpPinchStart = null;
+      wpCanvas.classList.remove('dragging', 'resizing');
+      renderWallpaper();
+      saveWpSettings();
+    }
+  }
+
+  wpCanvas.addEventListener('pointerup', wpEndPointer);
+  wpCanvas.addEventListener('pointercancel', wpEndPointer);
+  wpCanvas.addEventListener('pointerleave', function (e) {
+    if (wpActivePointers.size === 0) wpEndPointer(e);
+  });
+
+  // Mouse wheel zoom on canvas
+  wpCanvas.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var delta = e.deltaY < 0 ? 1 : -1;
+    var p = wpCanvasPoint(e.clientX, e.clientY);
+    var hit = wpHitTest(p);
+
+    if (hit.target === 'photo' || (wpState.activeLayer === 'photo' && wpState.photo)) {
+      var factor = delta > 0 ? 1.08 : 0.92;
+      wpState.photoScale = Math.max(0.3, Math.min(3.5, wpState.photoScale * factor));
+      updateWpPhotoControls();
+      setActiveLayer('photo');
+    } else {
+      wpState.size = Math.max(20, Math.min(100, wpState.size + delta * 2));
+      updateWpSizeControls();
+      setActiveLayer('text');
+    }
+    renderWallpaper();
+    saveWpSettings();
+  }, { passive: false });
+
+  $('#wpResetPos').addEventListener('click', function () {
+    wpState.textNX = 0.5; wpState.textNY = 0.5;
+    renderWallpaper(); saveWpSettings();
+  });
+
+  /* ---- Scaled Cover Rendering for Uploaded Image ---- */
+  function drawCoverScaled(c, img, w, h, scale, offX, offY) {
+    var ir = img.width / img.height, cr = w / h;
+    var baseW, baseH;
+    if (ir > cr) {
+      baseH = h;
+      baseW = baseH * ir;
+    } else {
+      baseW = w;
+      baseH = baseW / ir;
+    }
+    var drawW = baseW * (scale || 1.0);
+    var drawH = baseH * (scale || 1.0);
+    var drawX = (w - drawW) / 2 + ((offX || 0) * w);
+    var drawY = (h - drawH) / 2 + ((offY || 0) * h);
+
+    c.save();
+    c.fillStyle = '#000000';
+    c.fillRect(0, 0, w, h);
+    c.beginPath();
+    c.rect(0, 0, w, h);
+    c.clip();
+    c.drawImage(img, drawX, drawY, drawW, drawH);
+    c.restore();
+  }
+
+  /* ---- Render Text & Interactive Overlays ---- */
+  function drawWpText(c, ratio, forExport) {
+    var text = $('#wpText').value.trim();
+    var w = ratio.w, h = ratio.h;
+    if (!wpState.photo) {
+      var scrim = c.createLinearGradient(0, 0, 0, h);
+      scrim.addColorStop(0, 'rgba(0,0,0,0.10)');
+      scrim.addColorStop(0.5, 'rgba(0,0,0,0.24)');
+      scrim.addColorStop(1, 'rgba(0,0,0,0.10)');
+      c.fillStyle = scrim; c.fillRect(0, 0, w, h);
+    }
+
+    if (!text) { wpState._box = null; return; }
+
+    var px = Math.round(wpState.size * (w / 1080));
+    c.font = '600 ' + px + 'px "Cinzel", "Georgia", serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+    var maxW = w * 0.82;
+    var words = text.split(/\s+/), lines = [], cur = '';
+    words.forEach(function (wd) {
+      var t = cur ? cur + ' ' + wd : wd;
+      if (c.measureText(t).width > maxW && cur) { lines.push(cur); cur = wd; }
+      else cur = t;
+    });
+    if (cur) lines.push(cur);
+
+    var maxLineWidth = 0;
+    lines.forEach(function (ln) {
+      var mw = c.measureText(ln).width;
+      if (mw > maxLineWidth) maxLineWidth = mw;
+    });
+    if (maxLineWidth === 0) maxLineWidth = maxW * 0.6;
+
+    var lh = px * 1.35, total = lines.length * lh;
+    var cx = wpState.textNX * w, cy = wpState.textNY * h;
+    var y0 = cy - total / 2;
+    var fill = wpState.tone === 'light' ? '#ffffff' : '#241a3a';
+
+    lines.forEach(function (ln, i) {
+      var y = y0 + i * lh + lh / 2;
+      if (wpState.tone === 'light') {
+        c.strokeStyle = 'rgba(0,0,0,0.45)'; c.lineWidth = px * 0.12; c.strokeText(ln, cx, y);
+      }
+      c.fillStyle = fill;
+      c.shadowColor = wpState.tone === 'light' ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.25)';
+      c.shadowBlur = px * 0.25;
+      c.fillText(ln, cx, y);
+      c.shadowBlur = 0;
+    });
+
+    var pad = px * 0.35;
+    wpState._box = {
+      x: cx - maxLineWidth / 2 - pad,
+      y: y0 - pad,
+      w: maxLineWidth + pad * 2,
+      h: total + pad * 2,
+      cx: cx,
+      cy: cy,
+      px: px
+    };
+
+    if (!forExport) {
+      if (wpState._dragging) {
+        wpDrawGuides(c, ratio);
+      }
+      if (wpState.activeLayer === 'text' || wpState._dragging) {
+        c.save();
+        c.strokeStyle = 'rgba(255,255,255,0.92)';
+        c.lineWidth = Math.max(3, px * 0.05);
+        c.setLineDash([px * 0.24, px * 0.18]);
+        c.strokeRect(wpState._box.x, wpState._box.y, wpState._box.w, wpState._box.h);
+        c.setLineDash([]);
+
+        // 4 corner handles
+        var handleR = Math.max(16, px * 0.28);
+        var corners = [
+          [wpState._box.x, wpState._box.y],
+          [wpState._box.x + wpState._box.w, wpState._box.y],
+          [wpState._box.x + wpState._box.w, wpState._box.y + wpState._box.h],
+          [wpState._box.x, wpState._box.y + wpState._box.h]
+        ];
+        corners.forEach(function (pt) {
+          c.fillStyle = '#ffffff';
+          c.strokeStyle = '#9a63d2';
+          c.lineWidth = Math.max(3, px * 0.06);
+          c.beginPath();
+          c.arc(pt[0], pt[1], handleR, 0, Math.PI * 2);
+          c.fill();
+          c.stroke();
+        });
+        c.restore();
+      }
+    }
+  }
+
+  function wpDrawGuides(c, ratio) {
+    var w = ratio.w, h = ratio.h;
+    var xs = [1 / 3, 0.5, 2 / 3], ys = [1 / 3, 0.5, 2 / 3];
+    function line(x1, y1, x2, y2, active) {
+      c.setLineDash([]);
+      c.lineWidth = active ? Math.max(4, w * 0.003) : Math.max(2.5, w * 0.0018);
+      c.strokeStyle = 'rgba(0,0,0,0.32)'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+      c.strokeStyle = active ? 'rgba(130,240,180,0.98)' : 'rgba(255,255,255,0.55)';
+      c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+    }
+    xs.forEach(function (gx) { line(gx * w, 0, gx * w, h, Math.abs(wpState.textNX - gx) < 0.002); });
+    ys.forEach(function (gy) { line(0, gy * h, w, gy * h, Math.abs(wpState.textNY - gy) < 0.002); });
+    c.setLineDash([]);
+  }
+
+  var wpImgCache = null, wpImgSrc = null;
+  function renderWallpaper(forExport) {
+    var ratio = WP_RATIOS[wpState.ratio];
+    var cnv = $('#wpCanvas');
+    if (!cnv) return;
+    cnv.width = ratio.w; cnv.height = ratio.h;
+    cnv.style.aspectRatio = ratio.w + ' / ' + ratio.h;
+    var c = cnv.getContext('2d');
+
+    function paint() {
+      if (wpState.photo) {
+        if (wpImgCache) {
+          drawCoverScaled(c, wpImgCache, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
+        }
+      } else {
+        WP_PRESETS[wpState.preset](c, ratio.w, ratio.h);
+      }
+      drawWpText(c, ratio, !!forExport);
+    }
+
+    if (wpState.photo) {
+      if (wpImgCache && wpImgSrc === wpState.photo) {
+        paint();
+      } else {
+        var img = new Image();
+        img.onload = function () {
+          wpImgCache = img;
+          wpImgSrc = wpState.photo;
+          paint();
+        };
+        img.src = wpState.photo;
+      }
+    } else {
+      paint();
+    }
+  }
+
+  $('#wpExport').addEventListener('click', function () {
+    // Render clean image without UI selection boxes or handles
+    renderWallpaper(true);
+
+    $('#wpCanvas').toBlob(function (blob) {
+      // Re-render interactive state
+      renderWallpaper(false);
+
+      if (!blob) return;
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'luminara-affirmation-' + wpState.ratio + '.png';
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+      var t = $('#wpGuideText');
+      var ua = navigator.userAgent;
+      if (/iPhone|iPad|iPod/i.test(ua)) t.textContent = '1. The image was saved to Photos. 2. Open it in Photos → tap the Share icon (⬆) → "Use as Wallpaper" → Set.';
+      else if (/Android/i.test(ua)) t.textContent = '1. The image was saved to your gallery. 2. Open it, tap ⋮ → "Set as wallpaper" (some phones: long-press the image).';
+      else if (/Windows/i.test(ua)) t.textContent = '1. The image was downloaded. 2. Find it in Downloads, right-click → "Set as desktop background".';
+      else t.textContent = '1. The image was downloaded. 2. Open it and set as wallpaper (right-click → Set as desktop background).';
+      $('#wpGuide').classList.remove('hidden');
+    }, 'image/png');
+  });
+
+  renderWpPresets();
+  $('#wpText').value = WP_QUOTES[0];
+  updateWpSizeControls();
+  updateWpPhotoControls();
+  renderWallpaper();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { renderWallpaper(); });
+
+  /* ═══════ AI Avatar Speaker ═══════ */
+  var AV_PRESETS = [
+    { ico: '👩', name: 'Warm Woman', prompt: 'portrait of a warm, friendly woman in her 30s with soft brown hair and kind brown eyes, gentle smile, soft studio light' },
+    { ico: '👨', name: 'Kind Man', prompt: 'portrait of a kind, wise man in his 40s with short dark hair and a gentle smile, warm lighting' },
+    { ico: '🧑', name: 'Peaceful Guide', prompt: 'portrait of a calm, serene person with a peaceful expression, soft natural light' },
+    { ico: '👵', name: 'Elder Sage', prompt: 'portrait of a wise elderly woman with silver hair and sparkling eyes, sage energy, soft light' },
+    { ico: '🧕', name: 'Cosmic Muse', prompt: 'portrait of a mystical woman with flowing hair and luminous eyes, ethereal glow' },
+    { ico: '🧔', name: 'Strong Mentor', prompt: 'portrait of a confident mentor with a reassuring smile, cinematic light' }
+  ];
+  var AV_BASE = 'https://image.pollinations.ai/prompt/';
+  var avStateImg = db.avatarImg || null;
+
+  function avPollUrl(prompt) {
+    return AV_BASE + encodeURIComponent(prompt + ', photorealistic portrait, upper body') + '?width=512&height=512&nologo=true&seed=' + Math.floor(Math.random() * 100000);
+  }
+  function renderAvPresets() {
+    var wrap = $('#avPresets'); wrap.innerHTML = '';
+    AV_PRESETS.forEach(function (p, i) {
+      var b = document.createElement('button');
+      b.className = 'av-preset'; b.type = 'button'; b.dataset.i = i;
+      b.innerHTML = '<span class="ap-ico">' + p.ico + '</span>' + p.name;
+      b.addEventListener('click', function () {
+        $('#avPrompt').value = p.prompt;
+        $('.av-preset').forEach(function (x) { x.classList.toggle('active', x === b); });
+      });
+      wrap.appendChild(b);
+    });
+  }
+  function setAvImg(src, label) {
+    avStateImg = src;
+    db.avatarImg = src; save();
+    $('#avImg').src = src;
+    $('#avState').textContent = label || 'Your avatar is ready ✨ Press ▶ Speak It';
+  }
+  $('#avGen').addEventListener('click', function () {
+    var p = $('#avPrompt').value.trim();
+    if (!p) { $('#avState').textContent = 'Pick a preset or describe your avatar first ✍️'; return; }
+    $('#avState').textContent = 'Creating your avatar… (free AI, ~10 s)';
+    setAvImg(avPollUrl(p), 'Your avatar is ready ✨ Press ▶ Speak It');
+  });
+  $('#avUsePhoto').addEventListener('click', function () { $('#avPhoto').click(); });
+  $('#avPhoto').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    compressImage(f, function (data) {
+      if (!data) return;
+      setAvImg(data, 'Using your photo — press ▶ Speak It');
+    });
+  });
+
+  var avVoices = [];
+  function fillVoices() {
+    if (!window.speechSynthesis) return;
+    avVoices = window.speechSynthesis.getVoices().filter(function (v) { return /^en/i.test(v.lang); });
+    var sel = $('#avVoice'); sel.innerHTML = '';
+    if (!avVoices.length) {
+      var d = document.createElement('option'); d.value = -1; d.textContent = 'Default voice'; sel.appendChild(d); return;
+    }
+    avVoices.forEach(function (v, i) {
+      var o = document.createElement('option'); o.value = i; o.textContent = v.name.replace(/Microsoft |Google |Natural /g, '');
+      sel.appendChild(o);
+    });
+  }
+  if (window.speechSynthesis) {
+    fillVoices();
+    window.speechSynthesis.onvoiceschanged = fillVoices;
+  }
+  function avStopTalk() {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    $('#avFace').classList.remove('talking');
+    $('#avState').textContent = 'Stopped. Press ▶ Speak It to hear it again.';
+  }
+  $('#avStop').addEventListener('click', avStopTalk);
+  $('#avSpeak').addEventListener('click', function () {
+    if (!window.speechSynthesis) { $('#avState').textContent = 'Speech is not supported on this device.'; return; }
+    var text = $('#avText').value.trim();
+    if (!text) { $('#avState').textContent = 'Write an affirmation to speak first ✍️'; return; }
+    if (!avStateImg) { $('#avState').textContent = 'Generate your avatar first — see step 1 ✨'; return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    var vi = $('#avVoice').value;
+    if (avVoices[vi]) u.voice = avVoices[vi];
+    u.rate = 0.95; u.pitch = 1.0;
+    u.onstart = function () { $('#avFace').classList.add('talking'); $('#avState').textContent = 'Speaking… your guide is with you ✨'; };
+    u.onend = function () { $('#avFace').classList.remove('talking'); $('#avState').textContent = 'Done. That affirmation is now yours. ✨'; };
+    u.onerror = function () { $('#avFace').classList.remove('talking'); };
+    window.speechSynthesis.speak(u);
+  });
+  $('#avShuffle').addEventListener('click', function () {
+    $('#avText').value = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
+  });
+
+  renderAvPresets();
+  if (avStateImg) { $('#avImg').src = avStateImg; $('#avState').textContent = 'Your avatar is ready ✨ Press ▶ Speak It'; }
+  $('#avText').value = WP_QUOTES[0];
+
+  /* ═══════ Saved Inspiration (collect from any app) ═══════ */
+  function renderSaved() {
+    var wrap = $('#savedList');
+    wrap.innerHTML = '';
+    if (!db.saved || !db.saved.length) {
+      wrap.appendChild(el('div', 'empty', 'Nothing saved yet — share or paste something inspiring ✨'));
+      return;
+    }
+    db.saved.forEach(function (s) {
+      var item = el('div', 'list-item');
+      var mid = el('div', 'grow');
+      if (s.title) mid.appendChild(el('div', 'title', s.title));
+      var isLink = s.link || /^https?:\/\//i.test(s.text);
+      if (isLink) {
+        var a = document.createElement('a');
+        a.className = 'saved-link';
+        a.href = s.link || s.text;
+        a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = s.link || s.text;
+        mid.appendChild(a);
+      } else {
+        mid.appendChild(el('div', 'title', s.text));
+      }
+      var when = new Date(s.ts).toLocaleDateString();
+      mid.appendChild(el('div', 'meta', (s.from === 'share' ? '🔗 Shared' : '🔖 Saved') + ' · ' + when));
+      var delBtn = el('button', 'icon-btn', '✕');
+      delBtn.title = 'Remove';
+      delBtn.addEventListener('click', function () {
+        db.saved = db.saved.filter(function (x) { return x.id !== s.id; });
+        save(); renderSaved();
+      });
+      item.appendChild(mid); item.appendChild(delBtn);
+      wrap.appendChild(item);
+    });
+  }
+  function addSaved(text, title, from) {
+    text = (text || '').trim();
+    if (!text) return;
+    db.saved = db.saved || [];
+    db.saved.unshift({
+      id: uid(),
+      text: text,
+      title: (title || '').trim(),
+      link: /^https?:\/\//i.test(text) ? text : '',
+      ts: Date.now(),
+      from: from || 'paste'
+    });
+    save(); renderSaved();
+  }
+  $('#savedAdd').addEventListener('click', function () {
+    var text = $('#savedInput').value.trim();
+    if (!text) { $('#savedInput').focus(); return; }
+    addSaved(text, $('#savedTitle').value);
+    $('#savedInput').value = ''; $('#savedTitle').value = '';
+  });
+  $('#savedInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#savedAdd').click(); }
+  });
+  function handleShared() {
+    try {
+      var q = new URLSearchParams(location.search);
+      var text = (q.get('text') || '').trim();
+      var title = (q.get('title') || '').trim();
+      var url = (q.get('url') || '').trim();
+      var content = text || url || '';
+      if (!content) return;
+      addSaved(content, title, 'share');
+      goTab('tab-saved');
+    } catch (e) {}
+  }
+  renderSaved();
+  handleShared();
+
+  /* ═══════ Manifest Song (Web Audio, zero cost) ═══════ */
+  var SONG_STYLES = {
+    calm:      { bpm: 72, wave: 'sine',     vol: 0.30, chords: [['C3','G3','E4'],['A2','E3','C4'],['F2','C3','A3'],['G2','D3','B3']] },
+    uplifting: { bpm: 98, wave: 'triangle', vol: 0.26, chords: [['C3','E3','G3'],['G2','B2','D3'],['A2','C3','E3'],['F2','A2','C3']] },
+    dreamy:    { bpm: 62, wave: 'sine',     vol: 0.28, chords: [['A2','E3','C4'],['F2','C3','A3'],['C3','G3','E4'],['G2','D3','B3']] }
+  };
+  var SONG_THEMES = {
+    abundance: { ico: '💎', obj: 'abundance', img: 'golden light', affirms: ['I am worthy of every gift', 'Abundance pours into my days'] },
+    love:      { ico: '💖', obj: 'love', img: 'a warm glow', affirms: ['I am ready to receive love', 'My heart is soft and open'] },
+    career:    { ico: '⭐', obj: 'purpose', img: 'a rising sun', affirms: ['My work is my joy', 'I walk the path of my purpose'] },
+    wellness:  { ico: '🌿', obj: 'health', img: 'morning air', affirms: ['My body is my temple', 'I feel light and whole'] },
+    dream:     { ico: '🌟', obj: 'the life I dream of', img: 'a quiet shore', affirms: ['I am becoming who I am', 'My dream is already true'] }
+  };
+  var songStyle = 'calm';
+  var songLines = [];
+  function songTheme(input) {
+    var t = (input || '').toLowerCase();
+    if (/(money|wealth|rich|abundan|financ|prosper)/.test(t)) return 'abundance';
+    if (/(love|lover|partner|marry|soulmate|heart)/.test(t)) return 'love';
+    if (/(job|career|business|work|success|promot|studio)/.test(t)) return 'career';
+    if (/(health|heal|strong|energ|fit|well|body)/.test(t)) return 'wellness';
+    return 'dream';
+  }
+  function buildLyrics(input, theme) {
+    var th = SONG_THEMES[theme];
+    var dream = (input || 'the life I dream of').replace(/\s+/g, ' ').trim();
+    if (dream.length > 46) dream = dream.slice(0, 46).trim() + '…';
+    return [
+      'Verse 1',
+      'I dream of ' + dream,
+      'A future already mine',
+      'Every morning calls it closer',
+      'Light is tracing every line',
+      'Chorus',
+      'And I feel it now, ' + th.obj,
+      'Rising in my chest',
+      'I am becoming ' + dream,
+      'With every golden breath',
+      'Verse 2',
+      th.affirms[0],
+      'I breathe it in, I let it grow',
+      th.affirms[1],
+      'The universe already knows',
+      'Chorus',
+      'And I feel it now, ' + th.obj,
+      'Rising in my chest',
+      'I am becoming ' + dream,
+      'With every golden breath',
+      'Bridge',
+      'I hold this truth like a flame',
+      'A sky of ' + th.img + ' opens wide',
+      'It was always mine to claim'
+    ];
+  }
+  function renderSongLines() {
+    var wrap = $('#songLyrics');
+    wrap.innerHTML = '';
+    songLines.forEach(function (line) {
+      if (line.section) wrap.appendChild(el('div', 'sl-section', line.section));
+      else wrap.appendChild(el('p', 'sl-line', line.text));
+    });
+    $('#songPlay').classList.remove('hidden');
+    $('#songStop').classList.add('hidden');
+  }
+  function noteFreq(n) {
+    var semis = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
+    var m = n.match(/^([A-G]#?)(\d)$/);
+    if (!m) return 440;
+    var midi = (parseInt(m[2], 10) + 1) * 12 + semis[m[1]];
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+  function playTone(ctx, t0, freq, dur, wave, vol) {
+    var o = ctx.createOscillator(); o.type = wave; o.frequency.value = freq;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.12);
+    g.gain.setValueAtTime(vol, t0 + dur * 0.7);
+    g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  var songCtx = null, songTimer = null;
+  function playSong() {
+    if (!songLines.length) return;
+    stopSong();
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error('no-audio');
+      var ctx = songCtx = new AC();
+      var st = SONG_STYLES[songStyle] || SONG_STYLES.calm;
+      var beat = 60 / st.bpm;
+      var lineDur = beat * 8;
+      var startT = ctx.currentTime + 0.15;
+      var li = 0;
+      songLines.forEach(function (line) {
+        if (line.section) return;
+        var ch = st.chords[li % st.chords.length];
+        var t0 = startT + li * lineDur;
+        ch.forEach(function (n) { playTone(ctx, t0, noteFreq(n), lineDur * 1.1, st.wave, st.vol); });
+        playTone(ctx, t0, noteFreq(ch[0]) / 2, lineDur, 'sine', st.vol * 0.7);
+        for (var b = 0; b < 4; b++) {
+          playTone(ctx, t0 + b * beat * 2, noteFreq(ch[b % ch.length]) * 2, beat * 1.6, st.wave, st.vol * 0.5);
+        }
+        (function (idx) {
+          setTimeout(function () {
+            $('#songLyrics .sl-line').forEach(function (p, j) { p.classList.toggle('active', j === idx); });
+            var cur = document.querySelector('#songLyrics .sl-line.active');
+            if (cur && cur.scrollIntoView) cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, (startT - ctx.currentTime) * 1000 + idx * lineDur * 1000);
+        })(li);
+        li++;
+      });
+      var total = (startT - ctx.currentTime) * 1000 + songLines.filter(function (l) { return !l.section; }).length * lineDur * 1000;
+      songTimer = setTimeout(function () {
+        $('#songLyrics .sl-line').forEach(function (p) { p.classList.remove('active'); });
+        $('#songPlay').classList.remove('hidden'); $('#songStop').classList.add('hidden');
+      }, total + 1500);
+      $('#songPlay').classList.add('hidden'); $('#songStop').classList.remove('hidden');
+    } catch (e) {
+      $('#songLyrics').appendChild(el('div', 'meta', 'Playback needs audio support — try a desktop browser.'));
+    }
+  }
+  function stopSong() {
+    if (songTimer) { clearTimeout(songTimer); songTimer = null; }
+    if (songCtx) { try { songCtx.close(); } catch (e) {} songCtx = null; }
+    $('#songLyrics .sl-line').forEach(function (p) { p.classList.remove('active'); });
+    $('#songPlay').classList.remove('hidden'); $('#songStop').classList.add('hidden');
+  }
+  $('#songGen').addEventListener('click', function () {
+    var input = $('#songInput').value.trim();
+    if (!input) { $('#songInput').focus(); return; }
+    var raw = buildLyrics(input, songTheme(input));
+    songLines = raw.map(function (s) { return /^(Verse|Chorus|Bridge)/.test(s) ? { section: s } : { text: s }; });
+    stopSong();
+    renderSongLines();
+  });
+  $('#songInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#songGen').click(); }
+  });
+  $('#songPlay').addEventListener('click', playSong);
+  $('#songStop').addEventListener('click', stopSong);
+  $('#songStyles .chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      songStyle = c.dataset.style;
+      $('#songStyles .chip').forEach(function (x) { x.classList.toggle('active', x === c); });
+    });
+  });
+
+  /* ═══════ PWA ═══════ */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      if (reg) reg.update();
+    }).catch(function () {});
+  }
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); deferredPrompt = e;
+    $('#installBtn').classList.remove('hidden');
+  });
+  $('#installBtn').addEventListener('click', function () {
+    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+    $('#installBtn').classList.add('hidden');
+  });
+
+  /* ═══════ Init ═══════ */
+  renderToday(); renderGoals(); renderAffirm(); renderGrat(); renderVision(); renderMedTime();
+  initSwipe();
+  maybeShowQuiz();
+})();
+
+</script>
 
 </body>
 </html>
