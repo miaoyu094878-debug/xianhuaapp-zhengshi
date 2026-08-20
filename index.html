@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <title>Luminara — Manifest Your Reality</title>
   <meta name="description" content="A dreamy manifestation tool: affirmations, gratitude journal, vision board, future-self audio & AI guidance">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#120022">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/styles.css?v=2026.5">
+
   <script>
   (function () {
     try {
@@ -285,52 +286,98 @@
         <h2 class="page-title">Affirmation Wallpaper</h2>
         <p class="page-sub">Design a wallpaper with your affirmation — export it, then set it on your phone or desktop.</p>
 
-        <div class="card glass form-card">
-          <label class="field-label">1 · Background</label>
-          <div class="wp-bgs" id="wpBgs"></div>
-          <label class="field-label">or your own photo</label>
-          <input type="file" id="wpPhoto" accept="image/*" class="hidden">
-          <div class="ai-drop" id="wpDrop"><span>🖼</span><span>Tap to upload your photo</span></div>
-          <div id="wpPrevBox" class="ai-prev hidden"><img id="wpPrevImg" alt="your photo"><button id="wpPrevClear" class="chip" type="button">Remove photo</button></div>
-        </div>
+        <div class="wp-main-grid">
+          <div class="wp-settings-col">
+            <div class="card glass form-card">
+              <label class="field-label">1 · Background</label>
+              <div class="wp-bgs" id="wpBgs"></div>
+              <label class="field-label">or your own photo</label>
+              <input type="file" id="wpPhoto" accept="image/*" class="hidden">
+              <div class="ai-drop" id="wpDrop"><span>🖼</span><span>Tap to upload your photo</span></div>
+              <div id="wpPrevBox" class="ai-prev hidden"><img id="wpPrevImg" alt="your photo"><button id="wpPrevClear" class="chip" type="button">Remove photo</button></div>
+            </div>
 
-        <div class="card glass form-card">
-          <label class="field-label">2 · Your affirmation</label>
-          <textarea id="wpText" rows="2" maxlength="120" placeholder="I am becoming who I am meant to be"></textarea>
-          <button id="wpShuffle" class="chip" type="button">✦ Shuffle affirmation</button>
-        </div>
+            <div class="card glass form-card">
+              <label class="field-label">2 · Your affirmation</label>
+              <textarea id="wpText" rows="2" maxlength="120" placeholder="I am becoming who I am meant to be"></textarea>
+              <button id="wpShuffle" class="chip" type="button">✦ Shuffle affirmation</button>
+            </div>
 
-        <div class="card glass form-card">
-          <label class="field-label">3 · Style</label>
-          <div class="chips">
-            <button class="chip wp-ratio active" data-ratio="phone">📱 Phone 9:16</button>
-            <button class="chip wp-ratio" data-ratio="desktop">💻 Desktop 16:9</button>
-          </div>
-          <div class="chips">
-            <button class="chip wp-pos active" data-pos="center">Center</button>
-            <button class="chip wp-pos" data-pos="top">Top</button>
-            <button class="chip wp-pos" data-pos="bottom">Bottom</button>
-          </div>
-          <div class="chips">
-            <button class="chip wp-tone active" data-tone="light">Light text</button>
-            <button class="chip wp-tone" data-tone="dark">Dark text</button>
-          </div>
-          <div class="wp-size">
-            <label>Text size</label>
-            <input type="range" id="wpSize" min="26" max="80" value="48">
-          </div>
-        </div>
+            <div class="card glass form-card">
+              <label class="field-label">3 · Style &amp; Adjustments</label>
+              <div class="chips">
+                <button class="chip wp-ratio active" data-ratio="phone">📱 Phone 9:16</button>
+                <button class="chip wp-ratio" data-ratio="desktop">💻 Desktop 16:9</button>
+              </div>
+              <div class="chips">
+                <button class="chip wp-pos active" data-pos="center">Center</button>
+                <button class="chip wp-pos" data-pos="top">Top</button>
+                <button class="chip wp-pos" data-pos="bottom">Bottom</button>
+              </div>
+              <div class="chips">
+                <button class="chip wp-tone active" data-tone="light">Light text</button>
+                <button class="chip wp-tone" data-tone="dark">Dark text</button>
+              </div>
+              <div class="wp-ctrl-block">
+                <div class="wp-ctrl-head">
+                  <label for="wpSize">Text Size</label>
+                  <span id="wpSizeVal" class="wp-val-badge">48px</span>
+                </div>
+                <div class="wp-slider-row">
+                  <button id="wpSizeMinus" class="chip btn-mini" type="button" aria-label="Decrease text size">−</button>
+                  <input type="range" id="wpSize" min="20" max="100" value="48">
+                  <button id="wpSizePlus" class="chip btn-mini" type="button" aria-label="Increase text size">+</button>
+                </div>
+              </div>
 
-        <div class="card glass form-card">
-          <canvas id="wpCanvas" class="wp-canvas"></canvas>
-          <div class="wp-pos-row">
-            <span class="wp-hint">✥ Drag the text — it snaps to center &amp; rule-of-thirds guides</span>
-            <button id="wpResetPos" class="chip" type="button">↺ Reset position</button>
+              <!-- Photo Adjustments (shown when custom photo is uploaded) -->
+              <div id="wpPhotoControls" class="wp-photo-controls hidden">
+                <div class="wp-ctrl-head">
+                  <label for="wpPhotoZoom">Photo Zoom</label>
+                  <span id="wpPhotoZoomVal" class="wp-val-badge">100%</span>
+                </div>
+                <div class="wp-slider-row">
+                  <button id="wpZoomMinus" class="chip btn-mini" type="button" aria-label="Zoom out photo">−</button>
+                  <input type="range" id="wpPhotoZoom" min="30" max="300" value="100">
+                  <button id="wpZoomPlus" class="chip btn-mini" type="button" aria-label="Zoom in photo">+</button>
+                </div>
+                <div class="chips wp-photo-actions">
+                  <button id="wpFitPhoto" class="chip" type="button">⤢ Fit</button>
+                  <button id="wpFillPhoto" class="chip" type="button">⬛ Fill</button>
+                  <button id="wpResetPhoto" class="chip" type="button">↺ Reset Photo</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <button id="wpExport" class="btn-primary">⬇ Download Wallpaper</button>
-          <div id="wpGuide" class="wp-guide hidden">
-            <p class="wp-guide-t"><b>Set it as your wallpaper:</b></p>
-            <p id="wpGuideText" class="wp-guide-b"></p>
+
+          <div class="wp-preview-col">
+            <div class="card glass form-card wp-preview-card">
+              <!-- Layer Switcher Tabs -->
+              <div class="wp-layer-bar">
+                <span class="wp-layer-title">Active Layer:</span>
+                <div class="chips">
+                  <button id="wpLayerText" class="chip wp-layer-btn active" type="button" data-layer="text">✦ Text</button>
+                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Photo</button>
+                </div>
+              </div>
+
+              <div class="wp-canvas-wrap" id="wpCanvasWrap">
+                <canvas id="wpCanvas" class="wp-canvas"></canvas>
+              </div>
+
+              <div class="wp-pos-row">
+                <span class="wp-hint" id="wpGestureHint">✋ Drag text to move · Drag corners, pinch or scroll to resize</span>
+                <div class="wp-quick-resets">
+                  <button id="wpResetPos" class="chip" type="button" title="Reset text position">↺ Reset Text</button>
+                  <button id="wpResetPhotoBtn" class="chip hidden" type="button" title="Reset photo">↺ Reset Photo</button>
+                </div>
+              </div>
+              <button id="wpExport" class="btn-primary">⬇ Download Wallpaper</button>
+              <div id="wpGuide" class="wp-guide hidden">
+                <p class="wp-guide-t"><b>Set it as your wallpaper:</b></p>
+                <p id="wpGuideText" class="wp-guide-b"></p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -521,6 +568,7 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="/app.js?v=2026.5"></script>
+
 </body>
 </html>
