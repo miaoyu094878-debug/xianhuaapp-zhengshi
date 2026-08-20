@@ -8,14 +8,43 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-// Serve static assets from root directory
-app.use(express.static(__dirname));
+// Root redirect to landing.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'landing.html'));
+});
 
-// Fallback to index.html for root or SPA navigation
-app.get('*', (req, res) => {
+// Explicit static serving with MIME type headers
+app.use(express.static(__dirname, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    } else if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    } else if (filePath.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+  }
+}));
+
+// Route fallback for known HTML pages or 404
+app.get('/landing.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'landing.html'));
+});
+
+app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Generic catch-all for SPA paths without file extension
+app.get('*', (req, res) => {
+  if (!path.extname(req.path)) {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  } else {
+    res.status(404).send('Not found');
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Luminara running on http://0.0.0.0:${PORT}`);
 });
+

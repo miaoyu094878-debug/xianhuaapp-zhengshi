@@ -2,20 +2,30 @@
   publish = "."
   command = ""
 
-# ── PWA / Service Worker 正确缓存 ──
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+
 [[headers]]
   for = "/sw.js"
   [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
 
 [[headers]]
   for = "/manifest.json"
   [headers.values]
-    Content-Type = "application/manifest+json"
+    Content-Type = "application/manifest+json; charset=utf-8"
 
-# SPA 兜底（当前为单页隐藏 section，可不依赖，但保留安全）
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  from = "/"
+  to = "/landing.html"
+  status = 302
+
