@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luminara — Manifest Your Reality</title>
+<meta name="description" content="Luminara turns the law of attraction into a daily ritual: affirmations, gratitude, vision boards, and an AI guide that speaks your future into being.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAF6FF;
+  --purple: #B8A1E3; --pink: #F4A6BD; --gold: #E8B86D;
+  --text: #4A3F5C; --text2: #7C6F8E; --text3: #A89BC4;
+  --card: linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.42) 55%, rgba(241,232,255,0.5) 100%);
+  --shadow: 0 10px 38px rgba(184,161,227,0.16), 0 2px 6px rgba(74,63,92,0.04);
+  --radius: 20px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Barlow', 'Inter', sans-serif; color: var(--text);
+  background:
+    radial-gradient(1100px 700px at 88% -10%, rgba(244,166,189,0.22), transparent 62%),
+    radial-gradient(950px 650px at -8% 28%, rgba(184,161,227,0.26), transparent 62%),
+    radial-gradient(850px 600px at 55% 115%, rgba(232,184,109,0.16), transparent 62%),
+    linear-gradient(180deg, #FAF6FF 0%, #FDF7FB 100%);
+  min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; }
+
+/* Nav */
+.lp-nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(18px) saturate(1.5); background: rgba(250,246,255,0.72); border-bottom: 1px solid rgba(184,161,227,0.18); }
+.lp-nav .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.lp-logo { display: flex; align-items: center; gap: 8px; font-family: 'Instrument Serif', serif; font-style: italic; font-size: 22px; color: var(--text); text-decoration: none; }
+.lp-logo .spark { color: var(--purple); font-size: 20px; }
+.lp-links { display: flex; gap: 26px; }
+.lp-links a { color: var(--text2); text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.25s; }
+.lp-links a:hover { color: var(--text); }
+.btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; text-decoration: none; font-size: 14px; font-weight: 600; padding: 11px 22px; transition: 0.25s; cursor: pointer; border: none; }
+.btn-gold {
+  background: linear-gradient(180deg, rgba(245,217,160,0.96) 0%, rgba(232,184,109,0.94) 60%, rgba(232,184,109,0.98) 100%);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.8), 0 10px 26px rgba(244,166,189,0.3);
+  color: #fff;
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.8), 0 14px 32px rgba(244,166,189,0.42); }
+.btn-ghost { background: rgba(255,255,255,0.6); border: 1px solid rgba(184,161,227,0.35); color: var(--text); }
+.btn-ghost:hover { background: rgba(255,255,255,0.9); transform: translateY(-2px); }
+
+/* Hero */
+.lp-hero { padding: 84px 0 70px; }
+.lp-hero .container { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 52px; align-items: center; }
+.lp-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.6); border: 1px solid rgba(184,161,227,0.3); border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 12.5px; color: var(--text2); margin-bottom: 22px; }
+.lp-badge b { background: #fff; border-radius: 999px; padding: 3px 10px; font-size: 11px; color: var(--purple); }
+.lp-hero h1 { font-size: 64px; line-height: 1.02; letter-spacing: -1.5px; color: var(--text); }
+.lp-hero h1 em { font-style: italic; background: linear-gradient(135deg, #E8B86D, #F4A6BD, #B8A1E3); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.lp-hero .sub { font-size: 17px; color: var(--text2); line-height: 1.7; margin: 22px 0 30px; max-width: 480px; font-weight: 300; }
+.lp-cta { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.lp-cta .note { font-size: 13px; color: var(--text3); }
+.lp-stars { display: flex; align-items: center; gap: 8px; margin-top: 26px; color: var(--text2); font-size: 13.5px; }
+.lp-stars .s { color: var(--gold); letter-spacing: 2px; }
+
+/* Hero mock */
+.lp-mock { position: relative; }
+.mock-card {
+  background: var(--card); backdrop-filter: blur(20px) saturate(1.6); border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.75); border-top-color: rgba(255,255,255,0.95);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.9);
+  padding: 26px 24px; max-width: 400px; margin-left: auto;
+}
+.mock-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.mock-logo { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 17px; color: var(--text); }
+.mock-chip { font-size: 10px; background: rgba(184,161,227,0.18); color: var(--purple); padding: 4px 10px; border-radius: 999px; }
+.mock-greet { font-size: 21px; color: var(--text); margin-bottom: 4px; }
+.mock-date { font-size: 12px; color: var(--text3); margin-bottom: 14px; }
+.mock-mantra { font-size: 15px; font-style: italic; color: var(--text2); line-height: 1.6; background: rgba(255,255,255,0.7); border: 1px solid rgba(184,161,227,0.25); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+.mock-stats { display: flex; gap: 10px; }
+.mock-stat { flex: 1; background: rgba(255,255,255,0.75); border: 1px solid rgba(184,161,227,0.2); border-radius: 12px; padding: 10px 12px; }
+.mock-stat b { display: block; font-size: 19px; color: var(--purple); font-family: 'Instrument Serif', serif; font-style: italic; }
+.mock-stat span { font-size: 10.5px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; }
+.mock-glow { position: absolute; inset: -18%; background: radial-gradient(circle, rgba(184,161,227,0.3), transparent 65%); z-index: -1; }
+
+/* Section base */
+.lp-sec { padding: 72px 0; }
+.lp-sec-head { text-align: center; max-width: 620px; margin: 0 auto 46px; }
+.lp-kicker { font-size: 12.5px; text-transform: uppercase; letter-spacing: 2.5px; color: var(--purple); margin-bottom: 12px; }
+.lp-sec-head h2 { font-size: 42px; color: var(--text); line-height: 1.15; }
+.lp-sec-head p { color: var(--text2); font-size: 15.5px; margin-top: 14px; line-height: 1.7; font-weight: 300; }
+
+/* Features */
+.lp-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.feat {
+  background: var(--card); backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,0.72); border-top-color: rgba(255,255,255,0.95);
+  border-radius: var(--radius); padding: 26px 24px; box-shadow: var(--shadow);
+  transition: 0.35s cubic-bezier(0.2,0.7,0.3,1); position: relative; overflow: hidden;
+}
+.feat::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 42%; background: linear-gradient(135deg, rgba(255,255,255,0.6), transparent 60%); pointer-events: none; }
+.feat:hover { transform: translateY(-4px); box-shadow: 0 16px 44px rgba(184,161,227,0.24); }
+.feat .ico { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 21px; background: rgba(184,161,227,0.16); margin-bottom: 16px; }
+.feat h3 { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+.feat p { font-size: 14px; color: var(--text2); line-height: 1.65; font-weight: 300; }
+.feat .tag { display: inline-block; margin-top: 12px; font-size: 11px; color: var(--purple); background: rgba(184,161,227,0.14); padding: 4px 10px; border-radius: 999px; }
+
+/* How it works */
+.lp-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: step; }
+.step { text-align: center; padding: 26px 18px; }
+.step .num { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 40px; color: var(--pink); display: block; margin-bottom: 10px; }
+.step h3 { font-size: 20px; color: var(--text); margin-bottom: 8px; }
+.step p { font-size: 13.5px; color: var(--text2); line-height: 1.6; font-weight: 300; }
+
+/* Big quote */
+.lp-quote { text-align: center; padding: 40px 0 10px; }
+.lp-quote blockquote { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 30px; color: var(--text); line-height: 1.45; max-width: 720px; margin: 0 auto; }
+.lp-quote .who { margin-top: 18px; font-size: 13.5px; color: var(--text2); }
+.lp-quote .who b { color: var(--purple); }
+
+/* Pricing */
+.lp-price { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 860px; margin: 0 auto; }
+.price {
+  background: var(--card); backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,0.72); border-radius: var(--radius);
+  padding: 30px 28px; box-shadow: var(--shadow); position: relative;
+}
+.price.pro { background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(250,236,244,0.7)); }
+.price .best { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #E8B86D, #F4A6BD); color: #fff; font-size: 11px; font-weight: 600; padding: 5px 14px; border-radius: 999px; box-shadow: 0 6px 16px rgba(244,166,189,0.4); }
+.price h3 { font-size: 24px; color: var(--text); margin-bottom: 6px; }
+.price .amt { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 40px; color: var(--text); }
+.price .amt small { font-size: 15px; color: var(--text3); font-style: normal; }
+.price ul { list-style: none; margin: 18px 0 22px; }
+.price li { font-size: 14px; color: var(--text2); padding: 6px 0; display: flex; gap: 9px; align-items: center; }
+.price li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
+.price.pro li::before { background: var(--gold); }
+.price .btn { width: 100%; justify-content: center; }
+
+/* Footer */
+.lp-foot { border-top: 1px solid rgba(184,161,227,0.2); padding: 34px 0 44px; margin-top: 60px; text-align: center; }
+.lp-foot .f-logo { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 18px; color: var(--text); margin-bottom: 8px; }
+.lp-foot p { font-size: 13px; color: var(--text3); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .lp-hero .container { grid-template-columns: 1fr; gap: 40px; }
+  .lp-hero h1 { font-size: 46px; }
+  .mock-card { margin: 0 auto; }
+  .lp-feats { grid-template-columns: 1fr 1fr; }
+  .lp-steps { grid-template-columns: 1fr 1fr; }
+  .lp-links { display: none; }
+}
+@media (max-width: 600px) {
+  .lp-hero { padding: 52px 0 40px; }
+  .lp-hero h1 { font-size: 38px; }
+  .lp-sec { padding: 48px 0; }
+  .lp-sec-head h2 { font-size: 32px; }
+  .lp-feats { grid-template-columns: 1fr; }
+  .lp-steps { grid-template-columns: 1fr; }
+  .lp-price { grid-template-columns: 1fr; }
+  .lp-quote blockquote { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="lp-nav">
+  <div class="container">
+    <a class="lp-logo" href="landing.html"><span class="spark">✦</span>Luminara</a>
+    <div class="lp-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <a class="btn btn-gold" href="index.html">Open App ✦</a>
+  </div>
+</nav>
+
+<header class="lp-hero">
+  <div class="container">
+    <div>
+      <span class="lp-badge"><b>New</b> AI-powered manifestation audio arrives</span>
+      <h1>Stop wishing.<br>Start <em>becoming</em>.</h1>
+      <p class="sub">Luminara turns the law of attraction into a daily ritual — affirmations, gratitude, vision boards, and an AI guide who speaks your future into being.</p>
+      <div class="lp-cta">
+        <a class="btn btn-gold" href="index.html">Start Free ✦</a>
+        <a class="btn btn-ghost" href="index.html">See it live</a>
+        <span class="note">Free to start · No card needed</span>
+      </div>
+      <div class="lp-stars"><span class="s">★★★★★</span> 4.8 · Loved by 12,400+ manifestors</div>
+    </div>
+    <div class="lp-mock">
+      <div class="mock-glow"></div>
+      <div class="mock-card">
+        <div class="mock-top"><span class="mock-logo">✦ Luminara</span><span class="mock-chip">Today's ritual</span></div>
+        <div class="mock-greet">Good evening ✨</div>
+        <div class="mock-date">Sunday · August 16</div>
+        <div class="mock-mantra">“I am becoming who I am meant to be.”</div>
+        <div class="mock-stats">
+          <div class="mock-stat"><b>7</b><span>Day streak</span></div>
+          <div class="mock-stat"><b>12</b><span>Desires</span></div>
+          <div class="mock-stat"><b>240</b><span>Minutes</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="lp-sec" id="features">
+  <div class="container">
+    <div class="lp-sec-head">
+      <p class="lp-kicker">The practice</p>
+      <h2>Everything you need to manifest</h2>
+      <p>Six quiet tools, one calm space. No fluff, no overwhelm — just a clear place to return to yourself.</p>
+    </div>
+    <div class="lp-feats">
+      <div class="feat"><div class="ico">◎</div><h3>Meditation Timer</h3><p>Guided cosmic breathing to calm the mind and hold your intention in stillness.</p><span class="tag">Focus</span></div>
+      <div class="feat"><div class="ico">🎬</div><h3>AI Vision</h3><p>Upload your photo, describe the person you are becoming — AI paints it, then brings it to life as a video.</p><span class="tag">AI powered</span></div>
+      <div class="feat"><div class="ico">✧</div><h3>Future Self</h3><p>Hear your desire spoken as if it has already come true. A guided audio journey to your future self.</p><span class="tag">AI audio</span></div>
+      <div class="feat"><div class="ico">👤</div><h3>Avatar Guide</h3><p>Meet a lifelike virtual guide who speaks affirmations directly to you — your personal mentor, always available.</p><span class="tag">AI powered</span></div>
+      <div class="feat"><div class="ico">🖼</div><h3>Affirmation Wallpaper</h3><p>Turn your photo and a chosen affirmation into a stunning wallpaper for your phone or desktop.</p><span class="tag">Creative</span></div>
+      <div class="feat"><div class="ico">✿</div><h3>Gratitude &amp; Vision</h3><p>A daily gratitude journal and a vision board that keeps your dreams in front of your eyes.</p><span class="tag">Journal</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="lp-sec" id="how">
+  <div class="container">
+    <div class="lp-sec-head">
+      <p class="lp-kicker">How it works</p>
+      <h2>Four quiet moves. Lasting change.</h2>
+    </div>
+    <div class="lp-steps">
+      <div class="step"><span class="num">1</span><h3>Set your intention</h3><p>Write your desire in the present tense, as if it has already happened.</p></div>
+      <div class="step"><span class="num">2</span><h3>Practice daily</h3><p>Affirmations and gratitude keep you aligned, one day at a time.</p></div>
+      <div class="step"><span class="num">3</span><h3>See yourself there</h3><p>AI Vision and vision boards put your future self in front of you.</p></div>
+      <div class="step"><span class="num">4</span><h3>Hear it true</h3><p>Future Self and your Avatar speak your success into being.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="lp-quote">
+  <div class="container">
+    <blockquote>“The first time my future self spoke to me, I cried. I finally felt it — not just hoped for it.”</blockquote>
+    <p class="who"><b>Sarah M.</b> · Manifesting a creative studio</p>
+  </div>
+</section>
+
+<section class="lp-sec" id="pricing">
+  <div class="container">
+    <div class="lp-sec-head">
+      <p class="lp-kicker">Plans</p>
+      <h2>Start free. Upgrade when you feel the shift.</h2>
+    </div>
+    <div class="lp-price">
+      <div class="price">
+        <h3>Free</h3>
+        <div class="amt">$0</div>
+        <ul>
+          <li>Daily affirmation practice</li>
+          <li>Gratitude journal</li>
+          <li>Vision board</li>
+          <li>Affirmation library</li>
+          <li>Meditation timer</li>
+        </ul>
+        <a class="btn btn-ghost" href="index.html">Start Free</a>
+      </div>
+      <div class="price pro">
+        <span class="best">Best value</span>
+        <h3>Pro</h3>
+        <div class="amt">$4.99<small> / month</small></div>
+        <ul>
+          <li>Everything in Free</li>
+          <li>AI Vision — photos &amp; videos</li>
+          <li>Future Self audio</li>
+          <li>Avatar guide</li>
+          <li>Affirmation wallpapers</li>
+        </ul>
+        <a class="btn btn-gold" href="index.html">Try 3 days free</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="lp-foot">
+  <div class="container">
+    <p class="f-logo">✦ Luminara</p>
+    <p>Empowering your practice with AI · © 2026 Luminara. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>

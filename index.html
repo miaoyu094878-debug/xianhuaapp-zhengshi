@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="luminara">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>Luminara — Manifest Your Reality</title>
+  <meta name="description" content="A dreamy manifestation tool: affirmations, gratitude journal, vision board, future-self audio & AI guidance">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#120022">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+  (function () {
+    try {
+      var ua = navigator.userAgent;
+      var isPhone = /Android|iPhone|iPod|Opera Mini|IEMobile|Mobile|BlackBerry/i.test(ua);
+      var isIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+      var isTablet = /iPad|Tablet|PlayBook|Silk|Kindle|Nexus|KFTT/i.test(ua) || isIPad;
+      var cls = (isPhone || isTablet) ? 'device-mobile' : 'device-desktop';
+      document.documentElement.classList.add(cls);
+    } catch (e) {}
+  })();
+  </script>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="aurora a1"></div>
+  <div class="aurora a2"></div>
+  <div class="aurora a3"></div>
+
+  <div id="app">
+    <aside id="desktopSidebar" class="desktop-sidebar">
+      <div class="ds-brand">
+        <span class="brand-logo">✦</span>
+        <span class="brand-name">Luminara</span>
+      </div>
+      <nav class="ds-nav">
+        <button class="side-link active" data-tab="tab-today">✦ Today</button>
+        <p class="ds-group">Daily Practice</p>
+        <button class="side-link" data-tab="tab-affirm">❋ Affirm</button>
+        <button class="side-link" data-tab="tab-gratitude">✿ Gratitude</button>
+        <p class="ds-group">Create</p>
+        <button class="side-link" data-tab="tab-goals">☆ Desires</button>
+        <button class="side-link" data-tab="tab-vision">◈ Vision Board</button>
+        <button class="side-link" data-tab="tab-wallpaper">🖼 Wallpaper</button>
+        <p class="ds-group">AI &amp; Guidance</p>
+        <button class="side-link" data-tab="tab-future">✧ Future Self</button>
+        <button class="side-link" data-tab="tab-ai-vision">🎬 AI Vision</button>
+        <button class="side-link" data-tab="tab-avatar">👤 Avatar</button>
+        <button class="side-link" data-tab="tab-meditate">◎ Breathe</button>
+        <button class="side-link" data-tab="tab-saved">🔖 Saved</button>
+        <button class="side-link" data-tab="tab-song">🎵 Manifest Song</button>
+        <button class="side-link" data-tab="tab-more">☰ More</button>
+      </nav>
+      <div class="ds-foot">
+        <p class="ds-label">Theme</p>
+        <div class="ds-themes">
+          <button class="ds-theme active" data-theme="luminara" title="Luminara" style="background:linear-gradient(135deg,#9a63d2,#e386b6)"></button>
+          <button class="ds-theme" data-theme="manifest-light" title="Manifest Light" style="background:linear-gradient(135deg,#F5D9A0,#E8B86D)"></button>
+          <button class="ds-theme" data-theme="manifest-dark" title="Manifest Dark" style="background:#12082a;border-color:rgba(245,217,160,.6)"></button>
+          <button class="ds-theme" data-theme="prism" title="Prism White" style="background:conic-gradient(#ff6a88,#ffa751,#4fc3f7,#a78bfa,#ff6a88)"></button>
+          <button class="ds-theme" data-theme="ios" title="Liquid Glass" style="background:linear-gradient(135deg,#0a84ff,#5ac8fa)"></button>
+        </div>
+      </div>
+    </aside>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-logo">✦</span>
+        <span class="brand-name">Luminara</span>
+      </div>
+      <button id="installBtn" class="install-btn hidden">Install</button>
+    </header>
+
+    <main>
+      <!-- Dashboard -->
+      <section id="tab-today" class="tab-page active">
+        <div class="hero glass">
+          <p class="hero-date" id="todayDate"></p>
+          <h2 class="hero-greeting" id="greeting"></h2>
+          <div class="daily-mantra">
+            <span class="dm-label">Today's mantra</span>
+            <p class="dm-text" id="dailyQuote"></p>
+          </div>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-num" id="statStreak">0</span>
+              <span class="stat-label">Day Streak</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" id="statGoals">0</span>
+              <span class="stat-label">Desires</span>
+            </div>
+            <div class="stat">
+              <span class="stat-num" id="statMeditation">0</span>
+              <span class="stat-label">Minutes</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass focus-card" data-goto="tab-gratitude">
+          <div class="focus-top">
+            <span class="focus-title">Gratitude</span>
+            <span class="focus-meta" id="glanceGratitude">Write 3 things you're grateful for</span>
+          </div>
+        </div>
+
+        <div class="card glass focus-card" data-goto="tab-future">
+          <div class="focus-top">
+            <span class="focus-title">Future Self ✧</span>
+            <span class="focus-meta" id="glanceFuture">Hear your desire already true</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Goals -->
+      <section id="tab-goals" class="tab-page">
+        <h2 class="page-title">Your Desires</h2>
+        <p class="page-sub">Write them in the present tense, as if they have already manifested.</p>
+        <form id="goalForm" class="card glass form-card">
+          <input type="text" id="goalTitle" placeholder="e.g. I live in my dream beach house" required maxlength="60">
+          <div class="form-row">
+            <select id="goalCategory">
+              <option value="abundance">💎 Abundance</option>
+              <option value="love">💖 Love</option>
+              <option value="career">⭐ Purpose</option>
+              <option value="wellness">🌙 Wellness</option>
+              <option value="growth">🌱 Growth</option>
+            </select>
+            <input type="date" id="goalDate" title="Target date (optional)">
+          </div>
+          <button type="submit" class="btn-primary">Plant This Seed ✦</button>
+        </form>
+        <div id="goalList" class="list"></div>
+      </section>
+
+      <!-- Affirmations -->
+      <section id="tab-affirm" class="tab-page">
+        <h2 class="page-title">Sacred Affirmations</h2>
+        <p class="page-sub">Speak them aloud. Let the words sink into your subconscious.</p>
+        <div class="card glass form-card">
+          <label class="field-label">Your own affirmation</label>
+          <div class="form-row">
+            <input type="text" id="affirmNew" placeholder="e.g. I attract opportunities everywhere" maxlength="80">
+            <button id="affirmAdd" class="btn-primary btn-small">Add ✦</button>
+          </div>
+        </div>
+        <div class="chips" id="affirmCats"></div>
+
+        <!-- Stella-style Swipe collector -->
+        <div class="swipe-block">
+          <div class="swipe-head">
+            <span class="sb-title">✧ Swipe to collect your favorites</span>
+            <button id="swipeReset" class="link-btn">Reset</button>
+          </div>
+          <div id="swipeDeck" class="swipe-deck"></div>
+          <div class="swipe-actions">
+            <button id="swipeSkip" class="swipe-btn skip" aria-label="Skip">✕</button>
+            <button id="swipeSave" class="swipe-btn save" aria-label="Save">♥</button>
+          </div>
+        </div>
+
+        <div id="affirmList" class="list"></div>
+      </section>
+
+      <!-- Gratitude -->
+      <section id="tab-gratitude" class="tab-page">
+        <h2 class="page-title">Gratitude Journal</h2>
+        <p class="page-sub">Gratitude is the highest frequency. What are you thankful for today?</p>
+        <form id="gratForm" class="card glass form-card">
+          <input type="text" class="grat-input" placeholder="1. I am grateful for…" maxlength="60">
+          <input type="text" class="grat-input" placeholder="2. I am grateful for…" maxlength="60">
+          <input type="text" class="grat-input" placeholder="3. I am grateful for…" maxlength="60">
+          <button type="submit" class="btn-primary">Save Gratitude ✿</button>
+        </form>
+        <div id="gratHistory" class="list"></div>
+      </section>
+
+      <!-- Vision Board -->
+      <section id="tab-vision" class="tab-page">
+        <h2 class="page-title">Vision Board</h2>
+        <p class="page-sub">Visualize your dream life. See it every day.</p>
+        <form id="visionForm" class="card glass form-card">
+          <div class="form-row">
+            <input type="text" id="visionEmoji" placeholder="emoji" maxlength="4" value="🌊">
+            <input type="text" id="visionText" placeholder="Describe your vision…" required maxlength="40">
+          </div>
+          <label class="photo-label">Add a photo (optional)
+            <input type="file" id="visionPhoto" accept="image/*">
+          </label>
+          <button type="submit" class="btn-primary">Pin It ✦</button>
+        </form>
+        <div id="visionBoard" class="vision-grid"></div>
+      </section>
+
+      <!-- Future Self -->
+      <section id="tab-future" class="tab-page">
+        <h2 class="page-title">Future Self</h2>
+        <p class="page-sub">Hear your desire spoken as if it has already come true. Your future self is calling.</p>
+        <form id="fsForm" class="card glass form-card">
+          <label class="field-label">What are you manifesting?</label>
+          <textarea id="fsDesire" rows="3" placeholder="e.g. I run a thriving creative studio that lights people up" maxlength="160"></textarea>
+          <button type="submit" class="btn-primary">Generate My Future Self ✦</button>
+        </form>
+        <div id="fsPlayer" class="card glass hidden">
+          <p class="fs-script" id="fsScript"></p>
+          <div class="fs-controls">
+            <button id="fsPlay" class="btn-primary btn-small">▶ Play</button>
+            <button id="fsAmbient" class="chip" aria-pressed="false">Ambient: Off</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Vision -->
+      <section id="tab-ai-vision" class="tab-page">
+        <h2 class="page-title">AI Vision</h2>
+        <p class="page-sub">Upload your photo, describe the person you are becoming — AI paints it, then brings it to life.</p>
+
+        <div class="card glass form-card">
+          <label class="field-label">1 · Your photo</label>
+          <input type="file" id="aiPhoto" accept="image/*" class="hidden">
+          <div class="ai-drop" id="aiDrop"><span>📷</span><span>Tap to choose your photo</span></div>
+          <div id="aiPrevBox" class="ai-prev hidden"><img id="aiPrevImg" alt="your photo"><button id="aiPrevClear" class="chip" type="button">Remove</button></div>
+        </div>
+
+        <div class="card glass form-card">
+          <label class="field-label">2 · The self you are becoming</label>
+          <textarea id="aiPrompt" rows="3" placeholder="e.g. me, radiant and confident, standing in a sunlit glass studio in Tokyo, wearing an elegant cream suit, softly smiling" maxlength="300"></textarea>
+        </div>
+
+        <div class="card glass form-card">
+          <button id="aiKeyToggle" class="ai-key-toggle" type="button">⚙ AI Service Key · <span id="aiKeyState">not set</span></button>
+          <div id="aiKeyBox" class="hidden">
+            <p class="ai-key-hint">Get a free trial key at <a href="https://klingai.com/dev" target="_blank" rel="noopener">klingai.com/dev</a> → console → create an API Key. Paste Access Key + Secret Key (or a simple API Key).</p>
+            <label class="field-label">Access Key</label>
+            <input id="aiAk" type="text" placeholder="Access Key" autocomplete="off">
+            <label class="field-label">Secret Key</label>
+            <input id="aiSk" type="password" placeholder="Secret Key" autocomplete="off">
+            <label class="field-label">— or a simple API Key —</label>
+            <input id="aiKey" type="password" placeholder="API Key (skip if using Access/Secret)" autocomplete="off">
+            <button id="aiKeySave" class="btn-primary btn-small" type="button">Save Keys</button>
+          </div>
+        </div>
+
+        <div class="card glass form-card">
+          <div class="ai-modes">
+            <button id="aiBtnPhoto" class="btn-primary btn-small" type="button">✦ Generate Photo</button>
+            <button id="aiBtnFree" class="btn-primary btn-small" type="button">◈ Free Photo</button>
+            <button id="aiBtnVideo" class="btn-primary btn-small" type="button">▶ Generate Video</button>
+          </div>
+          <p class="ai-tip">◈ Free Photo = no key needed (Pollinations) · ✦ Photo &amp; ▶ Video use your Kling key. Video 5–15 min (can leave). Links expire in a few hours — download right away.</p>
+          <div id="aiStatus" class="ai-status"></div>
+        </div>
+
+        <div id="aiResults"></div>
+      </section>
+
+      <!-- Meditation -->
+      <section id="tab-meditate" class="tab-page">
+        <h2 class="page-title">Cosmic Meditation</h2>
+        <p class="page-sub">Close your eyes. Breathe. Feel your desire as if it's already yours.</p>
+        <div class="card glass meditate-card">
+          <div class="breath-wrap">
+            <div class="breath-ring"></div>
+            <div class="breath-circle" id="breathCircle">
+              <span id="breathText">Ready</span>
+            </div>
+          </div>
+          <div class="med-time" id="medTimer">05:00</div>
+          <div class="chips center">
+            <button class="chip dur-chip" data-min="3">3 min</button>
+            <button class="chip dur-chip active" data-min="5">5 min</button>
+            <button class="chip dur-chip" data-min="10">10 min</button>
+          </div>
+          <button id="medStart" class="btn-primary">Begin Journey ✦</button>
+        </div>
+      </section>
+
+      <!-- Affirmation Wallpaper -->
+      <section id="tab-wallpaper" class="tab-page">
+        <h2 class="page-title">Affirmation Wallpaper</h2>
+        <p class="page-sub">Design a wallpaper with your affirmation — export it, then set it on your phone or desktop.</p>
+
+        <div class="card glass form-card">
+          <label class="field-label">1 · Background</label>
+          <div class="wp-bgs" id="wpBgs"></div>
+          <label class="field-label">or your own photo</label>
+          <input type="file" id="wpPhoto" accept="image/*" class="hidden">
+          <div class="ai-drop" id="wpDrop"><span>🖼</span><span>Tap to upload your photo</span></div>
+          <div id="wpPrevBox" class="ai-prev hidden"><img id="wpPrevImg" alt="your photo"><button id="wpPrevClear" class="chip" type="button">Remove photo</button></div>
+        </div>
+
+        <div class="card glass form-card">
+          <label class="field-label">2 · Your affirmation</label>
+          <textarea id="wpText" rows="2" maxlength="120" placeholder="I am becoming who I am meant to be"></textarea>
+          <button id="wpShuffle" class="chip" type="button">✦ Shuffle affirmation</button>
+        </div>
+
+        <div class="card glass form-card">
+          <label class="field-label">3 · Style</label>
+          <div class="chips">
+            <button class="chip wp-ratio active" data-ratio="phone">📱 Phone 9:16</button>
+            <button class="chip wp-ratio" data-ratio="desktop">💻 Desktop 16:9</button>
+          </div>
+          <div class="chips">
+            <button class="chip wp-pos active" data-pos="center">Center</button>
+            <button class="chip wp-pos" data-pos="top">Top</button>
+            <button class="chip wp-pos" data-pos="bottom">Bottom</button>
+          </div>
+          <div class="chips">
+            <button class="chip wp-tone active" data-tone="light">Light text</button>
+            <button class="chip wp-tone" data-tone="dark">Dark text</button>
+          </div>
+          <div class="wp-size">
+            <label>Text size</label>
+            <input type="range" id="wpSize" min="26" max="80" value="48">
+          </div>
+        </div>
+
+        <div class="card glass form-card">
+          <canvas id="wpCanvas" class="wp-canvas"></canvas>
+          <div class="wp-pos-row">
+            <span class="wp-hint">✥ Drag the text — it snaps to center &amp; rule-of-thirds guides</span>
+            <button id="wpResetPos" class="chip" type="button">↺ Reset position</button>
+          </div>
+          <button id="wpExport" class="btn-primary">⬇ Download Wallpaper</button>
+          <div id="wpGuide" class="wp-guide hidden">
+            <p class="wp-guide-t"><b>Set it as your wallpaper:</b></p>
+            <p id="wpGuideText" class="wp-guide-b"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Avatar Speaker -->
+      <section id="tab-avatar" class="tab-page">
+        <h2 class="page-title">AI Avatar Speaker</h2>
+        <p class="page-sub">Meet your virtual guide — a lifelike avatar who speaks affirmations directly to you.</p>
+
+        <div class="card glass form-card">
+          <label class="field-label">1 · Your avatar</label>
+          <div class="av-presets" id="avPresets"></div>
+          <label class="field-label">or describe your own</label>
+          <input id="avPrompt" type="text" placeholder="e.g. a wise, kind woman with warm brown eyes, soft studio light" maxlength="160">
+          <div class="av-actions">
+            <button id="avGen" class="btn-primary btn-small" type="button">✦ Generate Avatar</button>
+            <button id="avUsePhoto" class="chip" type="button">Use my photo</button>
+            <input type="file" id="avPhoto" accept="image/*" class="hidden">
+          </div>
+          <p class="av-note">Avatar is generated free with Pollinations AI — no key needed.</p>
+        </div>
+
+        <div class="card glass form-card">
+          <div class="av-stage" id="avStage">
+            <div class="av-face" id="avFace">
+              <img id="avImg" alt="your avatar">
+              <div class="av-mouth" id="avMouth"></div>
+              <div class="av-halo"></div>
+            </div>
+            <p class="av-state" id="avState">Pick a preset or describe an avatar to begin ✨</p>
+          </div>
+        </div>
+
+        <div class="card glass form-card">
+          <label class="field-label">2 · Affirmation to speak</label>
+          <textarea id="avText" rows="2" maxlength="160" placeholder="I am worthy of my wildest dreams"></textarea>
+          <button id="avShuffle" class="chip" type="button">✦ Shuffle affirmation</button>
+          <div class="av-controls">
+            <button id="avSpeak" class="btn-primary" type="button">▶ Speak It</button>
+            <button id="avStop" class="chip" type="button">⏹ Stop</button>
+            <select id="avVoice" class="av-voice" aria-label="voice"></select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Saved Inspiration -->
+      <section id="tab-saved" class="tab-page">
+        <h2 class="page-title">Saved Inspiration</h2>
+        <p class="page-sub">One-tap collect anything that inspires you — from any app, in one place.</p>
+        <div class="card glass form-card">
+          <label class="field-label">Paste a link or note</label>
+          <textarea id="savedInput" rows="3" placeholder="Paste a social media link or any inspiring words…" maxlength="500"></textarea>
+          <div class="form-row">
+            <input id="savedTitle" type="text" placeholder="Optional title / tag" maxlength="60">
+            <button id="savedAdd" class="btn-primary btn-small">Save 🔖</button>
+          </div>
+        </div>
+        <div id="savedList" class="list"></div>
+      </section>
+
+      <!-- Manifest Song -->
+      <section id="tab-song" class="tab-page">
+        <h2 class="page-title">Manifest Song</h2>
+        <p class="page-sub">Describe the life you want — hear it become your own song.</p>
+        <div class="card glass form-card">
+          <label class="field-label">Your dream</label>
+          <textarea id="songInput" rows="2" placeholder="e.g. I live by the ocean, free and deeply loved" maxlength="120"></textarea>
+          <button id="songGen" class="btn-primary">Write My Song 🎵</button>
+          <div class="chips" id="songStyles">
+            <button class="chip active" data-style="calm">🌊 Calm</button>
+            <button class="chip" data-style="uplifting">⚡ Uplifting</button>
+            <button class="chip" data-style="dreamy">🌙 Dreamy</button>
+          </div>
+        </div>
+        <div id="songLyrics" class="card glass song-card"></div>
+        <div class="song-controls">
+          <button id="songPlay" class="btn-primary hidden">▶ Play</button>
+          <button id="songStop" class="link-btn hidden">⏹ Stop</button>
+        </div>
+      </section>
+
+      <!-- More / Practice Hub -->
+      <section id="tab-more" class="tab-page">
+        <h2 class="page-title">Your Practice</h2>
+        <p class="page-sub">Everything else, gathered in one calm place.</p>
+        <div class="more-grid">
+          <div class="more-card" data-goto="tab-ai-vision">
+            <span class="mc-ico">🎬</span>
+            <span class="mc-title">AI Vision</span>
+            <span class="mc-desc">See &amp; become your future self</span>
+          </div>
+          <div class="more-card" data-goto="tab-wallpaper">
+            <span class="mc-ico">🖼</span>
+            <span class="mc-title">Wallpaper</span>
+            <span class="mc-desc">Affirmation wallpapers</span>
+          </div>
+          <div class="more-card" data-goto="tab-avatar">
+            <span class="mc-ico">👤</span>
+            <span class="mc-title">Avatar</span>
+            <span class="mc-desc">A guide who speaks to you</span>
+          </div>
+          <div class="more-card" data-goto="tab-saved">
+            <span class="mc-ico">🔖</span>
+            <span class="mc-title">Saved</span>
+            <span class="mc-desc">Collect inspiration</span>
+          </div>
+          <div class="more-card" data-goto="tab-song">
+            <span class="mc-ico">🎵</span>
+            <span class="mc-title">Manifest Song</span>
+            <span class="mc-desc">Hear your dream as music</span>
+          </div>
+          <div class="more-card" data-goto="tab-goals">
+            <span class="mc-ico">☆</span>
+            <span class="mc-title">Desires</span>
+            <span class="mc-desc">Plant &amp; track your intentions</span>
+          </div>
+          <div class="more-card" data-goto="tab-gratitude">
+            <span class="mc-ico">✿</span>
+            <span class="mc-title">Gratitude</span>
+            <span class="mc-desc">A daily thanks journal</span>
+          </div>
+          <div class="more-card" data-goto="tab-vision">
+            <span class="mc-ico">◈</span>
+            <span class="mc-title">Vision Board</span>
+            <span class="mc-desc">Visualize your dream life</span>
+          </div>
+          <div class="more-card" data-goto="tab-meditate">
+            <span class="mc-ico">◎</span>
+            <span class="mc-title">Breathe</span>
+            <span class="mc-desc">Cosmic meditation timer</span>
+          </div>
+          <div class="more-card" data-goto="tab-future">
+            <span class="mc-ico">✧</span>
+            <span class="mc-title">Future Self</span>
+            <span class="mc-desc">Hear your desire fulfilled</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-today"><span class="tb-icon">✦</span><span class="tb-label">Home</span></button>
+      <button class="tab-btn" data-tab="tab-affirm"><span class="tb-icon">❋</span><span class="tb-label">Affirm</span></button>
+      <button class="tab-btn" data-tab="tab-more"><span class="tb-icon">☰</span><span class="tb-label">More</span></button>
+    </nav>
+
+    <!-- Theme Switcher -->
+    <button id="themeFab" class="theme-fab" aria-label="Switch theme">✦</button>
+    <div id="themePanel" class="theme-panel hidden">
+      <p class="theme-panel-title">Choose a look</p>
+      <button class="theme-opt" data-theme="luminara"><span class="to-ico">✦</span><span class="to-name">Luminara</span><span class="to-desc">Dreamy lavender</span></button>
+      <button class="theme-opt" data-theme="manifest-light"><span class="to-ico">☀</span><span class="to-name">Manifest Light</span><span class="to-desc">Liquid gold & glass</span></button>
+      <button class="theme-opt" data-theme="manifest-dark"><span class="to-ico">🌙</span><span class="to-name">Manifest Dark</span><span class="to-desc">Cosmic nebula</span></button>
+      <button class="theme-opt" data-theme="prism"><span class="to-ico">◈</span><span class="to-name">Prism White</span><span class="to-desc">Iridescent white</span></button>
+      <button class="theme-opt" data-theme="ios"><span class="to-ico">◉</span><span class="to-name">Liquid Glass</span><span class="to-desc">iOS 27 glass</span></button>
+    </div>
+
+    <!-- Onboarding Quiz -->
+    <div id="quizModal" class="quiz-modal hidden">
+      <div class="quiz-card glass">
+        <div class="quiz-step" data-step="1">
+          <h3>Welcome to Luminara ✦</h3>
+          <p class="quiz-q">Let's make this truly yours. What should we call you?</p>
+          <input id="qName" type="text" placeholder="Your name" maxlength="20">
+          <button class="btn-primary q-next">Continue</button>
+        </div>
+        <div class="quiz-step hidden" data-step="2">
+          <h3>What do you most want to shift?</h3>
+          <p class="quiz-q">Pick the area calling to you right now.</p>
+          <div class="chips center" id="qCats">
+            <button class="chip" data-cat="Abundance">💎 Abundance</button>
+            <button class="chip" data-cat="Love">💖 Love</button>
+            <button class="chip" data-cat="Career">⭐ Purpose</button>
+            <button class="chip" data-cat="Wellness">🌙 Wellness</button>
+            <button class="chip" data-cat="Growth">🌱 Growth</button>
+          </div>
+          <button class="btn-primary q-next">Continue</button>
+        </div>
+        <div class="quiz-step hidden" data-step="3">
+          <h3>What are you manifesting?</h3>
+          <p class="quiz-q">One sentence. The future self script will use it.</p>
+          <textarea id="qDesire" rows="3" placeholder="e.g. I wake up free, fulfilled, and deeply loved" maxlength="160"></textarea>
+          <button class="btn-primary" id="qFinish">Begin Journey ✦</button>
+        </div>
+        <div class="quiz-dots"><span class="qdot active"></span><span class="qdot"></span><span class="qdot"></span></div>
+        <button class="chip q-skip" id="qSkip" type="button">Skip for now →</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
