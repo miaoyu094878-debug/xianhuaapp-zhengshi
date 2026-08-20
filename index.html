@@ -13,7 +13,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=2026.5">
+  <script>
+  // PWA Cache recovery & auto-cleanup for stale service workers
+  (function () {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) {
+          // If any old service worker is holding bad caches, force unregister
+          if (r.active && !sessionStorage.getItem('sw_cleaned_v1')) {
+            r.unregister();
+            if ('caches' in window) {
+              caches.keys().then(function (names) {
+                return Promise.all(names.map(function (n) { return caches.delete(n); }));
+              });
+            }
+            sessionStorage.setItem('sw_cleaned_v1', '1');
+            window.location.reload();
+          }
+        });
+      });
+    }
+  })();
+  </script>
+  <link rel="stylesheet" href="/styles.css?v=2026.6">
 
   <script>
   (function () {
@@ -568,7 +590,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=2026.5"></script>
+  <script src="/app.js?v=2026.6"></script>
 
 </body>
 </html>
