@@ -1,12 +1,5 @@
 {
-  "cleanUrls": false,
-  "rewrites": [
-    { "source": "/landing", "destination": "/landing.html" },
-    { "source": "/manifest.json", "destination": "/manifest.json" },
-    { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/styles.css", "destination": "/styles.css" },
-    { "source": "/app.js", "destination": "/app.js" }
-  ],
+  "version": 2,
   "headers": [
     {
       "source": "/(.*)",
@@ -26,20 +19,20 @@
       "source": "/styles.css",
       "headers": [
         { "key": "Content-Type", "value": "text/css; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
       ]
     },
     {
       "source": "/app.js",
       "headers": [
         { "key": "Content-Type", "value": "application/javascript; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
       ]
     },
     {
       "source": "/manifest.json",
       "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json" }
+        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" }
       ]
     }
   ]
