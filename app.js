@@ -1,15 +1,14 @@
 /* Luminara — Manifest Your Reality */
 (function () {
   'use strict';
-  if (window.__LUMINARA_LOADED__) return;
-  window.__LUMINARA_LOADED__ = true;
+  if (window.__LUMINARA_APP_INITIALIZED__) return;
+  window.__LUMINARA_APP_INITIALIZED__ = true;
 
   /* ═══════ Starfield Canvas ═══════ */
   var canvas = document.getElementById('starfield');
-  var ctx = canvas ? canvas.getContext('2d') : null;
+  var ctx = canvas.getContext('2d');
   var stars = [], W, H;
   function resize() {
-    if (!canvas) return;
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
   }
@@ -37,7 +36,6 @@
   }
 
   function drawStars() {
-    if (!ctx) return;
     ctx.clearRect(0, 0, W, H);
     stars.forEach(function (s) {
       var hue = starPalette[s.pi % starPalette.length];
