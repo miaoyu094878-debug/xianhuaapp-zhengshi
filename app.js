@@ -874,67 +874,61 @@
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   }
   var WP_PRESETS = [
-    // 1 · Aurora Veil 极光纱幔
+    // 1 · Aurora Veil 极光纱幔（浅色）
     function (c, w, h) {
       var g = c.createLinearGradient(0, 0, w * 0.4, h);
-      g.addColorStop(0, '#0a0e27'); g.addColorStop(0.55, '#0c1230'); g.addColorStop(1, '#05060f');
+      g.addColorStop(0, '#eef7ff'); g.addColorStop(0.55, '#f4f0ff'); g.addColorStop(1, '#fff8ee');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.22, w * 0.85, 'rgba(40,220,180,0.28)');
-      wpBlob(c, w * 0.3, h * 0.34, w * 0.70, 'rgba(90,120,240,0.26)');
-      wpBlob(c, w * 0.72, h * 0.30, w * 0.60, 'rgba(200,90,220,0.24)');
-      wpStars(c, w, h, 90, { dim: true });
-      wpVignette(c, w, h, 0.34);
+      wpBlob(c, w * 0.5, h * 0.22, w * 0.85, 'rgba(72,216,188,0.40)');
+      wpBlob(c, w * 0.3, h * 0.34, w * 0.70, 'rgba(130,150,245,0.34)');
+      wpBlob(c, w * 0.72, h * 0.30, w * 0.60, 'rgba(210,130,235,0.30)');
+      wpVignette(c, w, h, 0.10);
     },
-    // 2 · Midnight Bloom 午夜花
+    // 2 · Midnight Bloom 晨光花瓣（浅色）
     function (c, w, h) {
       var g = c.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, Math.max(w, h) * 0.9);
-      g.addColorStop(0, '#241033'); g.addColorStop(1, '#0a0510');
+      g.addColorStop(0, '#ffeef7'); g.addColorStop(1, '#f5eeff');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.72, h * 0.26, w * 0.70, 'rgba(220,90,180,0.40)');
-      wpBlob(c, w * 0.22, h * 0.82, w * 0.60, 'rgba(120,80,225,0.34)');
-      wpStars(c, w, h, 70, { dim: true });
-      wpVignette(c, w, h, 0.30);
+      wpBlob(c, w * 0.72, h * 0.26, w * 0.70, 'rgba(240,140,195,0.45)');
+      wpBlob(c, w * 0.22, h * 0.82, w * 0.60, 'rgba(170,130,235,0.40)');
+      wpVignette(c, w, h, 0.10);
     },
-    // 3 · Cosmic Drift 星河漂流（银河带）
+    // 3 · Cosmic Drift 晨星流云（浅色）
     function (c, w, h) {
       var g = c.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, '#070a1c'); g.addColorStop(0.5, '#05070f'); g.addColorStop(1, '#02030a');
+      g.addColorStop(0, '#eef4ff'); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, '#eef1ff');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.20, h * 0.30, w * 0.50, 'rgba(150,170,255,0.18)');
-      wpBlob(c, w * 0.50, h * 0.46, w * 0.55, 'rgba(180,150,240,0.16)');
-      wpBlob(c, w * 0.82, h * 0.62, w * 0.50, 'rgba(120,180,255,0.16)');
-      wpStars(c, w, h, 170, { spark: true });
-      wpVignette(c, w, h, 0.30);
+      wpBlob(c, w * 0.20, h * 0.30, w * 0.50, 'rgba(160,180,255,0.30)');
+      wpBlob(c, w * 0.50, h * 0.46, w * 0.55, 'rgba(190,165,245,0.28)');
+      wpBlob(c, w * 0.82, h * 0.62, w * 0.50, 'rgba(140,190,255,0.30)');
+      wpVignette(c, w, h, 0.10);
     },
-    // 4 · Ember Glow 余烬暖光
+    // 4 · Ember Glow 暖阳余晖（浅色）
     function (c, w, h) {
       var g = c.createRadialGradient(w * 0.3, h * 0.9, 0, w * 0.5, h * 0.6, Math.max(w, h));
-      g.addColorStop(0, '#2a1606'); g.addColorStop(1, '#0a0604');
+      g.addColorStop(0, '#fff4e6'); g.addColorStop(1, '#ffe9e2');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.28, h * 0.86, w * 0.80, 'rgba(255,150,60,0.34)');
-      wpBlob(c, w * 0.82, h * 0.20, w * 0.50, 'rgba(255,120,90,0.20)');
-      wpStars(c, w, h, 50, { dim: true });
-      wpVignette(c, w, h, 0.42);
+      wpBlob(c, w * 0.28, h * 0.86, w * 0.80, 'rgba(255,185,105,0.45)');
+      wpBlob(c, w * 0.82, h * 0.20, w * 0.50, 'rgba(255,150,135,0.32)');
+      wpVignette(c, w, h, 0.10);
     },
-    // 5 · Ocean Depths 深海
+    // 5 · Ocean Depths 浅海波光（浅色）
     function (c, w, h) {
       var g = c.createLinearGradient(0, h, 0, 0);
-      g.addColorStop(0, '#021a1e'); g.addColorStop(1, '#01090c');
+      g.addColorStop(0, '#e6fffb'); g.addColorStop(1, '#e4f2ff');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.64, w * 0.95, 'rgba(40,200,210,0.30)');
-      wpBlob(c, w * 0.32, h * 0.30, w * 0.50, 'rgba(60,120,205,0.26)');
-      wpStars(c, w, h, 45, { dim: true });
-      wpVignette(c, w, h, 0.34);
+      wpBlob(c, w * 0.5, h * 0.64, w * 0.95, 'rgba(88,220,215,0.42)');
+      wpBlob(c, w * 0.32, h * 0.30, w * 0.50, 'rgba(110,170,240,0.36)');
+      wpVignette(c, w, h, 0.10);
     },
-    // 6 · Rose Quartz Night 玫瑰夜
+    // 6 · Rose Quartz Night 玫瑰晨光（浅色）
     function (c, w, h) {
       var g = c.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, Math.max(w, h) * 0.85);
-      g.addColorStop(0, '#1c0712'); g.addColorStop(1, '#0a0308');
+      g.addColorStop(0, '#fff0f6'); g.addColorStop(1, '#f7efff');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.34, w * 0.85, 'rgba(240,150,190,0.30)');
-      wpBlob(c, w * 0.74, h * 0.80, w * 0.50, 'rgba(150,90,205,0.28)');
-      wpStars(c, w, h, 55, { dim: true });
-      wpVignette(c, w, h, 0.30);
+      wpBlob(c, w * 0.5, h * 0.34, w * 0.85, 'rgba(243,170,205,0.42)');
+      wpBlob(c, w * 0.74, h * 0.80, w * 0.50, 'rgba(182,140,230,0.40)');
+      wpVignette(c, w, h, 0.10);
     }
   ];
 
