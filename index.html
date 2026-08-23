@@ -1345,10 +1345,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <button id="wpResetPhotoBtn" class="chip hidden" type="button" title="Reset photo">↺ Reset Photo</button>
                 </div>
               </div>
-              <button id="wpExport" class="btn-primary">⬇ Download Wallpaper</button>
-              <div id="wpGuide" class="wp-guide hidden">
-                <p class="wp-guide-t"><b>Set it as your wallpaper:</b></p>
-                <p id="wpGuideText" class="wp-guide-b"></p>
+              <div class="wp-download-actions">
+                <button id="wpExport" class="btn-primary" type="button">⬇ 确认下载</button>
+                <button id="wpDirectDownloadBtn" class="btn-primary wp-btn-direct hidden" type="button">⬇ 直接下载</button>
               </div>
             </div>
           </div>
@@ -1536,36 +1535,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </div>
     </div>
 
-    <!-- Wallpaper Save Modal (Mobile & Desktop) -->
-    <div id="wpModal" class="wp-modal hidden" aria-modal="true" role="dialog">
-      <div class="wp-modal-backdrop" id="wpModalCloseBackdrop"></div>
-      <div class="wp-modal-sheet card glass">
-        <div class="wp-modal-header">
-          <div class="wp-modal-title">
-            <span class="wp-modal-ico">🖼</span>
-            <h3>Save Wallpaper</h3>
-          </div>
-          <button id="wpModalClose" class="wp-modal-close" aria-label="Close">✕</button>
-        </div>
-        <div class="wp-modal-body">
-          <div class="wp-modal-img-wrap">
-            <img id="wpModalImg" alt="Rendered Wallpaper" class="wp-modal-img" />
-          </div>
-          <div class="wp-modal-instruction">
-            <div class="wp-inst-badge">📱 手机端保存提示</div>
-            <p class="wp-inst-text"><strong>长按上方图片</strong>，在弹出菜单中选择<strong>【存储图像】</strong>或<strong>【保存到相册】</strong>即可设为锁屏/桌面壁纸。</p>
-          </div>
-          <div class="wp-modal-actions">
-            <button id="wpModalShareBtn" class="btn-primary hidden" type="button">
-              <span>📤</span> 唤起系统分享存相册 / Share
-            </button>
-            <button id="wpModalDirectDl" class="chip" type="button">
-              <span>⬇</span> 重新下载文件 / Direct Download
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+
   </div>
 
   <script id="luminara-app-engine">
@@ -3177,114 +3147,53 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     }
   }
 
-  function openWallpaperModal(blob, dataUrl) {
-    var modal = $('#wpModal');
-    var img = $('#wpModalImg');
-    var shareBtn = $('#wpModalShareBtn');
-    var directDl = $('#wpModalDirectDl');
-    if (!modal || !img) return;
+  var wpPendingDownloadUrl = null;
+  var wpPendingFileName = null;
 
-    img.src = dataUrl;
-    modal.classList.remove('hidden');
+  var wpExportBtn = $('#wpExport');
+  var wpDirectDownloadBtn = $('#wpDirectDownloadBtn');
 
-    var fileName = 'luminara-affirmation-' + wpState.ratio + '.png';
-    var file = null;
-    try {
-      if (blob) file = new File([blob], fileName, { type: 'image/png' });
-    } catch (e) {}
+  if (wpExportBtn) {
+    wpExportBtn.addEventListener('click', function () {
+      renderWallpaper(true);
+      var cnv = $('#wpCanvas');
+      if (!cnv) return;
 
-    // Check if Web Share API with files is supported
-    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      shareBtn.classList.remove('hidden');
-      shareBtn.onclick = function () {
-        navigator.share({
-          files: [file],
-          title: 'Luminara Affirmation Wallpaper',
-          text: 'Affirmation Wallpaper created with Luminara'
-        }).catch(function (err) {
-          if (err && err.name !== 'AbortError') console.log('Share error:', err);
-        });
-      };
-    } else {
-      shareBtn.classList.add('hidden');
-    }
-
-    directDl.onclick = function () {
-      var a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () { a.remove(); }, 800);
-    };
-  }
-
-  function closeWallpaperModal() {
-    var modal = $('#wpModal');
-    if (modal) modal.classList.add('hidden');
-  }
-
-  var wpModalCloseBtn = $('#wpModalClose');
-  if (wpModalCloseBtn) wpModalCloseBtn.addEventListener('click', closeWallpaperModal);
-  var wpModalBackdrop = $('#wpModalCloseBackdrop');
-  if (wpModalBackdrop) wpModalBackdrop.addEventListener('click', closeWallpaperModal);
-  window.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeWallpaperModal();
-  });
-
-  $('#wpExport').addEventListener('click', function () {
-    renderWallpaper(true);
-    var cnv = $('#wpCanvas');
-    if (!cnv) return;
-
-    var dataUrl = cnv.toDataURL('image/png');
-    cnv.toBlob(function (blob) {
+      wpPendingFileName = 'luminara-affirmation-' + wpState.ratio + '.png';
+      wpPendingDownloadUrl = cnv.toDataURL('image/png');
       renderWallpaper(false);
-      if (!blob) return;
 
-      var fileName = 'luminara-affirmation-' + wpState.ratio + '.png';
-      var file = null;
-      try {
-        file = new File([blob], fileName, { type: 'image/png' });
-      } catch (e) {}
+      if (wpDirectDownloadBtn) {
+        wpDirectDownloadBtn.classList.remove('hidden');
+        wpDirectDownloadBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
 
-      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      if (isMobile && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({
-          files: [file],
-          title: 'Luminara Affirmation Wallpaper',
-          text: 'Affirmation Wallpaper created with Luminara'
-        }).then(function () {
-          // Native share sheet opened successfully
-        }).catch(function (err) {
-          if (err && err.name !== 'AbortError') {
-            openWallpaperModal(blob, dataUrl);
-          }
-        });
-      } else {
-        if (!isMobile) {
-          var a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function () { a.remove(); }, 800);
+  if (wpDirectDownloadBtn) {
+    wpDirectDownloadBtn.addEventListener('click', function () {
+      if (!wpPendingDownloadUrl) {
+        renderWallpaper(true);
+        var cnv = $('#wpCanvas');
+        if (cnv) {
+          wpPendingFileName = 'luminara-affirmation-' + wpState.ratio + '.png';
+          wpPendingDownloadUrl = cnv.toDataURL('image/png');
         }
-        openWallpaperModal(blob, dataUrl);
+        renderWallpaper(false);
       }
 
-      var t = $('#wpGuideText');
-      if (t) {
-        var ua = navigator.userAgent;
-        if (/iPhone|iPad|iPod/i.test(ua)) t.textContent = '1. 长按上方弹窗中的图片 → 选择“存储图像”存入相册。 2. 在相册中打开 → 点分享图标 (⬆) → “用作墙纸”即可。';
-        else if (/Android/i.test(ua)) t.textContent = '1. 长按上方图片选择“保存图片”存入相册。 2. 打开相册点击菜单 ⋮ → “设为壁纸”。';
-        else if (/Windows/i.test(ua)) t.textContent = '1. 图片已下载。 2. 在“下载”文件夹中右键图片 → “设为桌面背景”。';
-        else t.textContent = '1. 图片已下载。 2. 打开图片并右键设置为桌面壁纸。';
-        $('#wpGuide').classList.remove('hidden');
+      if (wpPendingDownloadUrl) {
+        var a = document.createElement('a');
+        a.href = wpPendingDownloadUrl;
+        a.download = wpPendingFileName || ('luminara-affirmation-' + wpState.ratio + '.png');
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          a.remove();
+        }, 800);
       }
-    }, 'image/png');
-  });
+    });
+  }
 
   renderWpPresets();
   $('#wpText').value = WP_QUOTES[0];

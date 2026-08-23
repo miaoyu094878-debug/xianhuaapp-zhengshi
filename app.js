@@ -1613,119 +1613,53 @@
     }
   }
 
-  function openWallpaperModal(blob, dataUrl) {
-    var modal = $('#wpModal');
-    var img = $('#wpModalImg');
-    var shareBtn = $('#wpModalShareBtn');
-    var directDl = $('#wpModalDirectDl');
-    if (!modal || !img) return;
+  var wpPendingDownloadUrl = null;
+  var wpPendingFileName = null;
 
-    img.src = dataUrl;
-    modal.classList.remove('hidden');
+  var wpExportBtn = $('#wpExport');
+  var wpDirectDownloadBtn = $('#wpDirectDownloadBtn');
 
-    var fileName = 'luminara-affirmation-' + wpState.ratio + '.png';
-    var file = null;
-    try {
-      if (blob) file = new File([blob], fileName, { type: 'image/png' });
-    } catch (e) {}
+  if (wpExportBtn) {
+    wpExportBtn.addEventListener('click', function () {
+      renderWallpaper(true);
+      var cnv = $('#wpCanvas');
+      if (!cnv) return;
 
-    // Check if Web Share API with files is supported
-    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      shareBtn.classList.remove('hidden');
-      shareBtn.onclick = function () {
-        navigator.share({
-          files: [file],
-          title: 'Luminara Affirmation Wallpaper',
-          text: 'Affirmation Wallpaper created with Luminara'
-        }).catch(function (err) {
-          if (err && err.name !== 'AbortError') console.log('Share error:', err);
-        });
-      };
-    } else {
-      shareBtn.classList.add('hidden');
-    }
-
-    directDl.onclick = function () {
-      var a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () { a.remove(); }, 800);
-    };
-  }
-
-  function closeWallpaperModal() {
-    var modal = $('#wpModal');
-    if (modal) modal.classList.add('hidden');
-  }
-
-  var wpModalCloseBtn = $('#wpModalClose');
-  if (wpModalCloseBtn) wpModalCloseBtn.addEventListener('click', closeWallpaperModal);
-  var wpModalBackdrop = $('#wpModalCloseBackdrop');
-  if (wpModalBackdrop) wpModalBackdrop.addEventListener('click', closeWallpaperModal);
-  window.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeWallpaperModal();
-  });
-
-  $('#wpExport').addEventListener('click', function () {
-    // Render clean image without UI selection boxes or handles
-    renderWallpaper(true);
-
-    var cnv = $('#wpCanvas');
-    if (!cnv) return;
-
-    var dataUrl = cnv.toDataURL('image/png');
-    cnv.toBlob(function (blob) {
-      // Re-render interactive state
+      wpPendingFileName = 'luminara-affirmation-' + wpState.ratio + '.png';
+      wpPendingDownloadUrl = cnv.toDataURL('image/png');
       renderWallpaper(false);
-      if (!blob) return;
 
-      var fileName = 'luminara-affirmation-' + wpState.ratio + '.png';
-      var file = null;
-      try {
-        file = new File([blob], fileName, { type: 'image/png' });
-      } catch (e) {}
+      if (wpDirectDownloadBtn) {
+        wpDirectDownloadBtn.classList.remove('hidden');
+        wpDirectDownloadBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
 
-      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      // On mobile devices supporting Web Share with files (iOS Safari 15+, Android Chrome), try native share directly
-      if (isMobile && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({
-          files: [file],
-          title: 'Luminara Affirmation Wallpaper',
-          text: 'Affirmation Wallpaper created with Luminara'
-        }).then(function () {
-          // Native share sheet opened successfully
-        }).catch(function (err) {
-          if (err && err.name !== 'AbortError') {
-            openWallpaperModal(blob, dataUrl);
-          }
-        });
-      } else {
-        // Desktop or browsers without native file share
-        if (!isMobile) {
-          var a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function () { a.remove(); }, 800);
+  if (wpDirectDownloadBtn) {
+    wpDirectDownloadBtn.addEventListener('click', function () {
+      if (!wpPendingDownloadUrl) {
+        renderWallpaper(true);
+        var cnv = $('#wpCanvas');
+        if (cnv) {
+          wpPendingFileName = 'luminara-affirmation-' + wpState.ratio + '.png';
+          wpPendingDownloadUrl = cnv.toDataURL('image/png');
         }
-        openWallpaperModal(blob, dataUrl);
+        renderWallpaper(false);
       }
 
-      var t = $('#wpGuideText');
-      if (t) {
-        var ua = navigator.userAgent;
-        if (/iPhone|iPad|iPod/i.test(ua)) t.textContent = '1. 长按上方弹窗中的图片 → 选择“存储图像”存入相册。 2. 在相册中打开 → 点分享图标 (⬆) → “用作墙纸”即可。';
-        else if (/Android/i.test(ua)) t.textContent = '1. 长按上方图片选择“保存图片”存入相册。 2. 打开相册点击菜单 ⋮ → “设为壁纸”。';
-        else if (/Windows/i.test(ua)) t.textContent = '1. 图片已下载。 2. 在“下载”文件夹中右键图片 → “设为桌面背景”。';
-        else t.textContent = '1. 图片已下载。 2. 打开图片并右键设置为桌面壁纸。';
-        $('#wpGuide').classList.remove('hidden');
+      if (wpPendingDownloadUrl) {
+        var a = document.createElement('a');
+        a.href = wpPendingDownloadUrl;
+        a.download = wpPendingFileName || ('luminara-affirmation-' + wpState.ratio + '.png');
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          a.remove();
+        }, 800);
       }
-    }, 'image/png');
-  });
+    });
+  }
 
   renderWpPresets();
   $('#wpText').value = WP_QUOTES[0];
