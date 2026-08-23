@@ -1613,51 +1613,29 @@
     }
   }
 
-  var wpPendingDownloadUrl = null;
-  var wpPendingFileName = null;
-
   var wpExportBtn = $('#wpExport');
-  var wpDirectDownloadBtn = $('#wpDirectDownloadBtn');
-
   if (wpExportBtn) {
     wpExportBtn.addEventListener('click', function () {
+      // 1. Render clean canvas without UI selection boxes or handles
       renderWallpaper(true);
       var cnv = $('#wpCanvas');
       if (!cnv) return;
 
-      wpPendingFileName = 'luminara-affirmation-' + wpState.ratio + '.png';
-      wpPendingDownloadUrl = cnv.toDataURL('image/png');
+      var fileName = 'luminara-affirmation-' + (wpState.ratio || '9:16') + '.png';
+      var dataUrl = cnv.toDataURL('image/png');
+
+      // 2. Restore interactive editing state
       renderWallpaper(false);
 
-      if (wpDirectDownloadBtn) {
-        wpDirectDownloadBtn.classList.remove('hidden');
-        wpDirectDownloadBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    });
-  }
-
-  if (wpDirectDownloadBtn) {
-    wpDirectDownloadBtn.addEventListener('click', function () {
-      if (!wpPendingDownloadUrl) {
-        renderWallpaper(true);
-        var cnv = $('#wpCanvas');
-        if (cnv) {
-          wpPendingFileName = 'luminara-affirmation-' + wpState.ratio + '.png';
-          wpPendingDownloadUrl = cnv.toDataURL('image/png');
-        }
-        renderWallpaper(false);
-      }
-
-      if (wpPendingDownloadUrl) {
-        var a = document.createElement('a');
-        a.href = wpPendingDownloadUrl;
-        a.download = wpPendingFileName || ('luminara-affirmation-' + wpState.ratio + '.png');
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function () {
-          a.remove();
-        }, 800);
-      }
+      // 3. Immediately & directly trigger download in background
+      var a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        a.remove();
+      }, 800);
     });
   }
 
