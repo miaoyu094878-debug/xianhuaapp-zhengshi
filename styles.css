@@ -615,6 +615,50 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 /* ---------- WALLPAPER ---------- */
 .wp-main-grid { display: flex; flex-direction: column; gap: 16px; width: 100%; }
 .wp-settings-col, .wp-preview-col { width: 100%; }
+
+/* Mobile Studio Tabs */
+.wp-studio-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  background: var(--surface-2);
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+.wp-studio-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+.wp-studio-tab:hover {
+  color: var(--text);
+}
+.wp-studio-tab.active {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+}
+
+/* Tab Panels */
+.wp-tab-panel {
+  display: none;
+}
+.wp-tab-panel.active {
+  display: block;
+  animation: fadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .wp-bgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
 .wp-bg {
   aspect-ratio: 9 / 16; border-radius: 12px; border: 2px solid transparent; cursor: pointer;
@@ -646,17 +690,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   justify-content: center;
   align-items: center;
   width: 100%;
-  padding: 4px 0 14px;
+  padding: 4px 0 10px;
   background: transparent;
   border: none;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   overflow: visible;
   box-sizing: border-box;
 }
 .wp-canvas {
   display: block;
   max-width: 100%;
-  max-height: 58vh;
+  max-height: 52vh;
   width: auto;
   height: auto;
   border-radius: 16px;
@@ -669,12 +713,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 .wp-canvas.dragging { cursor: grabbing; }
 .wp-canvas.resizing { cursor: nwse-resize; }
+
+/* Inline text input directly on top of wallpaper canvas */
+.wp-canvas-inline-input {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  background: rgba(16, 8, 30, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  outline: none;
+  font-family: "Cinzel", "Georgia", serif;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+  padding: 10px 12px;
+  resize: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: fadeSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+.wp-canvas-inline-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .wp-pos-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
 .wp-hint { font-size: 12px; color: var(--text-soft); line-height: 1.5; }
 .wp-quick-resets { display: flex; gap: 6px; }
-.wp-guide { margin-top: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
-.wp-guide-t { font-size: 13px; color: var(--text); margin-bottom: 6px; }
-.wp-guide-b { font-size: 12px; color: var(--text-soft); line-height: 1.7; }
+.wp-export-main-btn {
+  margin-top: 4px;
+  width: 100%;
+}
 
 /* ---------- AI AVATAR ---------- */
 .av-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
@@ -784,7 +856,10 @@ html.device-desktop .vision-grid { grid-template-columns: repeat(4, 1fr); gap: 1
 
 /* ── Two-column feature pages ── */
 html.device-desktop .wp-main-grid { display: grid; grid-template-columns: minmax(320px, 440px) minmax(360px, 1fr); gap: 28px; align-items: start; }
-html.device-desktop .wp-preview-col { position: sticky; top: 24px; }
+html.device-desktop .wp-preview-col { position: sticky; top: 24px; order: 2; }
+html.device-desktop .wp-settings-col { order: 1; }
+html.device-desktop .wp-studio-bar { display: none; }
+html.device-desktop .wp-tab-panel { display: block !important; margin-bottom: 16px; }
 html.device-desktop .wp-canvas { max-height: 580px; }
 
 html.device-desktop #tab-ai-vision.active { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }

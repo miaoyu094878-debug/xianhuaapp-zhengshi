@@ -1260,28 +1260,67 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <p class="page-sub">Design a wallpaper with your affirmation — export it, then set it on your phone or desktop.</p>
 
         <div class="wp-main-grid">
+          <!-- Canvas Preview Section (Top on mobile, right on desktop) -->
+          <div class="wp-preview-col">
+            <div class="card glass form-card wp-preview-card">
+              <!-- Layer Switcher Tabs -->
+              <div class="wp-layer-bar">
+                <span class="wp-layer-title">Active Layer:</span>
+                <div class="chips">
+                  <button id="wpLayerText" class="chip wp-layer-btn active" type="button" data-layer="text">✦ Text</button>
+                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Photo</button>
+                </div>
+              </div>
+
+              <div class="wp-canvas-wrap" id="wpCanvasWrap">
+                <canvas id="wpCanvas" class="wp-canvas"></canvas>
+                <textarea id="wpCanvasInlineInput" class="wp-canvas-inline-input hidden" spellcheck="false" placeholder="Type text here..."></textarea>
+              </div>
+
+              <div class="wp-pos-row">
+                <span class="wp-hint" id="wpGestureHint">✏️ Click / Tap text to edit · Drag to move · Drag corners or pinch to resize</span>
+                <div class="wp-quick-resets">
+                  <button id="wpResetPos" class="chip" type="button" title="Reset text position">↺ Reset Text</button>
+                  <button id="wpResetPhotoBtn" class="chip hidden" type="button" title="Reset photo">↺ Reset Photo</button>
+                </div>
+              </div>
+              <button id="wpExport" class="btn-primary wp-export-main-btn" type="button">⬇ Download Wallpaper</button>
+            </div>
+          </div>
+
+          <!-- Controls Section with Studio Tabs for Mobile -->
           <div class="wp-settings-col">
-            <div class="card glass form-card">
-              <label class="field-label">1 · Background</label>
+            <div class="wp-studio-bar">
+              <button class="wp-studio-tab active" data-wptab="bg" type="button">🖼 Background</button>
+              <button class="wp-studio-tab" data-wptab="quote" type="button">✍️ Quote</button>
+              <button class="wp-studio-tab" data-wptab="style" type="button">🎨 Style</button>
+            </div>
+
+            <!-- Tab 1: Background -->
+            <div class="card glass form-card wp-tab-panel active" id="wpPanelBg">
+              <label class="field-label">Curated Presets</label>
               <div class="wp-bgs" id="wpBgs"></div>
-              <label class="field-label">or your own photo</label>
+              <label class="field-label">Custom Photo</label>
               <input type="file" id="wpPhoto" accept="image/*" class="hidden">
               <div class="ai-drop" id="wpDrop"><span>🖼</span><span>Tap to upload your photo</span></div>
               <div id="wpPrevBox" class="ai-prev hidden"><img id="wpPrevImg" alt="your photo"><button id="wpPrevClear" class="chip" type="button">Remove photo</button></div>
             </div>
 
-            <div class="card glass form-card">
-              <label class="field-label">2 · Your affirmation</label>
+            <!-- Tab 2: Quote -->
+            <div class="card glass form-card wp-tab-panel" id="wpPanelQuote">
+              <label class="field-label">Affirmation Text</label>
               <textarea id="wpText" rows="2" maxlength="120" placeholder="I am becoming who I am meant to be"></textarea>
               <button id="wpShuffle" class="chip" type="button">✦ Shuffle affirmation</button>
             </div>
 
-            <div class="card glass form-card">
-              <label class="field-label">3 · Style &amp; Adjustments</label>
+            <!-- Tab 3: Style -->
+            <div class="card glass form-card wp-tab-panel" id="wpPanelStyle">
+              <label class="field-label">Canvas Ratio</label>
               <div class="chips">
                 <button class="chip wp-ratio active" data-ratio="phone">📱 Phone 9:16</button>
                 <button class="chip wp-ratio" data-ratio="desktop">💻 Desktop 16:9</button>
               </div>
+              <label class="field-label" style="margin-top: 12px;">Text Position & Tone</label>
               <div class="chips">
                 <button class="chip wp-pos active" data-pos="center">Center</button>
                 <button class="chip wp-pos" data-pos="top">Top</button>
@@ -1320,32 +1359,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <button id="wpResetPhoto" class="chip" type="button">↺ Reset Photo</button>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="wp-preview-col">
-            <div class="card glass form-card wp-preview-card">
-              <!-- Layer Switcher Tabs -->
-              <div class="wp-layer-bar">
-                <span class="wp-layer-title">Active Layer:</span>
-                <div class="chips">
-                  <button id="wpLayerText" class="chip wp-layer-btn active" type="button" data-layer="text">✦ Text</button>
-                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Photo</button>
-                </div>
-              </div>
-
-              <div class="wp-canvas-wrap" id="wpCanvasWrap">
-                <canvas id="wpCanvas" class="wp-canvas"></canvas>
-              </div>
-
-              <div class="wp-pos-row">
-                <span class="wp-hint" id="wpGestureHint">✋ Drag text to move · Drag corners, pinch or scroll to resize</span>
-                <div class="wp-quick-resets">
-                  <button id="wpResetPos" class="chip" type="button" title="Reset text position">↺ Reset Text</button>
-                  <button id="wpResetPhotoBtn" class="chip hidden" type="button" title="Reset photo">↺ Reset Photo</button>
-                </div>
-              </div>
-              <button id="wpExport" class="btn-primary" type="button">⬇ Download Wallpaper</button>
             </div>
           </div>
         </div>
@@ -2756,6 +2769,83 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
   var wpCanvas = $('#wpCanvas');
+  var wpCanvasWrap = $('#wpCanvasWrap');
+  var wpCanvasInlineInput = $('#wpCanvasInlineInput');
+  var wpIsEditingInline = false;
+
+  function wpOpenInlineEditor() {
+    if (!wpCanvasInlineInput || !wpCanvas || !wpState._box) return;
+    var b = wpState._box;
+    var ratio = WP_RATIOS[wpState.ratio];
+    var rect = wpCanvas.getBoundingClientRect();
+    var wrapRect = wpCanvasWrap ? wpCanvasWrap.getBoundingClientRect() : rect;
+
+    var scale = rect.width / ratio.w;
+    var textVal = $('#wpText') ? $('#wpText').value : '';
+
+    // Calculate position relative to wpCanvasWrap
+    var leftInCanvas = b.x * scale;
+    var topInCanvas = b.y * scale;
+    var widthInCanvas = Math.max(160, Math.min(rect.width * 0.94, b.w * scale + 24));
+    var heightInCanvas = Math.max(60, b.h * scale + 20);
+
+    var offsetLeft = (rect.left - wrapRect.left) + (b.cx * scale) - (widthInCanvas / 2);
+    var offsetTop = (rect.top - wrapRect.top) + (b.cy * scale) - (heightInCanvas / 2);
+
+    // Keep within bounds
+    offsetLeft = Math.max(8, Math.min(wrapRect.width - widthInCanvas - 8, offsetLeft));
+    offsetTop = Math.max(8, Math.min(wrapRect.height - heightInCanvas - 8, offsetTop));
+
+    var fontSize = Math.max(14, Math.round(b.px * scale * 0.95));
+
+    wpCanvasInlineInput.style.left = offsetLeft + 'px';
+    wpCanvasInlineInput.style.top = offsetTop + 'px';
+    wpCanvasInlineInput.style.width = widthInCanvas + 'px';
+    wpCanvasInlineInput.style.minHeight = heightInCanvas + 'px';
+    wpCanvasInlineInput.style.fontSize = fontSize + 'px';
+    wpCanvasInlineInput.value = textVal;
+
+    wpCanvasInlineInput.classList.remove('hidden');
+    wpIsEditingInline = true;
+    wpCanvasInlineInput.focus();
+    wpCanvasInlineInput.select();
+  }
+
+  function wpCloseInlineEditor(save) {
+    if (!wpIsEditingInline || !wpCanvasInlineInput) return;
+    if (save !== false) {
+      var newVal = wpCanvasInlineInput.value;
+      var ta = $('#wpText');
+      if (ta) {
+        ta.value = newVal;
+        renderWallpaper();
+      }
+    }
+    wpCanvasInlineInput.classList.add('hidden');
+    wpIsEditingInline = false;
+  }
+
+  if (wpCanvasInlineInput) {
+    wpCanvasInlineInput.addEventListener('input', function () {
+      var ta = $('#wpText');
+      if (ta) {
+        ta.value = this.value;
+        renderWallpaper();
+      }
+    });
+    wpCanvasInlineInput.addEventListener('blur', function () {
+      wpCloseInlineEditor(true);
+    });
+    wpCanvasInlineInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        wpCloseInlineEditor(false);
+        renderWallpaper();
+      } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        wpCloseInlineEditor(true);
+      }
+    });
+  }
+
   function wpCanvasPoint(clientX, clientY) {
     var ratio = WP_RATIOS[wpState.ratio];
     var rect = wpCanvas.getBoundingClientRect();
@@ -2819,6 +2909,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   var wpActivePointers = new Map();
   var wpDragStartData = null;
   var wpPinchStart = null;
+  var wpPointerDownMeta = null;
 
   wpCanvas.addEventListener('pointerdown', function (e) {
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -2827,6 +2918,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       var p = wpCanvasPoint(e.clientX, e.clientY);
       var ratio = WP_RATIOS[wpState.ratio];
       var hit = wpHitTest(p);
+
+      wpPointerDownMeta = {
+        startX: e.clientX,
+        startY: e.clientY,
+        time: Date.now(),
+        target: hit.target,
+        handle: hit.handle || null,
+        box: hit.box || null,
+        moved: false
+      };
 
       wpState._dragging = true;
       wpState._dragTarget = hit.target;
@@ -2883,6 +2984,13 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     if (!wpActivePointers.has(e.pointerId)) return;
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
+    if (wpPointerDownMeta) {
+      var distMove = Math.hypot(e.clientX - wpPointerDownMeta.startX, e.clientY - wpPointerDownMeta.startY);
+      if (distMove > 6) {
+        wpPointerDownMeta.moved = true;
+      }
+    }
+
     if (wpActivePointers.size === 2 && wpPinchStart) {
       var pts = Array.from(wpActivePointers.values());
       var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -2928,6 +3036,17 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   });
 
   function wpEndPointer(e) {
+    var wasClick = false;
+    if (wpPointerDownMeta && !wpPointerDownMeta.moved && (Date.now() - wpPointerDownMeta.time < 500)) {
+      wasClick = true;
+      if (wpPointerDownMeta.target === 'text') {
+        setTimeout(function () {
+          wpOpenInlineEditor();
+        }, 10);
+      }
+    }
+    wpPointerDownMeta = null;
+
     wpActivePointers.delete(e.pointerId);
     if (wpActivePointers.size === 0) {
       wpState._dragging = false;
@@ -3169,6 +3288,22 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       }, 800);
     });
   }
+
+  /* Studio Tab Switcher (Mobile) */
+  $$('.wp-studio-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var targetTab = this.dataset.wptab;
+      $$('.wp-studio-tab').forEach(function (t) { t.classList.toggle('active', t === tab); });
+      var panelMap = {
+        bg: '#wpPanelBg',
+        quote: '#wpPanelQuote',
+        style: '#wpPanelStyle'
+      };
+      $$('.wp-tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      var activePanel = $(panelMap[targetTab]);
+      if (activePanel) activePanel.classList.add('active');
+    });
+  });
 
   renderWpPresets();
   $('#wpText').value = WP_QUOTES[0];

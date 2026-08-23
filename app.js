@@ -1219,6 +1219,83 @@
 
   /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
   var wpCanvas = $('#wpCanvas');
+  var wpCanvasWrap = $('#wpCanvasWrap');
+  var wpCanvasInlineInput = $('#wpCanvasInlineInput');
+  var wpIsEditingInline = false;
+
+  function wpOpenInlineEditor() {
+    if (!wpCanvasInlineInput || !wpCanvas || !wpState._box) return;
+    var b = wpState._box;
+    var ratio = WP_RATIOS[wpState.ratio];
+    var rect = wpCanvas.getBoundingClientRect();
+    var wrapRect = wpCanvasWrap ? wpCanvasWrap.getBoundingClientRect() : rect;
+
+    var scale = rect.width / ratio.w;
+    var textVal = $('#wpText') ? $('#wpText').value : '';
+
+    // Calculate position relative to wpCanvasWrap
+    var leftInCanvas = b.x * scale;
+    var topInCanvas = b.y * scale;
+    var widthInCanvas = Math.max(160, Math.min(rect.width * 0.94, b.w * scale + 24));
+    var heightInCanvas = Math.max(60, b.h * scale + 20);
+
+    var offsetLeft = (rect.left - wrapRect.left) + (b.cx * scale) - (widthInCanvas / 2);
+    var offsetTop = (rect.top - wrapRect.top) + (b.cy * scale) - (heightInCanvas / 2);
+
+    // Keep within bounds
+    offsetLeft = Math.max(8, Math.min(wrapRect.width - widthInCanvas - 8, offsetLeft));
+    offsetTop = Math.max(8, Math.min(wrapRect.height - heightInCanvas - 8, offsetTop));
+
+    var fontSize = Math.max(14, Math.round(b.px * scale * 0.95));
+
+    wpCanvasInlineInput.style.left = offsetLeft + 'px';
+    wpCanvasInlineInput.style.top = offsetTop + 'px';
+    wpCanvasInlineInput.style.width = widthInCanvas + 'px';
+    wpCanvasInlineInput.style.minHeight = heightInCanvas + 'px';
+    wpCanvasInlineInput.style.fontSize = fontSize + 'px';
+    wpCanvasInlineInput.value = textVal;
+
+    wpCanvasInlineInput.classList.remove('hidden');
+    wpIsEditingInline = true;
+    wpCanvasInlineInput.focus();
+    wpCanvasInlineInput.select();
+  }
+
+  function wpCloseInlineEditor(save) {
+    if (!wpIsEditingInline || !wpCanvasInlineInput) return;
+    if (save !== false) {
+      var newVal = wpCanvasInlineInput.value;
+      var ta = $('#wpText');
+      if (ta) {
+        ta.value = newVal;
+        renderWallpaper();
+      }
+    }
+    wpCanvasInlineInput.classList.add('hidden');
+    wpIsEditingInline = false;
+  }
+
+  if (wpCanvasInlineInput) {
+    wpCanvasInlineInput.addEventListener('input', function () {
+      var ta = $('#wpText');
+      if (ta) {
+        ta.value = this.value;
+        renderWallpaper();
+      }
+    });
+    wpCanvasInlineInput.addEventListener('blur', function () {
+      wpCloseInlineEditor(true);
+    });
+    wpCanvasInlineInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        wpCloseInlineEditor(false);
+        renderWallpaper();
+      } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        wpCloseInlineEditor(true);
+      }
+    });
+  }
+
   function wpCanvasPoint(clientX, clientY) {
     var ratio = WP_RATIOS[wpState.ratio];
     var rect = wpCanvas.getBoundingClientRect();
@@ -1284,6 +1361,7 @@
   var wpActivePointers = new Map();
   var wpDragStartData = null;
   var wpPinchStart = null;
+  var wpPointerDownMeta = null;
 
   wpCanvas.addEventListener('pointerdown', function (e) {
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1292,6 +1370,16 @@
       var p = wpCanvasPoint(e.clientX, e.clientY);
       var ratio = WP_RATIOS[wpState.ratio];
       var hit = wpHitTest(p);
+
+      wpPointerDownMeta = {
+        startX: e.clientX,
+        startY: e.clientY,
+        time: Date.now(),
+        target: hit.target,
+        handle: hit.handle || null,
+        box: hit.box || null,
+        moved: false
+      };
 
       wpState._dragging = true;
       wpState._dragTarget = hit.target;
@@ -1349,6 +1437,13 @@
     if (!wpActivePointers.has(e.pointerId)) return;
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
+    if (wpPointerDownMeta) {
+      var distMove = Math.hypot(e.clientX - wpPointerDownMeta.startX, e.clientY - wpPointerDownMeta.startY);
+      if (distMove > 6) {
+        wpPointerDownMeta.moved = true;
+      }
+    }
+
     // Handle 2-finger pinch
     if (wpActivePointers.size === 2 && wpPinchStart) {
       var pts = Array.from(wpActivePointers.values());
@@ -1395,6 +1490,17 @@
   });
 
   function wpEndPointer(e) {
+    var wasClick = false;
+    if (wpPointerDownMeta && !wpPointerDownMeta.moved && (Date.now() - wpPointerDownMeta.time < 500)) {
+      wasClick = true;
+      if (wpPointerDownMeta.target === 'text') {
+        setTimeout(function () {
+          wpOpenInlineEditor();
+        }, 10);
+      }
+    }
+    wpPointerDownMeta = null;
+
     wpActivePointers.delete(e.pointerId);
     if (wpActivePointers.size === 0) {
       wpState._dragging = false;
@@ -1638,6 +1744,22 @@
       }, 800);
     });
   }
+
+  /* Studio Tab Switcher (Mobile) */
+  $$('.wp-studio-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var targetTab = this.dataset.wptab;
+      $$('.wp-studio-tab').forEach(function (t) { t.classList.toggle('active', t === tab); });
+      var panelMap = {
+        bg: '#wpPanelBg',
+        quote: '#wpPanelQuote',
+        style: '#wpPanelStyle'
+      };
+      $$('.wp-tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      var activePanel = $(panelMap[targetTab]);
+      if (activePanel) activePanel.classList.add('active');
+    });
+  });
 
   renderWpPresets();
   $('#wpText').value = WP_QUOTES[0];
