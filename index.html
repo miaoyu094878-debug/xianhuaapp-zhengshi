@@ -1263,12 +1263,21 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <!-- Canvas Preview Section (Top on mobile, right on desktop) -->
           <div class="wp-preview-col">
             <div class="card glass form-card wp-preview-card">
-              <!-- Layer Switcher Tabs -->
+              <!-- Layer & Quick Action Toolbar -->
               <div class="wp-layer-bar">
-                <span class="wp-layer-title">Active Layer:</span>
-                <div class="chips">
-                  <button id="wpLayerText" class="chip wp-layer-btn active" type="button" data-layer="text">✦ Text</button>
-                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Photo</button>
+                <div class="wp-bar-left">
+                  <button id="wpQuickUploadBtn" class="wp-icon-action-btn" type="button" title="Upload Custom Wallpaper Photo" aria-label="Upload Photo">
+                    <span class="wp-btn-ico">📤</span>
+                    <span class="wp-btn-txt">Upload</span>
+                  </button>
+                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Edit Photo</button>
+                </div>
+
+                <div class="wp-bar-right">
+                  <button id="wpQuickPresetBtn" class="wp-icon-action-btn-sm" type="button" title="View Curated Presets" aria-label="Preset Wallpapers">
+                    <span class="wp-btn-ico">✨</span>
+                    <span class="wp-btn-txt">Presets</span>
+                  </button>
                 </div>
               </div>
 
@@ -3290,20 +3299,44 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   }
 
   /* Studio Tab Switcher (Mobile) */
+  function switchToWpTab(tabName) {
+    $$('.wp-studio-tab').forEach(function (t) { t.classList.toggle('active', t.dataset.wptab === tabName); });
+    var panelMap = {
+      bg: '#wpPanelBg',
+      quote: '#wpPanelQuote',
+      style: '#wpPanelStyle'
+    };
+    $$('.wp-tab-panel').forEach(function (p) { p.classList.remove('active'); });
+    var activePanel = $(panelMap[tabName]);
+    if (activePanel) activePanel.classList.add('active');
+  }
+
   $$('.wp-studio-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
-      var targetTab = this.dataset.wptab;
-      $$('.wp-studio-tab').forEach(function (t) { t.classList.toggle('active', t === tab); });
-      var panelMap = {
-        bg: '#wpPanelBg',
-        quote: '#wpPanelQuote',
-        style: '#wpPanelStyle'
-      };
-      $$('.wp-tab-panel').forEach(function (p) { p.classList.remove('active'); });
-      var activePanel = $(panelMap[targetTab]);
-      if (activePanel) activePanel.classList.add('active');
+      switchToWpTab(this.dataset.wptab);
     });
   });
+
+  /* Quick Upload Button (Top Left of Preview Editor) */
+  var wpQuickUploadBtn = $('#wpQuickUploadBtn');
+  if (wpQuickUploadBtn) {
+    wpQuickUploadBtn.addEventListener('click', function () {
+      var fileInput = $('#wpPhoto');
+      if (fileInput) fileInput.click();
+    });
+  }
+
+  /* Quick Presets Button (Top Right of Preview Editor) */
+  var wpQuickPresetBtn = $('#wpQuickPresetBtn');
+  if (wpQuickPresetBtn) {
+    wpQuickPresetBtn.addEventListener('click', function () {
+      switchToWpTab('bg');
+      var bgPanel = $('#wpBgs');
+      if (bgPanel) {
+        bgPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
 
   renderWpPresets();
   $('#wpText').value = WP_QUOTES[0];

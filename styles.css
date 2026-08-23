@@ -680,9 +680,65 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .wp-photo-actions { margin-top: 10px; display: flex; gap: 8px; }
 .wp-photo-actions .chip { flex: 1; text-align: center; }
 
-.wp-layer-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+.wp-layer-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; width: 100%; }
+.wp-bar-left, .wp-bar-right { display: flex; align-items: center; gap: 8px; }
 .wp-layer-title { font-size: 12px; color: var(--text-soft); font-weight: 500; }
 .wp-layer-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; }
+
+/* Quick Action Icon Buttons */
+.wp-icon-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.wp-icon-action-btn:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--surface-2));
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.wp-icon-action-btn:active {
+  transform: translateY(0);
+}
+.wp-icon-action-btn .wp-btn-ico {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Secondary/Smaller Quick Presets Button */
+.wp-icon-action-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.wp-icon-action-btn-sm:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--surface);
+  transform: translateY(-1px);
+}
+.wp-icon-action-btn-sm .wp-btn-ico {
+  font-size: 12px;
+  line-height: 1;
+}
 
 .wp-canvas-wrap {
   position: relative;
