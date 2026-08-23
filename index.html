@@ -217,9 +217,9 @@ main { padding: 10px 18px 0; }
   background: var(--surface-2); backdrop-filter: blur(20px) saturate(180%);
   border-top: 1px solid var(--border); padding: 8px 2px calc(8px + env(safe-area-inset-bottom));
 }
-.tab-btn { border: none; background: none; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 6px 10px; border-radius: 14px; transition: 0.3s; flex: 1; max-width: 64px; }
-.tab-btn .tb-icon { font-size: 21px; transition: 0.3s; line-height: 1; }
-.tab-btn .tb-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; max-height: 0; opacity: 0; overflow: hidden; transition: 0.3s; }
+.tab-btn { border: none; background: none; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 6px 6px; border-radius: 14px; transition: 0.3s; flex: 1; max-width: 74px; }
+.tab-btn .tb-icon { font-size: 20px; transition: 0.3s; line-height: 1; }
+.tab-btn .tb-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; max-height: 0; opacity: 0; overflow: hidden; transition: 0.3s; white-space: nowrap; }
 .tab-btn.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .tab-btn.active .tb-label { max-height: 14px; opacity: 1; font-weight: 600; margin-top: 1px; }
 .tab-btn.active .tb-icon { transform: translateY(-1px); }
@@ -1442,11 +1442,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <span class="mc-title">AI Vision</span>
             <span class="mc-desc">See &amp; become your future self</span>
           </div>
-          <div class="more-card" data-goto="tab-wallpaper">
-            <span class="mc-ico">🖼</span>
-            <span class="mc-title">Wallpaper</span>
-            <span class="mc-desc">Affirmation wallpapers</span>
-          </div>
           <div class="more-card" data-goto="tab-avatar">
             <span class="mc-ico">👤</span>
             <span class="mc-title">Avatar</span>
@@ -1493,6 +1488,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
     <nav class="tab-bar">
       <button class="tab-btn active" data-tab="tab-today"><span class="tb-icon">✦</span><span class="tb-label">Home</span></button>
+      <button class="tab-btn" data-tab="tab-wallpaper"><span class="tb-icon">🖼</span><span class="tb-label">Wallpaper</span></button>
       <button class="tab-btn" data-tab="tab-affirm"><span class="tb-icon">❋</span><span class="tb-label">Affirm</span></button>
       <button class="tab-btn" data-tab="tab-more"><span class="tb-icon">☰</span><span class="tb-label">More</span></button>
     </nav>
