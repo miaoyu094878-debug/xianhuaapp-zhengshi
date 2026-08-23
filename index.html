@@ -1373,21 +1373,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <!-- Canvas Preview Section (Top on mobile, right on desktop) -->
           <div class="wp-preview-col">
             <div class="card glass form-card wp-preview-card">
-              <!-- Layer & Quick Action Toolbar -->
+              <!-- Layer Toolbar (Desktop & Active Layer Status) -->
               <div class="wp-layer-bar">
                 <div class="wp-bar-left">
-                  <button id="wpQuickUploadBtn" class="wp-icon-action-btn" type="button" title="Upload Custom Wallpaper Photo" aria-label="Upload Photo">
-                    <span class="wp-btn-ico">📤</span>
-                    <span class="wp-btn-txt">Upload</span>
-                  </button>
-                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Edit Photo</button>
+                  <span class="wp-layer-title">Active Layer:</span>
+                  <button id="wpLayerText" class="chip wp-layer-btn active" type="button" data-layer="text">✍️ Text</button>
+                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Photo</button>
                 </div>
 
                 <div class="wp-bar-right">
-                  <button id="wpQuickPresetBtn" class="wp-icon-action-btn-sm" type="button" title="View Curated Presets" aria-label="Preset Wallpapers">
-                    <span class="wp-btn-ico">✨</span>
-                    <span class="wp-btn-txt">Presets</span>
-                  </button>
+                  <button id="wpOpenEditModalBtn" class="chip wp-layer-btn" type="button" title="Open Full Image Editor">🎨 Edit Background</button>
                 </div>
               </div>
 
@@ -1417,12 +1412,38 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
             <!-- Tab 1: Background -->
             <div class="card glass form-card wp-tab-panel active" id="wpPanelBg">
-              <label class="field-label">Curated Presets</label>
-              <div class="wp-bgs" id="wpBgs"></div>
-              <label class="field-label">Custom Photo</label>
-              <input type="file" id="wpPhoto" accept="image/*" class="hidden">
-              <div class="ai-drop" id="wpDrop"><span>🖼</span><span>Tap to upload your photo</span></div>
-              <div id="wpPrevBox" class="ai-prev hidden"><img id="wpPrevImg" alt="your photo"><button id="wpPrevClear" class="chip" type="button">Remove photo</button></div>
+              <label class="field-label">Choose Wallpaper Source</label>
+              
+              <!-- Quick Entry Cards that trigger full image editor page -->
+              <div class="wp-bg-entry-grid">
+                <div class="wp-entry-card" id="wpCardUploadTrigger">
+                  <div class="wp-entry-icon">📤</div>
+                  <div class="wp-entry-info">
+                    <div class="wp-entry-title">上传图片 (Upload Photo)</div>
+                    <div class="wp-entry-desc">从手机相册或本地上传并进入完整图片编辑</div>
+                  </div>
+                  <span class="wp-entry-arrow">➔</span>
+                </div>
+
+                <div class="wp-entry-card" id="wpCardPresetTrigger">
+                  <div class="wp-entry-icon">✨</div>
+                  <div class="wp-entry-info">
+                    <div class="wp-entry-title">预设壁纸 (Curated Presets)</div>
+                    <div class="wp-entry-desc">精选 12 款灵性渐变、流光宇宙与治愈氛围背景</div>
+                  </div>
+                  <span class="wp-entry-arrow">➔</span>
+                </div>
+              </div>
+
+              <!-- Inline quick selection for Desktop view -->
+              <div class="wp-desktop-bg-section">
+                <label class="field-label" style="margin-top: 14px;">Curated Presets</label>
+                <div class="wp-bgs" id="wpBgs"></div>
+                <label class="field-label" style="margin-top: 14px;">Custom Photo</label>
+                <input type="file" id="wpPhoto" accept="image/*" class="hidden">
+                <div class="ai-drop" id="wpDrop"><span>🖼</span><span>Tap to upload your photo</span></div>
+                <div id="wpPrevBox" class="ai-prev hidden"><img id="wpPrevImg" alt="your photo"><button id="wpPrevClear" class="chip" type="button">Remove photo</button></div>
+              </div>
             </div>
 
             <!-- Tab 2: Quote -->
@@ -1478,6 +1499,81 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <button id="wpResetPhoto" class="chip" type="button">↺ Reset Photo</button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full-Page / Modal Wallpaper & Image Editor for Mobile & Desktop -->
+        <div id="wpImageEditorModal" class="wp-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="wpModalTitle">
+          <div class="wp-modal-card">
+            <!-- Modal Header -->
+            <div class="wp-modal-head">
+              <div class="wp-modal-title-wrap">
+                <h3 class="wp-modal-title" id="wpModalTitle">🎨 Background & Image Studio</h3>
+                <p class="wp-modal-sub">Choose presets or customize and adjust your uploaded photo</p>
+              </div>
+              <button id="wpModalCloseBtn" class="wp-modal-close-btn" type="button" aria-label="Close Image Editor">✕</button>
+            </div>
+
+            <!-- Modal Nav Tabs -->
+            <div class="wp-modal-nav">
+              <button id="wpModalTabUpload" class="wp-modal-tab active" type="button" data-view="upload">📤 Upload & Edit Photo</button>
+              <button id="wpModalTabPresets" class="wp-modal-tab" type="button" data-view="presets">✨ Curated Presets</button>
+            </div>
+
+            <!-- Modal Body: View 1 (Upload & Full Photo Editing) -->
+            <div id="wpModalViewUpload" class="wp-modal-view active">
+              <div class="wp-modal-dropzone" id="wpModalDrop">
+                <div class="wp-drop-icon">🖼️</div>
+                <div class="wp-drop-main">Tap to select photo from device</div>
+                <div class="wp-drop-sub">JPG, PNG, WEBP supported · Pinch & drag supported</div>
+                <input type="file" id="wpModalPhotoInput" accept="image/*" class="hidden">
+              </div>
+
+              <!-- Photo Controls & Tools in Modal -->
+              <div id="wpModalPhotoControls" class="wp-modal-photo-section hidden">
+                <div class="wp-modal-prev-row">
+                  <div class="wp-modal-thumb-box">
+                    <img id="wpModalThumbImg" alt="Thumbnail Preview">
+                  </div>
+                  <div class="wp-modal-thumb-info">
+                    <span class="wp-thumb-status">✓ Photo Active on Wallpaper</span>
+                    <div class="wp-modal-thumb-actions">
+                      <button id="wpModalReuploadBtn" class="chip btn-mini-text" type="button">🔄 Replace Photo</button>
+                      <button id="wpModalClearPhotoBtn" class="chip btn-mini-text chip-danger" type="button">🗑 Remove Photo</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="wp-modal-adjust-card">
+                  <div class="wp-ctrl-head">
+                    <label for="wpModalZoom">Photo Scale & Zoom</label>
+                    <span id="wpModalZoomVal" class="wp-val-badge">100%</span>
+                  </div>
+                  <div class="wp-slider-row">
+                    <button id="wpModalZoomMinus" class="chip btn-mini" type="button">−</button>
+                    <input type="range" id="wpModalZoom" min="30" max="300" value="100">
+                    <button id="wpModalZoomPlus" class="chip btn-mini" type="button">+</button>
+                  </div>
+
+                  <div class="chips wp-photo-actions" style="margin-top: 14px;">
+                    <button id="wpModalFitBtn" class="chip" type="button">⤢ Fit Screen</button>
+                    <button id="wpModalFillBtn" class="chip" type="button">⬛ Fill Screen</button>
+                    <button id="wpModalResetBtn" class="chip" type="button">↺ Reset Center</button>
+                  </div>
+                  <div class="wp-modal-tip">💡 Tip: You can also pinch and drag the photo directly on the wallpaper preview.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modal Body: View 2 (Curated Presets Library) -->
+            <div id="wpModalViewPresets" class="wp-modal-view">
+              <div class="wp-modal-presets-grid" id="wpModalPresetsGrid"></div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="wp-modal-foot">
+              <button id="wpModalDoneBtn" class="btn-primary wp-modal-done-btn" type="button">Apply & Return to Wallpaper ✦</button>
             </div>
           </div>
         </div>
@@ -3426,6 +3522,221 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       switchToWpTab(this.dataset.wptab);
     });
   });
+
+  /* Modal & Image Editor Control System */
+  var wpImageEditorModal = $('#wpImageEditorModal');
+
+  function openWpImageEditorModal(initialTab) {
+    if (!wpImageEditorModal) return;
+    wpImageEditorModal.classList.remove('hidden');
+    switchModalTab(initialTab || 'upload');
+    renderModalPresets();
+    syncModalPhotoState();
+  }
+
+  function closeWpImageEditorModal() {
+    if (!wpImageEditorModal) return;
+    wpImageEditorModal.classList.add('hidden');
+    renderWallpaper();
+  }
+
+  function switchModalTab(tabName) {
+    var tabUpload = $('#wpModalTabUpload');
+    var tabPresets = $('#wpModalTabPresets');
+    var viewUpload = $('#wpModalViewUpload');
+    var viewPresets = $('#wpModalViewPresets');
+
+    if (tabUpload) tabUpload.classList.toggle('active', tabName === 'upload');
+    if (tabPresets) tabPresets.classList.toggle('active', tabName === 'presets');
+    if (viewUpload) viewUpload.classList.toggle('active', tabName === 'upload');
+    if (viewPresets) viewPresets.classList.toggle('active', tabName === 'presets');
+  }
+
+  function syncModalPhotoState() {
+    var photoSection = $('#wpModalPhotoControls');
+    var thumbImg = $('#wpModalThumbImg');
+    if (wpState.photo) {
+      if (photoSection) photoSection.classList.remove('hidden');
+      if (thumbImg) thumbImg.src = wpState.photo;
+      updateWpPhotoControls();
+    } else {
+      if (photoSection) photoSection.classList.add('hidden');
+    }
+  }
+
+  function renderModalPresets() {
+    var wrap = $('#wpModalPresetsGrid');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    WP_PRESETS.forEach(function (p, i) {
+      var btn = document.createElement('button');
+      btn.className = 'wp-bg' + (wpState.preset === i && !wpState.photo ? ' active' : '');
+      btn.type = 'button';
+      btn.dataset.preset = i;
+      btn.appendChild(wpThumb(i));
+      btn.addEventListener('click', function () {
+        wpState.preset = i;
+        wpState.photo = null;
+        $('#wpPrevBox').classList.add('hidden');
+        $('#wpPhoto').value = '';
+        $('#wpPhotoControls').classList.add('hidden');
+        $('#wpLayerPhoto').classList.add('hidden');
+        $('#wpResetPhotoBtn').classList.add('hidden');
+        setActiveLayer('text');
+        $$('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
+        syncModalPhotoState();
+        renderWallpaper();
+        saveWpSettings();
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  /* Trigger Cards & Buttons */
+  if ($('#wpCardUploadTrigger')) {
+    $('#wpCardUploadTrigger').addEventListener('click', function () {
+      openWpImageEditorModal('upload');
+      if (!wpState.photo) {
+        var modalInput = $('#wpModalPhotoInput');
+        if (modalInput) modalInput.click();
+      }
+    });
+  }
+
+  if ($('#wpCardPresetTrigger')) {
+    $('#wpCardPresetTrigger').addEventListener('click', function () {
+      openWpImageEditorModal('presets');
+    });
+  }
+
+  if ($('#wpOpenEditModalBtn')) {
+    $('#wpOpenEditModalBtn').addEventListener('click', function () {
+      openWpImageEditorModal(wpState.photo ? 'upload' : 'presets');
+    });
+  }
+
+  if ($('#wpModalCloseBtn')) {
+    $('#wpModalCloseBtn').addEventListener('click', closeWpImageEditorModal);
+  }
+  if ($('#wpModalDoneBtn')) {
+    $('#wpModalDoneBtn').addEventListener('click', closeWpImageEditorModal);
+  }
+  if ($('#wpModalTabUpload')) {
+    $('#wpModalTabUpload').addEventListener('click', function () { switchModalTab('upload'); });
+  }
+  if ($('#wpModalTabPresets')) {
+    $('#wpModalTabPresets').addEventListener('click', function () { switchModalTab('presets'); });
+  }
+
+  /* Modal Photo Upload Handlers */
+  var wpModalDrop = $('#wpModalDrop');
+  var wpModalPhotoInput = $('#wpModalPhotoInput');
+  if (wpModalDrop && wpModalPhotoInput) {
+    wpModalDrop.addEventListener('click', function () { wpModalPhotoInput.click(); });
+    wpModalPhotoInput.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      loadWpHighResPhoto(f, function (data) {
+        if (!data) return;
+        wpState.photo = data;
+        wpState.photoScale = 1.0;
+        wpState.photoOffsetX = 0;
+        wpState.photoOffsetY = 0;
+        $('#wpPrevImg').src = data;
+        $('#wpPrevBox').classList.remove('hidden');
+        $('#wpPhotoControls').classList.remove('hidden');
+        $('#wpLayerPhoto').classList.remove('hidden');
+        $('#wpResetPhotoBtn').classList.remove('hidden');
+        $$('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
+        syncModalPhotoState();
+        updateWpPhotoControls();
+        setActiveLayer('photo');
+        renderWallpaper();
+        saveWpSettings();
+      });
+    });
+  }
+
+  if ($('#wpModalReuploadBtn') && wpModalPhotoInput) {
+    $('#wpModalReuploadBtn').addEventListener('click', function () {
+      wpModalPhotoInput.click();
+    });
+  }
+
+  if ($('#wpModalClearPhotoBtn')) {
+    $('#wpModalClearPhotoBtn').addEventListener('click', function () {
+      wpState.photo = null;
+      wpState.photoScale = 1.0;
+      wpState.photoOffsetX = 0;
+      wpState.photoOffsetY = 0;
+      $('#wpPrevBox').classList.add('hidden');
+      $('#wpPhoto').value = '';
+      $('#wpPhotoControls').classList.add('hidden');
+      $('#wpLayerPhoto').classList.add('hidden');
+      $('#wpResetPhotoBtn').classList.add('hidden');
+      setActiveLayer('text');
+      syncModalPhotoState();
+      renderWpPresets();
+      renderModalPresets();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+
+  /* Modal Photo Sliders and Action Buttons */
+  if ($('#wpModalZoom')) {
+    $('#wpModalZoom').addEventListener('input', function () {
+      wpState.photoScale = (+this.value) / 100;
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpModalZoomMinus')) {
+    $('#wpModalZoomMinus').addEventListener('click', function () {
+      wpState.photoScale = Math.max(0.3, wpState.photoScale - 0.1);
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpModalZoomPlus')) {
+    $('#wpModalZoomPlus').addEventListener('click', function () {
+      wpState.photoScale = Math.min(3.5, wpState.photoScale + 0.1);
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpModalFitBtn')) {
+    $('#wpModalFitBtn').addEventListener('click', function () {
+      if (!wpImgCache) return;
+      var ratio = WP_RATIOS[wpState.ratio];
+      var ir = wpImgCache.width / wpImgCache.height, cr = ratio.w / ratio.h;
+      var fitScale = (ir > cr) ? (cr / ir) : (ir / cr);
+      wpState.photoScale = Math.max(0.3, Math.min(1.0, fitScale));
+      wpState.photoOffsetX = 0;
+      wpState.photoOffsetY = 0;
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpModalFillBtn')) {
+    $('#wpModalFillBtn').addEventListener('click', function () {
+      wpState.photoScale = 1.0;
+      wpState.photoOffsetX = 0;
+      wpState.photoOffsetY = 0;
+      updateWpPhotoControls();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+  if ($('#wpModalResetBtn')) {
+    $('#wpModalResetBtn').addEventListener('click', function () {
+      resetPhotoTransform();
+    });
+  }
 
   /* Quick Upload Button (Top Left of Preview Editor) */
   var wpQuickUploadBtn = $('#wpQuickUploadBtn');
