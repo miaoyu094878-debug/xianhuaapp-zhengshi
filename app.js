@@ -849,7 +849,7 @@
     g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
   }
-  // 确定性伪随机：保证每次重绘（含拖拽）星点位置不抖动
+  // Deterministic PRNG for stable star seeds across repaints
   function wpRand(i) { var x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
   function wpStars(c, w, h, n, opts) {
     opts = opts || {};
@@ -874,7 +874,7 @@
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   }
   var WP_PRESETS = [
-    // 1 · Aurora Veil 极光纱幔（浅色）
+    // 1 · Aurora Veil (Light)
     function (c, w, h) {
       var g = c.createLinearGradient(0, 0, w * 0.4, h);
       g.addColorStop(0, '#eef7ff'); g.addColorStop(0.55, '#f4f0ff'); g.addColorStop(1, '#fff8ee');
@@ -884,7 +884,7 @@
       wpBlob(c, w * 0.72, h * 0.30, w * 0.60, 'rgba(210,130,235,0.30)');
       wpVignette(c, w, h, 0.10);
     },
-    // 2 · Midnight Bloom 晨光花瓣（浅色）
+    // 2 · Midnight Bloom (Light)
     function (c, w, h) {
       var g = c.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, Math.max(w, h) * 0.9);
       g.addColorStop(0, '#ffeef7'); g.addColorStop(1, '#f5eeff');
@@ -893,7 +893,7 @@
       wpBlob(c, w * 0.22, h * 0.82, w * 0.60, 'rgba(170,130,235,0.40)');
       wpVignette(c, w, h, 0.10);
     },
-    // 3 · Cosmic Drift 晨星流云（浅色）
+    // 3 · Cosmic Drift (Light)
     function (c, w, h) {
       var g = c.createLinearGradient(0, 0, w, h);
       g.addColorStop(0, '#eef4ff'); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, '#eef1ff');
@@ -903,7 +903,7 @@
       wpBlob(c, w * 0.82, h * 0.62, w * 0.50, 'rgba(140,190,255,0.30)');
       wpVignette(c, w, h, 0.10);
     },
-    // 4 · Ember Glow 暖阳余晖（浅色）
+    // 4 · Ember Glow (Light)
     function (c, w, h) {
       var g = c.createRadialGradient(w * 0.3, h * 0.9, 0, w * 0.5, h * 0.6, Math.max(w, h));
       g.addColorStop(0, '#fff4e6'); g.addColorStop(1, '#ffe9e2');
@@ -912,7 +912,7 @@
       wpBlob(c, w * 0.82, h * 0.20, w * 0.50, 'rgba(255,150,135,0.32)');
       wpVignette(c, w, h, 0.10);
     },
-    // 5 · Ocean Depths 浅海波光（浅色）
+    // 5 · Ocean Depths (Light)
     function (c, w, h) {
       var g = c.createLinearGradient(0, h, 0, 0);
       g.addColorStop(0, '#e6fffb'); g.addColorStop(1, '#e4f2ff');
@@ -921,7 +921,7 @@
       wpBlob(c, w * 0.32, h * 0.30, w * 0.50, 'rgba(110,170,240,0.36)');
       wpVignette(c, w, h, 0.10);
     },
-    // 6 · Rose Quartz Night 玫瑰晨光（浅色）
+    // 6 · Rose Quartz Night (Light)
     function (c, w, h) {
       var g = c.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, Math.max(w, h) * 0.85);
       g.addColorStop(0, '#fff0f6'); g.addColorStop(1, '#f7efff');
