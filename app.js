@@ -932,6 +932,13 @@
     }
   ];
 
+  function hideWpActionOverlays() {
+    var overlays = $('#wpCanvasActionOverlays');
+    if (overlays) {
+      overlays.classList.add('hidden');
+    }
+  }
+
   function wpThumb(preset) {
     var cnv = document.createElement('canvas'); cnv.width = 180; cnv.height = 320;
     WP_PRESETS[preset](cnv.getContext('2d'), 180, 320);
@@ -953,6 +960,7 @@
         $('#wpResetPhotoBtn').classList.add('hidden');
         setActiveLayer('text');
         $$('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
+        hideWpActionOverlays();
         renderWallpaper();
       });
       wrap.appendChild(btn);
@@ -1015,27 +1023,48 @@
     reader.readAsDataURL(file);
   }
 
-  $('#wpDrop').addEventListener('click', function () { $('#wpPhoto').click(); });
+  function applyWpUploadedPhoto(data) {
+    if (!data) return;
+    wpState.photo = data;
+    wpState.photoScale = 1.0;
+    wpState.photoOffsetX = 0;
+    wpState.photoOffsetY = 0;
+    $('#wpPrevImg').src = data;
+    $('#wpPrevBox').classList.remove('hidden');
+    $('#wpPhotoControls').classList.remove('hidden');
+    $('#wpLayerPhoto').classList.remove('hidden');
+    $('#wpResetPhotoBtn').classList.remove('hidden');
+    $$('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
+    updateWpPhotoControls();
+    setActiveLayer('photo');
+    hideWpActionOverlays();
+    renderWallpaper();
+    saveWpSettings();
+  }
+
+  var wpDropEl = $('#wpDrop');
+  if (wpDropEl) {
+    wpDropEl.addEventListener('click', function () { $('#wpPhoto').click(); });
+    wpDropEl.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      wpDropEl.classList.add('dragover');
+    });
+    wpDropEl.addEventListener('dragleave', function () {
+      wpDropEl.classList.remove('dragover');
+    });
+    wpDropEl.addEventListener('drop', function (e) {
+      e.preventDefault();
+      wpDropEl.classList.remove('dragover');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      loadWpHighResPhoto(f, applyWpUploadedPhoto);
+    });
+  }
+
   $('#wpPhoto').addEventListener('change', function () {
     var f = this.files && this.files[0];
     if (!f) return;
-    loadWpHighResPhoto(f, function (data) {
-      if (!data) return;
-      wpState.photo = data;
-      wpState.photoScale = 1.0;
-      wpState.photoOffsetX = 0;
-      wpState.photoOffsetY = 0;
-      $('#wpPrevImg').src = data;
-      $('#wpPrevBox').classList.remove('hidden');
-      $('#wpPhotoControls').classList.remove('hidden');
-      $('#wpLayerPhoto').classList.remove('hidden');
-      $('#wpResetPhotoBtn').classList.remove('hidden');
-      $$('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
-      updateWpPhotoControls();
-      setActiveLayer('photo');
-      renderWallpaper();
-      saveWpSettings();
-    });
+    loadWpHighResPhoto(f, applyWpUploadedPhoto);
   });
 
   $('#wpPrevClear').addEventListener('click', function () {
@@ -1764,25 +1793,30 @@
     });
   });
 
-  /* Quick Upload Button (Top Left of Preview Editor) */
-  var wpQuickUploadBtn = $('#wpQuickUploadBtn');
-  if (wpQuickUploadBtn) {
-    wpQuickUploadBtn.addEventListener('click', function () {
-      var fileInput = $('#wpPhoto');
-      if (fileInput) fileInput.click();
-    });
+  /* In-Canvas Floating Buttons: Direct Upload & Presets Jump */
+  function handleDirectPhotoUpload() {
+    var fileInput = $('#wpPhoto');
+    if (fileInput) fileInput.click();
   }
 
-  /* Quick Presets Button (Top Right of Preview Editor) */
-  var wpQuickPresetBtn = $('#wpQuickPresetBtn');
-  if (wpQuickPresetBtn) {
-    wpQuickPresetBtn.addEventListener('click', function () {
-      switchToWpTab('bg');
-      var bgPanel = $('#wpBgs');
-      if (bgPanel) {
-        bgPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    });
+  function jumpToPresets() {
+    switchToWpTab('bg');
+    var targetSection = $('#wpPresetsSection');
+    if (targetSection) {
+      targetSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      targetSection.classList.add('wp-highlight-pulse');
+      setTimeout(function () { targetSection.classList.remove('wp-highlight-pulse'); }, 1400);
+    }
+  }
+
+  var wpOverlayUploadBtn = $('#wpOverlayUploadBtn');
+  if (wpOverlayUploadBtn) {
+    wpOverlayUploadBtn.addEventListener('click', handleDirectPhotoUpload);
+  }
+
+  var wpOverlayPresetBtn = $('#wpOverlayPresetBtn');
+  if (wpOverlayPresetBtn) {
+    wpOverlayPresetBtn.addEventListener('click', jumpToPresets);
   }
 
   renderWpPresets();
