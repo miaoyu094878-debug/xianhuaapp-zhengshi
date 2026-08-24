@@ -1095,59 +1095,67 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   }
 }
 
-/* Live Affirmation Input Dock (Directly below canvas & above keyboard) */
+/* ════════════════════════════════════════════════════════════════
+   Modern Live Affirmation Glass Studio Dock
+   ════════════════════════════════════════════════════════════════ */
 .wp-live-dock {
   width: 100%;
-  margin: 6px 0 6px;
+  margin: 8px 0 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   box-sizing: border-box;
   background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
   touch-action: manipulation;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .wp-live-dock:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: 0 12px 36px rgba(154, 99, 210, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .wp-live-input-box {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   background: var(--surface-2);
-  border: 1.5px solid var(--border);
-  border-radius: 13px;
-  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 7px 8px 7px 12px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .wp-live-input-box:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
   background: var(--surface);
 }
 
 .wp-live-ico-wrap {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
-.wp-live-ico {
-  font-size: 15px;
-  line-height: 1;
+.wp-svg-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .wp-live-field {
@@ -1157,11 +1165,12 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   border: none;
   outline: none;
   color: var(--text);
-  font-size: 16px; /* 16px prevents iOS Safari from forced auto-zoom on mobile */
-  font-family: "Cinzel", "Cinzel Decorative", "Georgia", serif;
-  font-weight: 600;
+  font-size: 15px; /* iOS-friendly & balanced */
+  font-family: var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-weight: 500;
+  letter-spacing: -0.1px;
   line-height: 1.45;
-  padding: 2px 0;
+  padding: 3px 0;
   resize: none;
   height: 26px;
   min-height: 26px;
@@ -1189,7 +1198,6 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 .wp-live-field::placeholder {
   color: var(--text-dim);
   font-weight: 400;
-  font-family: inherit;
   font-size: 13.5px;
 }
 
@@ -1202,61 +1210,77 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 }
 
 .wp-live-tool-btn {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
   border: 1px solid var(--border);
   color: var(--text-soft);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .wp-live-tool-btn:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  transform: scale(1.06);
+  color: var(--text);
+  border-color: var(--text-soft);
+  background: var(--surface);
+  transform: scale(1.05);
 }
 
 .wp-live-done-btn {
-  background: var(--accent);
-  color: #ffffff;
+  background: var(--cta-grad, var(--accent));
+  color: var(--cta-text, #ffffff);
   border: none;
   border-radius: 999px;
-  padding: 4px 11px;
+  padding: 5px 12px;
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .wp-live-done-btn:hover {
-  opacity: 0.92;
-  transform: scale(1.04);
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Row 2: Live Meta Bar */
+.wp-live-done-btn:active {
+  transform: scale(0.96);
+}
+
+/* Row 2: Clean Minimal Meta Bar */
 .wp-live-meta-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding: 0 2px;
+}
+
+.wp-live-char-wrap {
+  display: flex;
+  align-items: center;
 }
 
 .wp-live-char-badge {
   font-size: 11px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 2px 7px;
+  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 
 .wp-live-meta-actions {
@@ -1270,22 +1294,27 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   border: 1px solid var(--border);
   color: var(--text-soft);
   font-size: 11.5px;
-  font-weight: 600;
-  padding: 3px 9px;
+  font-weight: 500;
+  padding: 4px 10px;
   border-radius: 999px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
   white-space: nowrap;
 }
 
 .wp-live-action-chip:hover {
   color: var(--accent);
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
   background: var(--surface);
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.wp-live-action-chip:active {
+  transform: scale(0.96);
 }
 
 /* Row 3: Quick Inspiration Suggestions Carousel */
@@ -1293,7 +1322,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   width: 100%;
   position: relative;
   overflow: hidden;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .wp-live-sug-strip {
@@ -1301,7 +1330,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   gap: 6px;
   overflow-x: auto;
   flex-wrap: nowrap;
-  padding: 2px 1px 3px;
+  padding: 2px 1px 4px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -1314,6 +1343,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 500;
+  letter-spacing: -0.1px;
   padding: 5px 12px;
   border-radius: 999px;
   background: var(--surface-2);
@@ -1321,18 +1351,32 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   border: 1px solid var(--border);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
+/* Modern Glowing Dot Indicators */
+.wp-sug-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-purple  { background: #9a63d2; box-shadow: 0 0 6px rgba(154, 99, 210, 0.6); }
+.dot-gold    { background: #e8b86d; box-shadow: 0 0 6px rgba(232, 184, 109, 0.6); }
+.dot-amber   { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
+.dot-blue    { background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.6); }
+.dot-emerald { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+.dot-rose    { background: #f43f5e; box-shadow: 0 0 6px rgba(244, 63, 94, 0.6); }
+
 .wp-live-sug-chip:hover {
-  color: var(--accent);
   border-color: var(--accent);
   background: var(--surface);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
 .wp-live-sug-chip:active {
@@ -1344,7 +1388,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 4px 0 8px;
+  margin: 6px 0 8px;
   text-align: center;
 }
 
@@ -1352,12 +1396,26 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   font-size: 11.5px;
   color: var(--text-dim);
   line-height: 1.4;
-  opacity: 0.85;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wp-hint-ico {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  opacity: 0.8;
 }
 
 .wp-export-main-btn {
-  margin-top: 2px;
+  margin-top: 4px;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 /* ---------- AI AVATAR ---------- */

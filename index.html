@@ -1499,12 +1499,15 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- Live Affirmation Input Dock Card (Directly below canvas & above virtual keyboard) -->
+              <!-- Live Affirmation Modern Glass Studio Bar (Directly below canvas) -->
               <div class="wp-live-dock" id="wpLiveDock">
-                <!-- Row 1: Real-time Text Input Field -->
+                <!-- Top Row: Modern Floating Input Box -->
                 <div class="wp-live-input-box">
                   <div class="wp-live-ico-wrap" title="Live Affirmation Editor">
-                    <span class="wp-live-ico">✍️</span>
+                    <svg class="wp-svg-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
                   </div>
                   <textarea 
                     id="wpLiveInput" 
@@ -1517,46 +1520,106 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                     spellcheck="false"
                   ></textarea>
                   <div class="wp-live-tools">
-                    <button id="wpLiveClearBtn" class="wp-live-tool-btn" type="button" title="Clear text">✕</button>
-                    <button id="wpLiveDoneBtn" class="wp-live-done-btn" type="button" title="Done editing">✓ Done</button>
+                    <button id="wpLiveClearBtn" class="wp-live-tool-btn" type="button" title="Clear text" aria-label="Clear text">
+                      <svg class="wp-svg-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                    <button id="wpLiveDoneBtn" class="wp-live-done-btn" type="button" title="Done editing">
+                      <svg class="wp-svg-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Done</span>
+                    </button>
                   </div>
                 </div>
 
-                <!-- Row 2: Subtle Meta Bar (Char Count & Quick Actions) -->
+                <!-- Middle Row: Clean Minimal Meta Bar -->
                 <div class="wp-live-meta-bar">
-                  <span id="wpLiveCharCount" class="wp-live-char-badge">0 / 140</span>
+                  <div class="wp-live-char-wrap">
+                    <span id="wpLiveCharCount" class="wp-live-char-badge">0/140</span>
+                  </div>
                   <div class="wp-live-meta-actions">
                     <button id="wpLiveShuffleBtn" class="wp-live-action-chip" type="button" title="Shuffle affirmation">
-                      <span>🎲 Shuffle</span>
+                      <svg class="wp-svg-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="16 3 21 3 21 8"></polyline>
+                        <line x1="4" y1="20" x2="21" y2="3"></line>
+                        <polyline points="21 16 21 21 16 21"></polyline>
+                        <line x1="15" y1="15" x2="21" y2="21"></line>
+                        <line x1="4" y1="4" x2="9" y2="9"></line>
+                      </svg>
+                      <span>Shuffle</span>
                     </button>
                     <button id="wpResetPos" class="wp-live-action-chip" type="button" title="Reset text position">
-                      <span>↺ Reset Pos</span>
+                      <svg class="wp-svg-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <polyline points="3 3 3 8 8 8"></polyline>
+                      </svg>
+                      <span>Reset Pos</span>
                     </button>
                     <button id="wpResetPhotoBtn" class="wp-live-action-chip hidden" type="button" title="Reset photo position & scale">
-                      <span>↺ Photo</span>
+                      <svg class="wp-svg-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                      <span>Photo</span>
                     </button>
                   </div>
                 </div>
 
-                <!-- Row 3: Quick Inspiration Suggestions (Single-line Horizontal Carousel) -->
+                <!-- Bottom Row: Modern Glow Theme Chips -->
                 <div class="wp-live-sug-wrap">
                   <div class="wp-live-sug-strip">
-                    <button class="wp-live-sug-chip" type="button" data-quote="I am becoming who I am meant to be">✨ Myself</button>
-                    <button class="wp-live-sug-chip" type="button" data-quote="I attract boundless joy, wealth, and vibrant peace">🌟 Abundance</button>
-                    <button class="wp-live-sug-chip" type="button" data-quote="I radiate effortless confidence and inner tranquility">🔥 Confidence</button>
-                    <button class="wp-live-sug-chip" type="button" data-quote="Everything is working out for my highest good">🌊 Trust</button>
-                    <button class="wp-live-sug-chip" type="button" data-quote="My heart is peaceful, my mind is clear">🌿 Peace</button>
-                    <button class="wp-live-sug-chip" type="button" data-quote="I am worthy of every beautiful dream">💖 Worthiness</button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="I am becoming who I am meant to be">
+                      <span class="wp-sug-dot dot-purple"></span>
+                      <span>Myself</span>
+                    </button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="I attract boundless joy, wealth, and vibrant peace">
+                      <span class="wp-sug-dot dot-gold"></span>
+                      <span>Abundance</span>
+                    </button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="I radiate effortless confidence and inner tranquility">
+                      <span class="wp-sug-dot dot-amber"></span>
+                      <span>Confidence</span>
+                    </button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="Everything is working out for my highest good">
+                      <span class="wp-sug-dot dot-blue"></span>
+                      <span>Trust</span>
+                    </button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="My heart is peaceful, my mind is clear">
+                      <span class="wp-sug-dot dot-emerald"></span>
+                      <span>Peace</span>
+                    </button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="I am worthy of every beautiful dream">
+                      <span class="wp-sug-dot dot-rose"></span>
+                      <span>Worthiness</span>
+                    </button>
                   </div>
                 </div>
               </div>
 
               <!-- Secondary Gesture Micro-Hint -->
               <div class="wp-gesture-bar">
-                <span class="wp-hint" id="wpGestureHint">✦ Drag text or handles on canvas to customize placement</span>
+                <span class="wp-hint" id="wpGestureHint">
+                  <svg class="wp-hint-ico" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span>Drag text or handles on canvas to customize placement</span>
+                </span>
               </div>
 
-              <button id="wpExport" class="btn-primary wp-export-main-btn" type="button">⬇ Download Wallpaper</button>
+              <button id="wpExport" class="btn-primary wp-export-main-btn" type="button">
+                <svg class="wp-svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Download Wallpaper</span>
+              </button>
             </div>
           </div>
 
