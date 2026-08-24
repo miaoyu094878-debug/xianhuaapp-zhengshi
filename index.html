@@ -1485,7 +1485,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
               <div class="wp-canvas-wrap" id="wpCanvasWrap">
                 <canvas id="wpCanvas" class="wp-canvas"></canvas>
-                <textarea id="wpCanvasInlineInput" class="wp-canvas-inline-input hidden" spellcheck="false" placeholder="Type text here..."></textarea>
                 
                 <!-- Floating Action Buttons Inside Wallpaper Canvas (Upper Positions) -->
                 <div class="wp-canvas-action-overlays" id="wpCanvasActionOverlays">
@@ -1508,6 +1507,51 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
               <button id="wpExport" class="btn-primary wp-export-main-btn" type="button">⬇ Download Wallpaper</button>
+
+              <!-- Dedicated Affirmation Text Editor Modal (Spacious & Comfortable on Mobile & Desktop) -->
+              <div id="wpTextModal" class="wp-text-modal hidden" role="dialog" aria-modal="true" aria-labelledby="wpModalTitle">
+                <div class="wp-text-modal-backdrop" id="wpTextModalBackdrop"></div>
+                <div class="wp-text-modal-card glass">
+                  <div class="wp-text-modal-header">
+                    <div class="wp-text-modal-title" id="wpModalTitle">
+                      <span class="wp-text-modal-icon">✍️</span>
+                      <span>Edit Affirmation</span>
+                    </div>
+                    <div class="wp-text-modal-meta">
+                      <span id="wpModalCharCount" class="wp-char-counter">0 / 140</span>
+                      <button id="wpTextModalCloseBtn" class="wp-modal-close-icon" type="button" aria-label="Close">✕</button>
+                    </div>
+                  </div>
+
+                  <div class="wp-text-modal-body">
+                    <textarea id="wpModalInput" class="wp-modal-textarea" rows="3" maxlength="140" placeholder="Type your powerful affirmation here..." spellcheck="false"></textarea>
+                    
+                    <!-- Quick Inspiration Chips -->
+                    <div class="wp-modal-suggestions">
+                      <span class="wp-modal-sug-label">✦ Inspiration:</span>
+                      <div class="wp-modal-chips-scroll">
+                        <button class="chip wp-sug-chip" type="button" data-quote="I am becoming who I am meant to be">✨ Becoming Myself</button>
+                        <button class="chip wp-sug-chip" type="button" data-quote="I attract boundless joy, wealth, and vibrant peace">🌟 Abundance & Joy</button>
+                        <button class="chip wp-sug-chip" type="button" data-quote="I radiate effortless confidence and inner tranquility">🔥 Inner Confidence</button>
+                        <button class="chip wp-sug-chip" type="button" data-quote="Everything is working out for my highest good">🌊 Trust the Flow</button>
+                        <button class="chip wp-sug-chip" type="button" data-quote="My heart is peaceful, my mind is clear, my body is strong">🌿 Vitality & Peace</button>
+                        <button class="chip wp-sug-chip" type="button" data-quote="I am worthy of every beautiful dream in my heart">💖 Pure Worthiness</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="wp-text-modal-footer">
+                    <div class="wp-modal-foot-left">
+                      <button id="wpModalShuffleBtn" class="chip" type="button">🎲 Shuffle Quote</button>
+                      <button id="wpModalClearBtn" class="chip" type="button">🧹 Clear</button>
+                    </div>
+                    <div class="wp-modal-foot-right">
+                      <button id="wpModalCancelBtn" class="chip" type="button">Cancel</button>
+                      <button id="wpModalDoneBtn" class="btn-primary wp-modal-done-btn" type="button">✓ Done</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -3060,78 +3104,128 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
   var wpCanvas = $('#wpCanvas');
   var wpCanvasWrap = $('#wpCanvasWrap');
-  var wpCanvasInlineInput = $('#wpCanvasInlineInput');
-  var wpIsEditingInline = false;
+  /* ---- Dedicated Spacious Affirmation Text Editor Modal ---- */
+  var wpTextModal = $('#wpTextModal');
+  var wpModalInput = $('#wpModalInput');
+  var wpModalCharCount = $('#wpModalCharCount');
 
-  function wpOpenInlineEditor() {
-    if (!wpCanvasInlineInput || !wpCanvas || !wpState._box) return;
-    var b = wpState._box;
-    var ratio = WP_RATIOS[wpState.ratio];
-    var rect = wpCanvas.getBoundingClientRect();
-    var wrapRect = wpCanvasWrap ? wpCanvasWrap.getBoundingClientRect() : rect;
-
-    var scale = rect.width / ratio.w;
-    var textVal = $('#wpText') ? $('#wpText').value : '';
-
-    // Calculate position relative to wpCanvasWrap
-    var leftInCanvas = b.x * scale;
-    var topInCanvas = b.y * scale;
-    var widthInCanvas = Math.max(160, Math.min(rect.width * 0.94, b.w * scale + 24));
-    var heightInCanvas = Math.max(60, b.h * scale + 20);
-
-    var offsetLeft = (rect.left - wrapRect.left) + (b.cx * scale) - (widthInCanvas / 2);
-    var offsetTop = (rect.top - wrapRect.top) + (b.cy * scale) - (heightInCanvas / 2);
-
-    // Keep within bounds
-    offsetLeft = Math.max(8, Math.min(wrapRect.width - widthInCanvas - 8, offsetLeft));
-    offsetTop = Math.max(8, Math.min(wrapRect.height - heightInCanvas - 8, offsetTop));
-
-    var fontSize = Math.max(14, Math.round(b.px * scale * 0.95));
-
-    wpCanvasInlineInput.style.left = offsetLeft + 'px';
-    wpCanvasInlineInput.style.top = offsetTop + 'px';
-    wpCanvasInlineInput.style.width = widthInCanvas + 'px';
-    wpCanvasInlineInput.style.minHeight = heightInCanvas + 'px';
-    wpCanvasInlineInput.style.fontSize = fontSize + 'px';
-    wpCanvasInlineInput.value = textVal;
-
-    wpCanvasInlineInput.classList.remove('hidden');
-    wpIsEditingInline = true;
-    wpCanvasInlineInput.focus();
-    wpCanvasInlineInput.select();
+  function updateModalCharCount() {
+    if (!wpModalInput || !wpModalCharCount) return;
+    var len = wpModalInput.value.length;
+    var max = wpModalInput.maxLength || 140;
+    wpModalCharCount.textContent = len + ' / ' + max;
   }
 
-  function wpCloseInlineEditor(save) {
-    if (!wpIsEditingInline || !wpCanvasInlineInput) return;
+  function wpOpenTextModal() {
+    if (!wpTextModal || !wpModalInput) return;
+    var currentText = $('#wpText') ? $('#wpText').value : '';
+    wpModalInput.value = currentText;
+    updateModalCharCount();
+    wpTextModal.classList.remove('hidden');
+    setTimeout(function () {
+      wpModalInput.focus();
+      wpModalInput.select();
+    }, 50);
+  }
+
+  function wpCloseTextModal(save) {
+    if (!wpTextModal || !wpModalInput) return;
     if (save !== false) {
-      var newVal = wpCanvasInlineInput.value;
+      var newVal = wpModalInput.value.trim();
       var ta = $('#wpText');
       if (ta) {
-        ta.value = newVal;
+        ta.value = newVal || WP_QUOTES[0];
         renderWallpaper();
+        saveWpSettings();
       }
     }
-    wpCanvasInlineInput.classList.add('hidden');
-    wpIsEditingInline = false;
+    wpTextModal.classList.add('hidden');
   }
 
-  if (wpCanvasInlineInput) {
-    wpCanvasInlineInput.addEventListener('input', function () {
+  if (wpModalInput) {
+    wpModalInput.addEventListener('input', function () {
+      updateModalCharCount();
       var ta = $('#wpText');
       if (ta) {
         ta.value = this.value;
         renderWallpaper();
       }
     });
-    wpCanvasInlineInput.addEventListener('blur', function () {
-      wpCloseInlineEditor(true);
-    });
-    wpCanvasInlineInput.addEventListener('keydown', function (e) {
+    wpModalInput.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
-        wpCloseInlineEditor(false);
-        renderWallpaper();
+        wpCloseTextModal(false);
       } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        wpCloseInlineEditor(true);
+        wpCloseTextModal(true);
+      }
+    });
+  }
+
+  if ($('#wpModalDoneBtn')) {
+    $('#wpModalDoneBtn').addEventListener('click', function () {
+      wpCloseTextModal(true);
+    });
+  }
+  if ($('#wpModalCancelBtn')) {
+    $('#wpModalCancelBtn').addEventListener('click', function () {
+      wpCloseTextModal(false);
+    });
+  }
+  if ($('#wpTextModalCloseBtn')) {
+    $('#wpTextModalCloseBtn').addEventListener('click', function () {
+      wpCloseTextModal(true);
+    });
+  }
+  if ($('#wpTextModalBackdrop')) {
+    $('#wpTextModalBackdrop').addEventListener('click', function () {
+      wpCloseTextModal(true);
+    });
+  }
+
+  if ($('#wpModalShuffleBtn')) {
+    $('#wpModalShuffleBtn').addEventListener('click', function () {
+      var q = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
+      if (wpModalInput) {
+        wpModalInput.value = q;
+        updateModalCharCount();
+        var ta = $('#wpText');
+        if (ta) {
+          ta.value = q;
+          renderWallpaper();
+        }
+      }
+    });
+  }
+
+  if ($('#wpModalClearBtn')) {
+    $('#wpModalClearBtn').addEventListener('click', function () {
+      if (wpModalInput) {
+        wpModalInput.value = '';
+        updateModalCharCount();
+        wpModalInput.focus();
+      }
+    });
+  }
+
+  $$('.wp-sug-chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (wpModalInput) {
+        var quote = btn.dataset.quote || btn.textContent.replace(/^.+?\s/, '');
+        wpModalInput.value = quote;
+        updateModalCharCount();
+        var ta = $('#wpText');
+        if (ta) {
+          ta.value = quote;
+          renderWallpaper();
+        }
+      }
+    });
+  });
+
+  if ($('#wpGestureHint')) {
+    $('#wpGestureHint').style.cursor = 'pointer';
+    $('#wpGestureHint').addEventListener('click', function () {
+      if (wpState.activeLayer === 'text') {
+        wpOpenTextModal();
       }
     });
   }
@@ -3331,7 +3425,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       wasClick = true;
       if (wpPointerDownMeta.target === 'text') {
         setTimeout(function () {
-          wpOpenInlineEditor();
+          wpOpenTextModal();
         }, 10);
       }
     }

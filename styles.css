@@ -978,30 +978,224 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 .wp-canvas.dragging { cursor: grabbing; }
 .wp-canvas.resizing { cursor: nwse-resize; }
 
-/* Inline text input directly on top of wallpaper canvas */
-.wp-canvas-inline-input {
+/* Dedicated Affirmation Text Editor Modal */
+.wp-text-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeSlide 0.25s ease;
+}
+
+.wp-text-modal.hidden {
+  display: none !important;
+}
+
+.wp-text-modal-backdrop {
   position: absolute;
-  z-index: 10;
-  box-sizing: border-box;
-  background: rgba(16, 8, 30, 0.88);
+  inset: 0;
+  background: rgba(12, 6, 24, 0.68);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: #ffffff;
-  border: 2px solid var(--accent);
-  border-radius: 12px;
-  outline: none;
+}
+
+.wp-text-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 20px;
+  padding: 20px 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: wpModalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes wpModalPop {
+  0% { opacity: 0; transform: scale(0.94) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.wp-text-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wp-text-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: "Cinzel", "Cinzel Decorative", "Georgia", serif;
+  letter-spacing: 0.02em;
+}
+
+.wp-text-modal-icon {
+  font-size: 18px;
+}
+
+.wp-text-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wp-char-counter {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.wp-modal-close-icon {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.wp-modal-close-icon:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--surface-hover);
+  transform: scale(1.06);
+}
+
+.wp-text-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wp-modal-textarea {
+  width: 100%;
+  min-height: 110px;
+  max-height: 240px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 17px;
   font-family: "Cinzel", "Georgia", serif;
   font-weight: 600;
-  text-align: center;
-  line-height: 1.35;
-  padding: 10px 12px;
-  resize: none;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
-  animation: fadeSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.wp-canvas-inline-input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+
+.wp-modal-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  background: var(--surface);
+}
+
+.wp-modal-textarea::placeholder {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.wp-modal-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wp-modal-sug-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wp-modal-chips-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.wp-modal-chips-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.wp-sug-chip {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.wp-text-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.wp-modal-foot-left, .wp-modal-foot-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wp-modal-done-btn {
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+#wpText {
+  min-height: 80px;
+  font-size: 15px;
+  line-height: 1.5;
+  font-family: "Cinzel", "Georgia", serif;
+  font-weight: 600;
+  padding: 12px 14px;
+}
+
+@media (max-width: 600px) {
+  .wp-text-modal {
+    align-items: flex-end;
+    padding: 0 0 env(safe-area-inset-bottom, 12px);
+  }
+  .wp-text-modal-card {
+    border-radius: 24px 24px 0 0;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 18px 16px 20px;
+  }
+  .wp-modal-textarea {
+    min-height: 96px;
+    font-size: 16px;
+  }
 }
 
 .wp-pos-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }

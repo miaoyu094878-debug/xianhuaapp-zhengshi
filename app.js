@@ -1268,78 +1268,128 @@
   /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
   var wpCanvas = $('#wpCanvas');
   var wpCanvasWrap = $('#wpCanvasWrap');
-  var wpCanvasInlineInput = $('#wpCanvasInlineInput');
-  var wpIsEditingInline = false;
+  /* ---- Dedicated Spacious Affirmation Text Editor Modal ---- */
+  var wpTextModal = $('#wpTextModal');
+  var wpModalInput = $('#wpModalInput');
+  var wpModalCharCount = $('#wpModalCharCount');
 
-  function wpOpenInlineEditor() {
-    if (!wpCanvasInlineInput || !wpCanvas || !wpState._box) return;
-    var b = wpState._box;
-    var ratio = WP_RATIOS[wpState.ratio];
-    var rect = wpCanvas.getBoundingClientRect();
-    var wrapRect = wpCanvasWrap ? wpCanvasWrap.getBoundingClientRect() : rect;
-
-    var scale = rect.width / ratio.w;
-    var textVal = $('#wpText') ? $('#wpText').value : '';
-
-    // Calculate position relative to wpCanvasWrap
-    var leftInCanvas = b.x * scale;
-    var topInCanvas = b.y * scale;
-    var widthInCanvas = Math.max(160, Math.min(rect.width * 0.94, b.w * scale + 24));
-    var heightInCanvas = Math.max(60, b.h * scale + 20);
-
-    var offsetLeft = (rect.left - wrapRect.left) + (b.cx * scale) - (widthInCanvas / 2);
-    var offsetTop = (rect.top - wrapRect.top) + (b.cy * scale) - (heightInCanvas / 2);
-
-    // Keep within bounds
-    offsetLeft = Math.max(8, Math.min(wrapRect.width - widthInCanvas - 8, offsetLeft));
-    offsetTop = Math.max(8, Math.min(wrapRect.height - heightInCanvas - 8, offsetTop));
-
-    var fontSize = Math.max(14, Math.round(b.px * scale * 0.95));
-
-    wpCanvasInlineInput.style.left = offsetLeft + 'px';
-    wpCanvasInlineInput.style.top = offsetTop + 'px';
-    wpCanvasInlineInput.style.width = widthInCanvas + 'px';
-    wpCanvasInlineInput.style.minHeight = heightInCanvas + 'px';
-    wpCanvasInlineInput.style.fontSize = fontSize + 'px';
-    wpCanvasInlineInput.value = textVal;
-
-    wpCanvasInlineInput.classList.remove('hidden');
-    wpIsEditingInline = true;
-    wpCanvasInlineInput.focus();
-    wpCanvasInlineInput.select();
+  function updateModalCharCount() {
+    if (!wpModalInput || !wpModalCharCount) return;
+    var len = wpModalInput.value.length;
+    var max = wpModalInput.maxLength || 140;
+    wpModalCharCount.textContent = len + ' / ' + max;
   }
 
-  function wpCloseInlineEditor(save) {
-    if (!wpIsEditingInline || !wpCanvasInlineInput) return;
+  function wpOpenTextModal() {
+    if (!wpTextModal || !wpModalInput) return;
+    var currentText = $('#wpText') ? $('#wpText').value : '';
+    wpModalInput.value = currentText;
+    updateModalCharCount();
+    wpTextModal.classList.remove('hidden');
+    setTimeout(function () {
+      wpModalInput.focus();
+      wpModalInput.select();
+    }, 50);
+  }
+
+  function wpCloseTextModal(save) {
+    if (!wpTextModal || !wpModalInput) return;
     if (save !== false) {
-      var newVal = wpCanvasInlineInput.value;
+      var newVal = wpModalInput.value.trim();
       var ta = $('#wpText');
       if (ta) {
-        ta.value = newVal;
+        ta.value = newVal || WP_QUOTES[0];
         renderWallpaper();
+        saveWpSettings();
       }
     }
-    wpCanvasInlineInput.classList.add('hidden');
-    wpIsEditingInline = false;
+    wpTextModal.classList.add('hidden');
   }
 
-  if (wpCanvasInlineInput) {
-    wpCanvasInlineInput.addEventListener('input', function () {
+  if (wpModalInput) {
+    wpModalInput.addEventListener('input', function () {
+      updateModalCharCount();
       var ta = $('#wpText');
       if (ta) {
         ta.value = this.value;
         renderWallpaper();
       }
     });
-    wpCanvasInlineInput.addEventListener('blur', function () {
-      wpCloseInlineEditor(true);
-    });
-    wpCanvasInlineInput.addEventListener('keydown', function (e) {
+    wpModalInput.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
-        wpCloseInlineEditor(false);
-        renderWallpaper();
+        wpCloseTextModal(false);
       } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        wpCloseInlineEditor(true);
+        wpCloseTextModal(true);
+      }
+    });
+  }
+
+  if ($('#wpModalDoneBtn')) {
+    $('#wpModalDoneBtn').addEventListener('click', function () {
+      wpCloseTextModal(true);
+    });
+  }
+  if ($('#wpModalCancelBtn')) {
+    $('#wpModalCancelBtn').addEventListener('click', function () {
+      wpCloseTextModal(false);
+    });
+  }
+  if ($('#wpTextModalCloseBtn')) {
+    $('#wpTextModalCloseBtn').addEventListener('click', function () {
+      wpCloseTextModal(true);
+    });
+  }
+  if ($('#wpTextModalBackdrop')) {
+    $('#wpTextModalBackdrop').addEventListener('click', function () {
+      wpCloseTextModal(true);
+    });
+  }
+
+  if ($('#wpModalShuffleBtn')) {
+    $('#wpModalShuffleBtn').addEventListener('click', function () {
+      var q = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
+      if (wpModalInput) {
+        wpModalInput.value = q;
+        updateModalCharCount();
+        var ta = $('#wpText');
+        if (ta) {
+          ta.value = q;
+          renderWallpaper();
+        }
+      }
+    });
+  }
+
+  if ($('#wpModalClearBtn')) {
+    $('#wpModalClearBtn').addEventListener('click', function () {
+      if (wpModalInput) {
+        wpModalInput.value = '';
+        updateModalCharCount();
+        wpModalInput.focus();
+      }
+    });
+  }
+
+  $$('.wp-sug-chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (wpModalInput) {
+        var quote = btn.dataset.quote || btn.textContent.replace(/^.+?\s/, '');
+        wpModalInput.value = quote;
+        updateModalCharCount();
+        var ta = $('#wpText');
+        if (ta) {
+          ta.value = quote;
+          renderWallpaper();
+        }
+      }
+    });
+  });
+
+  if ($('#wpGestureHint')) {
+    $('#wpGestureHint').style.cursor = 'pointer';
+    $('#wpGestureHint').addEventListener('click', function () {
+      if (wpState.activeLayer === 'text') {
+        wpOpenTextModal();
       }
     });
   }
@@ -1543,7 +1593,7 @@
       wasClick = true;
       if (wpPointerDownMeta.target === 'text') {
         setTimeout(function () {
-          wpOpenInlineEditor();
+          wpOpenTextModal();
         }, 10);
       }
     }
