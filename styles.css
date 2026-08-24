@@ -1103,7 +1103,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 
 .wp-live-input-box {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   background: var(--surface-2);
   border: 1.5px solid var(--border);
@@ -1123,6 +1123,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   font-size: 16px;
   flex-shrink: 0;
   line-height: 1;
+  margin-top: 4px;
 }
 
 .wp-live-field {
@@ -1136,7 +1137,28 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   font-family: "Cinzel", "Cinzel Decorative", "Georgia", serif;
   font-weight: 600;
   line-height: 1.4;
-  padding: 4px 0;
+  padding: 3px 0;
+  resize: none;
+  height: 28px;
+  min-height: 28px;
+  max-height: 160px;
+  box-sizing: border-box;
+  overflow-y: hidden;
+  transition: height 0.15s ease;
+}
+
+.wp-live-field:not(.expanded):not(:focus) {
+  height: 28px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wp-live-field.expanded,
+.wp-live-field:focus {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
 }
 
 .wp-live-field::placeholder {
@@ -1151,6 +1173,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .wp-live-char-badge {

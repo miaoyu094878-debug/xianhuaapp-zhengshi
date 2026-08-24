@@ -1290,6 +1290,22 @@
     ta.style.height = Math.max(90, Math.min(220, ta.scrollHeight)) + 'px';
   }
 
+  function autoResizeLiveInput(isFocused) {
+    var live = $('#wpLiveInput');
+    if (!live) return;
+    var focused = (typeof isFocused === 'boolean') ? isFocused : (document.activeElement === live);
+    if (!focused) {
+      live.classList.remove('expanded');
+      live.style.height = '28px';
+    } else {
+      live.classList.add('expanded');
+      live.style.height = 'auto';
+      var scrollH = live.scrollHeight;
+      var newHeight = Math.max(28, Math.min(180, scrollH));
+      live.style.height = newHeight + 'px';
+    }
+  }
+
   function syncAffirmationText(val, source) {
     var ta = $('#wpText');
     var live = $('#wpLiveInput');
@@ -1301,6 +1317,11 @@
     if (source !== 'live' && live && live.value !== val) {
       live.value = val;
     }
+    if (source === 'live' || document.activeElement === live) {
+      autoResizeLiveInput(true);
+    } else {
+      autoResizeLiveInput(false);
+    }
     updateQuoteCharCounts();
     renderWallpaper();
     saveWpSettings();
@@ -1311,6 +1332,7 @@
     var live = $('#wpLiveInput');
     if (live) {
       live.focus();
+      autoResizeLiveInput(true);
       try { live.select(); } catch (e) {}
     } else {
       switchToWpTab('quote');
@@ -1331,6 +1353,16 @@
     });
     $('#wpLiveInput').addEventListener('focus', function () {
       setActiveLayer('text');
+      autoResizeLiveInput(true);
+    });
+    $('#wpLiveInput').addEventListener('blur', function () {
+      autoResizeLiveInput(false);
+    });
+    $('#wpLiveInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.blur();
+      }
     });
   }
 
@@ -1346,7 +1378,10 @@
       var q = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
       syncAffirmationText(q);
       var live = $('#wpLiveInput');
-      if (live) live.focus();
+      if (live) {
+        live.focus();
+        autoResizeLiveInput(true);
+      }
     });
   }
 
@@ -1362,7 +1397,10 @@
     $('#wpLiveClearBtn').addEventListener('click', function () {
       syncAffirmationText('');
       var live = $('#wpLiveInput');
-      if (live) live.focus();
+      if (live) {
+        live.focus();
+        autoResizeLiveInput(true);
+      }
     });
   }
 
@@ -1374,7 +1412,10 @@
       }
       if (ta) ta.blur();
       var live = $('#wpLiveInput');
-      if (live) live.blur();
+      if (live) {
+        live.blur();
+        autoResizeLiveInput(false);
+      }
     });
   }
 
@@ -1384,7 +1425,10 @@
       if (live && !live.value.trim()) {
         syncAffirmationText(WP_QUOTES[0]);
       }
-      if (live) live.blur();
+      if (live) {
+        live.blur();
+        autoResizeLiveInput(false);
+      }
       var ta = $('#wpText');
       if (ta) ta.blur();
     });
@@ -1923,6 +1967,7 @@
   if ($('#wpText')) $('#wpText').value = WP_QUOTES[0];
   if ($('#wpLiveInput')) $('#wpLiveInput').value = WP_QUOTES[0];
   updateQuoteCharCounts();
+  autoResizeLiveInput(false);
   updateWpSizeControls();
   updateWpPhotoControls();
   renderWallpaper();
