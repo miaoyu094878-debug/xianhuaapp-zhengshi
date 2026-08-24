@@ -659,316 +659,128 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   animation: fadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Background Source Entry Cards (Mobile-first in Edit Panel) */
-.wp-bg-entry-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 6px;
-  margin-bottom: 8px;
-}
-.wp-entry-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: var(--shadow-card);
-}
-.wp-entry-card:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-.wp-entry-card:active {
-  transform: translateY(0) scale(0.98);
-}
-.wp-entry-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  flex-shrink: 0;
-}
-.wp-entry-info {
-  flex: 1;
-  min-width: 0;
-}
-.wp-entry-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-.wp-entry-desc {
-  font-size: 12px;
-  color: var(--text-soft);
-  line-height: 1.4;
-}
-.wp-entry-arrow {
-  font-size: 16px;
-  color: var(--accent);
-  opacity: 0.8;
-  transition: transform 0.2s ease;
-}
-.wp-entry-card:hover .wp-entry-arrow {
-  transform: translateX(3px);
-  opacity: 1;
-}
-
-/* Modal / Fullscreen Image & Wallpaper Studio */
-.wp-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  animation: fadeIn 0.2s ease;
-}
-.wp-modal-backdrop.hidden {
-  display: none !important;
-}
-.wp-modal-card {
-  width: 100%;
-  max-width: 580px;
-  max-height: 90vh;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes modalPop {
-  0% { transform: scale(0.92) translateY(20px); opacity: 0; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
-}
-
-.wp-modal-head {
+/* Top Action Bar above Wallpaper Preview (Upload Photo & Curated Presets) */
+.wp-canvas-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 22px 14px;
-  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
-.wp-modal-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0;
-}
-.wp-modal-sub {
-  font-size: 12px;
-  color: var(--text-soft);
-  margin: 3px 0 0;
-}
-.wp-modal-close-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-soft);
-  font-size: 16px;
-  cursor: pointer;
+.wp-top-btn-group {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-.wp-modal-close-btn:hover {
-  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
-  color: var(--text);
-  border-color: var(--accent);
-}
-
-.wp-modal-nav {
-  display: flex;
-  padding: 10px 20px 0;
   gap: 8px;
-  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
 }
-.wp-modal-tab {
-  flex: 1;
-  padding: 10px 14px;
-  background: transparent;
-  border: none;
-  border-bottom: 2.5px solid transparent;
-  color: var(--text-soft);
+.wp-canvas-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 16px;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  user-select: none;
+  -webkit-user-select: none;
 }
-.wp-modal-tab:hover {
+.wp-canvas-action-btn .wp-btn-ico {
+  font-size: 16px;
+  line-height: 1;
+}
+.wp-canvas-action-btn.wp-btn-upload {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   color: var(--text);
 }
-.wp-modal-tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-.wp-modal-view {
-  display: none;
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-  max-height: calc(90vh - 200px);
-}
-.wp-modal-view.active {
-  display: block;
-  animation: fadeSlide 0.2s ease;
-}
-
-.wp-modal-dropzone {
-  border: 2px dashed color-mix(in srgb, var(--accent) 45%, var(--border));
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
-  border-radius: 18px;
-  padding: 30px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-.wp-modal-dropzone:hover {
+.wp-canvas-action-btn.wp-btn-upload:hover {
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface-2));
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
-  transform: translateY(-2px);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
 }
-.wp-drop-icon {
-  font-size: 38px;
-  margin-bottom: 8px;
+.wp-canvas-action-btn.wp-btn-preset {
+  background: var(--surface-2);
+  border-color: var(--border);
 }
-.wp-drop-main {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
+.wp-canvas-action-btn.wp-btn-preset:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
-.wp-drop-sub {
-  font-size: 12px;
-  color: var(--text-soft);
-  margin-top: 4px;
+.wp-canvas-action-btn:active {
+  transform: translateY(0) scale(0.97);
 }
 
-.wp-modal-photo-section {
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.wp-modal-prev-row {
+.wp-layer-bar-compact {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: var(--surface-2);
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
+  gap: 6px;
+  margin-left: auto;
 }
-.wp-modal-thumb-box {
-  width: 54px;
-  height: 72px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #000;
-  border: 1px solid rgba(255,255,255,0.15);
-  flex-shrink: 0;
+.wp-layer-title {
+  font-size: 12px;
+  color: var(--text-soft);
+  font-weight: 500;
 }
-.wp-modal-thumb-box img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.wp-modal-thumb-info {
-  flex: 1;
-}
-.wp-thumb-status {
-  font-size: 12.5px;
+.wp-layer-btn.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
   font-weight: 600;
-  color: #10b981;
-  display: block;
-  margin-bottom: 6px;
-}
-.wp-modal-thumb-actions {
-  display: flex;
-  gap: 8px;
-}
-.btn-mini-text {
-  font-size: 11.5px;
-  padding: 4px 9px;
-}
-.chip-danger {
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.35);
-}
-.chip-danger:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
 }
 
-.wp-modal-adjust-card {
+/* Background panel sections */
+.wp-source-section {
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px;
+  transition: all 0.3s ease;
 }
-.wp-modal-tip {
-  margin-top: 12px;
+.wp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.wp-section-sub {
   font-size: 11.5px;
   color: var(--text-soft);
-  line-height: 1.4;
-  text-align: center;
 }
 
-.wp-modal-presets-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-.wp-modal-presets-grid .wp-bg {
-  aspect-ratio: 9 / 16;
-  border-radius: 14px;
-}
-
-.wp-modal-foot {
-  padding: 14px 20px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-2);
-}
-.wp-modal-done-btn {
-  width: 100%;
-  padding: 12px;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-/* Hide desktop bg duplicates on mobile, show cleanly on desktop */
-@media (max-width: 768px) {
-  .wp-desktop-bg-section {
-    display: none;
+/* Glow highlight pulse on jump */
+@keyframes wpHiglightPulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+    border-color: var(--accent);
+  }
+  40% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent);
+    border-color: var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
   }
 }
-@media (min-width: 769px) {
-  .wp-bg-entry-grid {
-    display: flex;
-  }
+.wp-highlight-pulse {
+  animation: wpHiglightPulseGlow 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-color: var(--accent) !important;
+}
+
+/* Dropzone icon */
+.ai-drop-icon {
+  font-size: 24px;
 }
 
 .wp-bgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
