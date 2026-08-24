@@ -1,5 +1,5 @@
 /* Luminara — Manifest Service Worker */
-var CACHE = 'luminara-v53';
+var CACHE = 'luminara-v54';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
