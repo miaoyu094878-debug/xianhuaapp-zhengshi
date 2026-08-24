@@ -1499,45 +1499,63 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- Live Affirmation Input Dock (Directly below canvas & above virtual keyboard) -->
+              <!-- Live Affirmation Input Dock Card (Directly below canvas & above virtual keyboard) -->
               <div class="wp-live-dock" id="wpLiveDock">
+                <!-- Row 1: Real-time Text Input Field -->
                 <div class="wp-live-input-box">
-                  <span class="wp-live-ico">✍️</span>
+                  <div class="wp-live-ico-wrap" title="Live Affirmation Editor">
+                    <span class="wp-live-ico">✍️</span>
+                  </div>
                   <textarea 
                     id="wpLiveInput" 
                     class="wp-live-field" 
                     rows="1" 
                     maxlength="140" 
-                    placeholder="Type affirmation here to preview live on image..." 
+                    placeholder="Type affirmation to preview live..." 
                     autocomplete="off" 
                     autocorrect="off" 
                     spellcheck="false"
                   ></textarea>
                   <div class="wp-live-tools">
-                    <span id="wpLiveCharCount" class="wp-live-char-badge">0/140</span>
-                    <button id="wpLiveShuffleBtn" class="wp-live-tool-btn" type="button" title="Shuffle affirmation">🎲</button>
                     <button id="wpLiveClearBtn" class="wp-live-tool-btn" type="button" title="Clear text">✕</button>
-                    <button id="wpLiveDoneBtn" class="wp-live-done-btn" type="button" title="Done typing">✓ Done</button>
+                    <button id="wpLiveDoneBtn" class="wp-live-done-btn" type="button" title="Done editing">✓ Done</button>
                   </div>
                 </div>
-                <!-- Quick Inspiration Suggestions -->
-                <div class="wp-live-sug-strip">
-                  <button class="wp-live-sug-chip" type="button" data-quote="I am becoming who I am meant to be">✨ Myself</button>
-                  <button class="wp-live-sug-chip" type="button" data-quote="I attract boundless joy, wealth, and vibrant peace">🌟 Abundance</button>
-                  <button class="wp-live-sug-chip" type="button" data-quote="I radiate effortless confidence and inner tranquility">🔥 Confidence</button>
-                  <button class="wp-live-sug-chip" type="button" data-quote="Everything is working out for my highest good">🌊 Trust</button>
-                  <button class="wp-live-sug-chip" type="button" data-quote="My heart is peaceful, my mind is clear">🌿 Peace</button>
-                  <button class="wp-live-sug-chip" type="button" data-quote="I am worthy of every beautiful dream">💖 Worthiness</button>
+
+                <!-- Row 2: Subtle Meta Bar (Char Count & Quick Actions) -->
+                <div class="wp-live-meta-bar">
+                  <span id="wpLiveCharCount" class="wp-live-char-badge">0 / 140</span>
+                  <div class="wp-live-meta-actions">
+                    <button id="wpLiveShuffleBtn" class="wp-live-action-chip" type="button" title="Shuffle affirmation">
+                      <span>🎲 Shuffle</span>
+                    </button>
+                    <button id="wpResetPos" class="wp-live-action-chip" type="button" title="Reset text position">
+                      <span>↺ Reset Pos</span>
+                    </button>
+                    <button id="wpResetPhotoBtn" class="wp-live-action-chip hidden" type="button" title="Reset photo position & scale">
+                      <span>↺ Photo</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Row 3: Quick Inspiration Suggestions (Single-line Horizontal Carousel) -->
+                <div class="wp-live-sug-wrap">
+                  <div class="wp-live-sug-strip">
+                    <button class="wp-live-sug-chip" type="button" data-quote="I am becoming who I am meant to be">✨ Myself</button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="I attract boundless joy, wealth, and vibrant peace">🌟 Abundance</button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="I radiate effortless confidence and inner tranquility">🔥 Confidence</button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="Everything is working out for my highest good">🌊 Trust</button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="My heart is peaceful, my mind is clear">🌿 Peace</button>
+                    <button class="wp-live-sug-chip" type="button" data-quote="I am worthy of every beautiful dream">💖 Worthiness</button>
+                  </div>
                 </div>
               </div>
 
-              <div class="wp-pos-row">
-                <span class="wp-hint" id="wpGestureHint">✏️ Tap text to edit · Drag to move · Drag corners or pinch to resize</span>
-                <div class="wp-quick-resets">
-                  <button id="wpResetPos" class="chip" type="button" title="Reset text position">↺ Reset Text</button>
-                  <button id="wpResetPhotoBtn" class="chip hidden" type="button" title="Reset photo">↺ Reset Photo</button>
-                </div>
+              <!-- Secondary Gesture Micro-Hint -->
+              <div class="wp-gesture-bar">
+                <span class="wp-hint" id="wpGestureHint">✦ Drag text or handles on canvas to customize placement</span>
               </div>
+
               <button id="wpExport" class="btn-primary wp-export-main-btn" type="button">⬇ Download Wallpaper</button>
             </div>
           </div>

@@ -1098,12 +1098,23 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 /* Live Affirmation Input Dock (Directly below canvas & above keyboard) */
 .wp-live-dock {
   width: 100%;
-  margin: 4px 0 8px;
+  margin: 6px 0 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
   touch-action: manipulation;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wp-live-dock:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
 }
 
 .wp-live-input-box {
@@ -1112,23 +1123,31 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   gap: 8px;
   background: var(--surface-2);
   border: 1.5px solid var(--border);
-  border-radius: 14px;
-  padding: 6px 10px 6px 12px;
+  border-radius: 13px;
+  padding: 6px 8px 6px 10px;
   box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .wp-live-input-box:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   background: var(--surface);
 }
 
-.wp-live-ico {
-  font-size: 16px;
+.wp-live-ico-wrap {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.wp-live-ico {
+  font-size: 15px;
   line-height: 1;
-  margin-top: 4px;
 }
 
 .wp-live-field {
@@ -1141,11 +1160,11 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   font-size: 16px; /* 16px prevents iOS Safari from forced auto-zoom on mobile */
   font-family: "Cinzel", "Cinzel Decorative", "Georgia", serif;
   font-weight: 600;
-  line-height: 1.4;
-  padding: 3px 0;
+  line-height: 1.45;
+  padding: 2px 0;
   resize: none;
-  height: 28px;
-  min-height: 28px;
+  height: 26px;
+  min-height: 26px;
   max-height: 160px;
   box-sizing: border-box;
   overflow-y: hidden;
@@ -1154,7 +1173,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 }
 
 .wp-live-field:not(.expanded):not(:focus) {
-  height: 28px !important;
+  height: 26px !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1177,32 +1196,22 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 .wp-live-tools {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex-shrink: 0;
   margin-top: 1px;
-}
-
-.wp-live-char-badge {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-  padding: 2px 6px;
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
-  border-radius: 999px;
-  border: 1px solid var(--border);
 }
 
 .wp-live-tool-btn {
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-soft);
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1218,23 +1227,81 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   color: #ffffff;
   border: none;
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 11px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .wp-live-done-btn:hover {
-  opacity: 0.9;
+  opacity: 0.92;
   transform: scale(1.04);
+}
+
+/* Row 2: Live Meta Bar */
+.wp-live-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.wp-live-char-badge {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.wp-live-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wp-live-action-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.wp-live-action-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--surface);
+  transform: translateY(-1px);
+}
+
+/* Row 3: Quick Inspiration Suggestions Carousel */
+.wp-live-sug-wrap {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  margin-top: 1px;
 }
 
 .wp-live-sug-strip {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   overflow-x: auto;
-  padding: 2px 2px 4px;
+  flex-wrap: nowrap;
+  padding: 2px 1px 3px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -1245,15 +1312,19 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 
 .wp-live-sug-chip {
   flex-shrink: 0;
-  font-size: 11.5px;
-  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
   border-radius: 999px;
   background: var(--surface-2);
-  color: var(--text-soft);
+  color: var(--text);
   border: 1px solid var(--border);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .wp-live-sug-chip:hover {
@@ -1261,13 +1332,31 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   border-color: var(--accent);
   background: var(--surface);
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.wp-pos-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-.wp-hint { font-size: 12px; color: var(--text-soft); line-height: 1.5; }
-.wp-quick-resets { display: flex; gap: 6px; }
+.wp-live-sug-chip:active {
+  transform: scale(0.96);
+}
+
+/* Secondary Gesture Bar & Hint */
+.wp-gesture-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 8px;
+  text-align: center;
+}
+
+.wp-hint {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
 .wp-export-main-btn {
-  margin-top: 4px;
+  margin-top: 2px;
   width: 100%;
 }
 
