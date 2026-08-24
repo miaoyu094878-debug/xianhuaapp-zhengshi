@@ -1088,6 +1088,10 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 @media (max-width: 768px) {
   .wp-canvas {
     max-height: 42vh;
+    transition: max-height 0.2s ease;
+  }
+  body.wp-typing .wp-canvas {
+    max-height: 30vh;
   }
 }
 
@@ -1099,6 +1103,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   flex-direction: column;
   gap: 6px;
   box-sizing: border-box;
+  touch-action: manipulation;
 }
 
 .wp-live-input-box {
@@ -1133,7 +1138,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   border: none;
   outline: none;
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px; /* 16px prevents iOS Safari from forced auto-zoom on mobile */
   font-family: "Cinzel", "Cinzel Decorative", "Georgia", serif;
   font-weight: 600;
   line-height: 1.4;
@@ -1145,6 +1150,7 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   box-sizing: border-box;
   overflow-y: hidden;
   transition: height 0.15s ease;
+  -webkit-appearance: none;
 }
 
 .wp-live-field:not(.expanded):not(:focus) {

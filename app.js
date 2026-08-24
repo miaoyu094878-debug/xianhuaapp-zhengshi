@@ -1353,9 +1353,19 @@
     });
     $('#wpLiveInput').addEventListener('focus', function () {
       setActiveLayer('text');
+      document.body.classList.add('wp-typing');
       autoResizeLiveInput(true);
+      if (window.innerWidth <= 768) {
+        setTimeout(function () {
+          var dock = $('#wpLiveDock');
+          if (dock) {
+            dock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 150);
+      }
     });
     $('#wpLiveInput').addEventListener('blur', function () {
+      document.body.classList.remove('wp-typing');
       autoResizeLiveInput(false);
     });
     $('#wpLiveInput').addEventListener('keydown', function (e) {
