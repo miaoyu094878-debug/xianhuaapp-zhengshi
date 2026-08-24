@@ -808,10 +808,43 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .wp-photo-actions { margin-top: 10px; display: flex; gap: 8px; }
 .wp-photo-actions .chip { flex: 1; text-align: center; }
 
-.wp-layer-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; width: 100%; }
-.wp-bar-left, .wp-bar-right { display: flex; align-items: center; gap: 8px; }
+.wp-layer-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; width: 100%; flex-wrap: wrap; }
+.wp-bar-left, .wp-bar-right { display: flex; align-items: center; gap: 6px; }
 .wp-layer-title { font-size: 12px; color: var(--text-soft); font-weight: 500; }
 .wp-layer-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; }
+
+.wp-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.wp-bar-btn:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+}
+.wp-bar-btn:active {
+  transform: translateY(0);
+}
+.wp-bar-btn-ico {
+  font-size: 13px;
+  line-height: 1;
+  display: inline-block;
+}
 
 /* Quick Action Icon Buttons */
 .wp-icon-action-btn {

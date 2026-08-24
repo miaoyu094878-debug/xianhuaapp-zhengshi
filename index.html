@@ -697,10 +697,43 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .wp-photo-actions { margin-top: 10px; display: flex; gap: 8px; }
 .wp-photo-actions .chip { flex: 1; text-align: center; }
 
-.wp-layer-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; width: 100%; }
-.wp-bar-left, .wp-bar-right { display: flex; align-items: center; gap: 8px; }
+.wp-layer-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; width: 100%; flex-wrap: wrap; }
+.wp-bar-left, .wp-bar-right { display: flex; align-items: center; gap: 6px; }
 .wp-layer-title { font-size: 12px; color: var(--text-soft); font-weight: 500; }
 .wp-layer-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; }
+
+.wp-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.wp-bar-btn:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+}
+.wp-bar-btn:active {
+  transform: translateY(0);
+}
+.wp-bar-btn-ico {
+  font-size: 13px;
+  line-height: 1;
+  display: inline-block;
+}
 
 /* In-Canvas Floating Action Buttons (Upper Half Overlays) */
 .wp-canvas-action-overlays {
@@ -1431,12 +1464,22 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <!-- Canvas Preview Section (Top on mobile, right on desktop) -->
           <div class="wp-preview-col">
             <div class="card glass form-card wp-preview-card">
-              <!-- Layer Toolbar -->
+              <!-- Layer & Quick Actions Toolbar -->
               <div class="wp-layer-bar">
                 <div class="wp-bar-left">
-                  <span class="wp-layer-title">Active Layer:</span>
+                  <span class="wp-layer-title">Layer:</span>
                   <button id="wpLayerText" class="chip wp-layer-btn active" type="button" data-layer="text">✍️ Text</button>
                   <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Photo</button>
+                </div>
+                <div class="wp-bar-right">
+                  <button id="wpBarUploadBtn" class="wp-bar-btn" type="button" title="Upload custom photo">
+                    <span id="wpBarUploadIco" class="wp-bar-btn-ico">📤</span>
+                    <span id="wpBarUploadLabel">Upload Photo</span>
+                  </button>
+                  <button id="wpBarPresetBtn" class="wp-bar-btn" type="button" title="Curated Presets">
+                    <span class="wp-bar-btn-ico">✨</span>
+                    <span>Presets</span>
+                  </button>
                 </div>
               </div>
 
@@ -2688,6 +2731,22 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     }
   }
 
+  function updateWpBarUploadState() {
+    var label = $('#wpBarUploadLabel');
+    var ico = $('#wpBarUploadIco');
+    var btn = $('#wpBarUploadBtn');
+    if (!label || !btn) return;
+    if (wpState.photo) {
+      label.textContent = 'Re-upload';
+      if (ico) ico.textContent = '🔄';
+      btn.title = 'Re-upload custom photo';
+    } else {
+      label.textContent = 'Upload Photo';
+      if (ico) ico.textContent = '📤';
+      btn.title = 'Upload custom photo';
+    }
+  }
+
   function wpThumb(preset) {
     var cnv = document.createElement('canvas'); cnv.width = 180; cnv.height = 320;
     WP_PRESETS[preset](cnv.getContext('2d'), 180, 320);
@@ -2707,6 +2766,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         $('#wpPhotoControls').classList.add('hidden');
         $('#wpLayerPhoto').classList.add('hidden');
         $('#wpResetPhotoBtn').classList.add('hidden');
+        updateWpBarUploadState();
         setActiveLayer('text');
         $$('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
         hideWpActionOverlays();
@@ -2785,6 +2845,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     $('#wpResetPhotoBtn').classList.remove('hidden');
     $$('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
     updateWpPhotoControls();
+    updateWpBarUploadState();
     setActiveLayer('photo');
     hideWpActionOverlays();
     renderWallpaper();
@@ -2826,6 +2887,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     $('#wpPhotoControls').classList.add('hidden');
     $('#wpLayerPhoto').classList.add('hidden');
     $('#wpResetPhotoBtn').classList.add('hidden');
+    updateWpBarUploadState();
     setActiveLayer('text');
     renderWpPresets();
     renderWallpaper();
@@ -3562,7 +3624,19 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     wpOverlayPresetBtn.addEventListener('click', jumpToPresets);
   }
 
+  /* Permanent Compact Editor Bar Buttons (Upper Right of Canvas Area) */
+  var wpBarUploadBtn = $('#wpBarUploadBtn');
+  if (wpBarUploadBtn) {
+    wpBarUploadBtn.addEventListener('click', handleDirectPhotoUpload);
+  }
+
+  var wpBarPresetBtn = $('#wpBarPresetBtn');
+  if (wpBarPresetBtn) {
+    wpBarPresetBtn.addEventListener('click', jumpToPresets);
+  }
+
   renderWpPresets();
+  updateWpBarUploadState();
   $('#wpText').value = WP_QUOTES[0];
   updateWpSizeControls();
   updateWpPhotoControls();

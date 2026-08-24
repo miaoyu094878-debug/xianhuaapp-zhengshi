@@ -939,6 +939,22 @@
     }
   }
 
+  function updateWpBarUploadState() {
+    var label = $('#wpBarUploadLabel');
+    var ico = $('#wpBarUploadIco');
+    var btn = $('#wpBarUploadBtn');
+    if (!label || !btn) return;
+    if (wpState.photo) {
+      label.textContent = 'Re-upload';
+      if (ico) ico.textContent = '🔄';
+      btn.title = 'Re-upload custom photo';
+    } else {
+      label.textContent = 'Upload Photo';
+      if (ico) ico.textContent = '📤';
+      btn.title = 'Upload custom photo';
+    }
+  }
+
   function wpThumb(preset) {
     var cnv = document.createElement('canvas'); cnv.width = 180; cnv.height = 320;
     WP_PRESETS[preset](cnv.getContext('2d'), 180, 320);
@@ -958,6 +974,7 @@
         $('#wpPhotoControls').classList.add('hidden');
         $('#wpLayerPhoto').classList.add('hidden');
         $('#wpResetPhotoBtn').classList.add('hidden');
+        updateWpBarUploadState();
         setActiveLayer('text');
         $$('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
         hideWpActionOverlays();
@@ -1036,6 +1053,7 @@
     $('#wpResetPhotoBtn').classList.remove('hidden');
     $$('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
     updateWpPhotoControls();
+    updateWpBarUploadState();
     setActiveLayer('photo');
     hideWpActionOverlays();
     renderWallpaper();
@@ -1077,6 +1095,7 @@
     $('#wpPhotoControls').classList.add('hidden');
     $('#wpLayerPhoto').classList.add('hidden');
     $('#wpResetPhotoBtn').classList.add('hidden');
+    updateWpBarUploadState();
     setActiveLayer('text');
     renderWpPresets();
     renderWallpaper();
@@ -1819,7 +1838,19 @@
     wpOverlayPresetBtn.addEventListener('click', jumpToPresets);
   }
 
+  /* Permanent Compact Editor Bar Buttons (Upper Right of Canvas Area) */
+  var wpBarUploadBtn = $('#wpBarUploadBtn');
+  if (wpBarUploadBtn) {
+    wpBarUploadBtn.addEventListener('click', handleDirectPhotoUpload);
+  }
+
+  var wpBarPresetBtn = $('#wpBarPresetBtn');
+  if (wpBarPresetBtn) {
+    wpBarPresetBtn.addEventListener('click', jumpToPresets);
+  }
+
   renderWpPresets();
+  updateWpBarUploadState();
   $('#wpText').value = WP_QUOTES[0];
   updateWpSizeControls();
   updateWpPhotoControls();
