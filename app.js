@@ -1268,13 +1268,19 @@
   /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
   var wpCanvas = $('#wpCanvas');
   var wpCanvasWrap = $('#wpCanvasWrap');
-  /* ---- Real-Time Live Affirmation Text Editor ---- */
-  function updateQuoteCharCount() {
+  /* ---- Real-Time Live Affirmation Text Editor & Canvas Input Bar ---- */
+  function updateQuoteCharCounts() {
     var ta = $('#wpText');
+    var live = $('#wpLiveInput');
+    var val = (live && live.value !== undefined) ? live.value : (ta ? ta.value : '');
+    var len = val.length;
+    var max = (live && live.maxLength) || (ta && ta.maxLength) || 140;
+    
     var counter = $('#wpQuoteCharCount');
-    if (ta && counter) {
-      counter.textContent = ta.value.length + ' / ' + (ta.maxLength || 140);
-    }
+    if (counter) counter.textContent = len + ' / ' + max;
+    
+    var liveBadge = $('#wpLiveCharCount');
+    if (liveBadge) liveBadge.textContent = len + '/' + max;
   }
 
   function autoResizeWpText() {
@@ -1284,89 +1290,117 @@
     ta.style.height = Math.max(90, Math.min(220, ta.scrollHeight)) + 'px';
   }
 
+  function syncAffirmationText(val, source) {
+    var ta = $('#wpText');
+    var live = $('#wpLiveInput');
+    
+    if (source !== 'text' && ta && ta.value !== val) {
+      ta.value = val;
+      autoResizeWpText();
+    }
+    if (source !== 'live' && live && live.value !== val) {
+      live.value = val;
+    }
+    updateQuoteCharCounts();
+    renderWallpaper();
+    saveWpSettings();
+  }
+
   function openQuoteEditor() {
     setActiveLayer('text');
-    switchToWpTab('quote');
-    var ta = $('#wpText');
-    if (ta) {
-      ta.focus();
-      updateQuoteCharCount();
-      autoResizeWpText();
-      var previewCard = $('.wp-preview-card');
-      if (previewCard && window.innerWidth <= 768) {
-        previewCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+    var live = $('#wpLiveInput');
+    if (live) {
+      live.focus();
+      try { live.select(); } catch (e) {}
+    } else {
+      switchToWpTab('quote');
+      var ta = $('#wpText');
+      if (ta) ta.focus();
     }
   }
 
   if ($('#wpText')) {
     $('#wpText').addEventListener('input', function () {
-      updateQuoteCharCount();
-      autoResizeWpText();
-      renderWallpaper();
-      saveWpSettings();
+      syncAffirmationText(this.value, 'text');
+    });
+  }
+
+  if ($('#wpLiveInput')) {
+    $('#wpLiveInput').addEventListener('input', function () {
+      syncAffirmationText(this.value, 'live');
+    });
+    $('#wpLiveInput').addEventListener('focus', function () {
+      setActiveLayer('text');
     });
   }
 
   if ($('#wpShuffle')) {
     $('#wpShuffle').addEventListener('click', function () {
       var q = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
-      var ta = $('#wpText');
-      if (ta) {
-        ta.value = q;
-        updateQuoteCharCount();
-        autoResizeWpText();
-        renderWallpaper();
-        saveWpSettings();
-      }
+      syncAffirmationText(q);
+    });
+  }
+
+  if ($('#wpLiveShuffleBtn')) {
+    $('#wpLiveShuffleBtn').addEventListener('click', function () {
+      var q = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
+      syncAffirmationText(q);
+      var live = $('#wpLiveInput');
+      if (live) live.focus();
     });
   }
 
   if ($('#wpClearText')) {
     $('#wpClearText').addEventListener('click', function () {
+      syncAffirmationText('');
       var ta = $('#wpText');
-      if (ta) {
-        ta.value = '';
-        updateQuoteCharCount();
-        autoResizeWpText();
-        ta.focus();
-        renderWallpaper();
-        saveWpSettings();
-      }
+      if (ta) ta.focus();
+    });
+  }
+
+  if ($('#wpLiveClearBtn')) {
+    $('#wpLiveClearBtn').addEventListener('click', function () {
+      syncAffirmationText('');
+      var live = $('#wpLiveInput');
+      if (live) live.focus();
     });
   }
 
   if ($('#wpDoneEditBtn')) {
     $('#wpDoneEditBtn').addEventListener('click', function () {
       var ta = $('#wpText');
-      if (ta) {
-        if (!ta.value.trim()) {
-          ta.value = WP_QUOTES[0];
-        }
-        ta.blur();
-        updateQuoteCharCount();
-        autoResizeWpText();
-        renderWallpaper();
-        saveWpSettings();
+      if (ta && !ta.value.trim()) {
+        syncAffirmationText(WP_QUOTES[0]);
       }
-      var wrap = $('#wpCanvasWrap');
-      if (wrap) {
-        wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (ta) ta.blur();
+      var live = $('#wpLiveInput');
+      if (live) live.blur();
+    });
+  }
+
+  if ($('#wpLiveDoneBtn')) {
+    $('#wpLiveDoneBtn').addEventListener('click', function () {
+      var live = $('#wpLiveInput');
+      if (live && !live.value.trim()) {
+        syncAffirmationText(WP_QUOTES[0]);
       }
+      if (live) live.blur();
+      var ta = $('#wpText');
+      if (ta) ta.blur();
     });
   }
 
   $$('.wp-sug-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var quote = btn.dataset.quote || btn.textContent.replace(/^.+?\s/, '');
-      var ta = $('#wpText');
-      if (ta) {
-        ta.value = quote;
-        updateQuoteCharCount();
-        autoResizeWpText();
-        renderWallpaper();
-        saveWpSettings();
-      }
+      syncAffirmationText(quote);
+    });
+  });
+
+  $$('.wp-live-sug-chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var quote = btn.dataset.quote || btn.textContent.replace(/^.+?\s/, '');
+      syncAffirmationText(quote);
     });
   });
 
@@ -1886,7 +1920,9 @@
 
   renderWpPresets();
   updateWpBarUploadState();
-  $('#wpText').value = WP_QUOTES[0];
+  if ($('#wpText')) $('#wpText').value = WP_QUOTES[0];
+  if ($('#wpLiveInput')) $('#wpLiveInput').value = WP_QUOTES[0];
+  updateQuoteCharCounts();
   updateWpSizeControls();
   updateWpPhotoControls();
   renderWallpaper();
