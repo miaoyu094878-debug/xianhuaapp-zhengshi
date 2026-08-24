@@ -1268,119 +1268,104 @@
   /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
   var wpCanvas = $('#wpCanvas');
   var wpCanvasWrap = $('#wpCanvasWrap');
-  /* ---- Dedicated Spacious Affirmation Text Editor Modal ---- */
-  var wpTextModal = $('#wpTextModal');
-  var wpModalInput = $('#wpModalInput');
-  var wpModalCharCount = $('#wpModalCharCount');
-
-  function updateModalCharCount() {
-    if (!wpModalInput || !wpModalCharCount) return;
-    var len = wpModalInput.value.length;
-    var max = wpModalInput.maxLength || 140;
-    wpModalCharCount.textContent = len + ' / ' + max;
+  /* ---- Real-Time Live Affirmation Text Editor ---- */
+  function updateQuoteCharCount() {
+    var ta = $('#wpText');
+    var counter = $('#wpQuoteCharCount');
+    if (ta && counter) {
+      counter.textContent = ta.value.length + ' / ' + (ta.maxLength || 140);
+    }
   }
 
-  function wpOpenTextModal() {
-    if (!wpTextModal || !wpModalInput) return;
-    var currentText = $('#wpText') ? $('#wpText').value : '';
-    wpModalInput.value = currentText;
-    updateModalCharCount();
-    wpTextModal.classList.remove('hidden');
-    setTimeout(function () {
-      wpModalInput.focus();
-      wpModalInput.select();
-    }, 50);
+  function autoResizeWpText() {
+    var ta = $('#wpText');
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(90, Math.min(220, ta.scrollHeight)) + 'px';
   }
 
-  function wpCloseTextModal(save) {
-    if (!wpTextModal || !wpModalInput) return;
-    if (save !== false) {
-      var newVal = wpModalInput.value.trim();
+  function openQuoteEditor() {
+    setActiveLayer('text');
+    switchToWpTab('quote');
+    var ta = $('#wpText');
+    if (ta) {
+      ta.focus();
+      updateQuoteCharCount();
+      autoResizeWpText();
+      var previewCard = $('.wp-preview-card');
+      if (previewCard && window.innerWidth <= 768) {
+        previewCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  if ($('#wpText')) {
+    $('#wpText').addEventListener('input', function () {
+      updateQuoteCharCount();
+      autoResizeWpText();
+      renderWallpaper();
+      saveWpSettings();
+    });
+  }
+
+  if ($('#wpShuffle')) {
+    $('#wpShuffle').addEventListener('click', function () {
+      var q = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
       var ta = $('#wpText');
       if (ta) {
-        ta.value = newVal || WP_QUOTES[0];
+        ta.value = q;
+        updateQuoteCharCount();
+        autoResizeWpText();
         renderWallpaper();
         saveWpSettings();
       }
-    }
-    wpTextModal.classList.add('hidden');
+    });
   }
 
-  if (wpModalInput) {
-    wpModalInput.addEventListener('input', function () {
-      updateModalCharCount();
+  if ($('#wpClearText')) {
+    $('#wpClearText').addEventListener('click', function () {
       var ta = $('#wpText');
       if (ta) {
-        ta.value = this.value;
+        ta.value = '';
+        updateQuoteCharCount();
+        autoResizeWpText();
+        ta.focus();
         renderWallpaper();
-      }
-    });
-    wpModalInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
-        wpCloseTextModal(false);
-      } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        wpCloseTextModal(true);
+        saveWpSettings();
       }
     });
   }
 
-  if ($('#wpModalDoneBtn')) {
-    $('#wpModalDoneBtn').addEventListener('click', function () {
-      wpCloseTextModal(true);
-    });
-  }
-  if ($('#wpModalCancelBtn')) {
-    $('#wpModalCancelBtn').addEventListener('click', function () {
-      wpCloseTextModal(false);
-    });
-  }
-  if ($('#wpTextModalCloseBtn')) {
-    $('#wpTextModalCloseBtn').addEventListener('click', function () {
-      wpCloseTextModal(true);
-    });
-  }
-  if ($('#wpTextModalBackdrop')) {
-    $('#wpTextModalBackdrop').addEventListener('click', function () {
-      wpCloseTextModal(true);
-    });
-  }
-
-  if ($('#wpModalShuffleBtn')) {
-    $('#wpModalShuffleBtn').addEventListener('click', function () {
-      var q = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
-      if (wpModalInput) {
-        wpModalInput.value = q;
-        updateModalCharCount();
-        var ta = $('#wpText');
-        if (ta) {
-          ta.value = q;
-          renderWallpaper();
+  if ($('#wpDoneEditBtn')) {
+    $('#wpDoneEditBtn').addEventListener('click', function () {
+      var ta = $('#wpText');
+      if (ta) {
+        if (!ta.value.trim()) {
+          ta.value = WP_QUOTES[0];
         }
+        ta.blur();
+        updateQuoteCharCount();
+        autoResizeWpText();
+        renderWallpaper();
+        saveWpSettings();
+      }
+      var wrap = $('#wpCanvasWrap');
+      if (wrap) {
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     });
   }
 
-  if ($('#wpModalClearBtn')) {
-    $('#wpModalClearBtn').addEventListener('click', function () {
-      if (wpModalInput) {
-        wpModalInput.value = '';
-        updateModalCharCount();
-        wpModalInput.focus();
-      }
-    });
-  }
-
-  $$('.wp-sug-chip').forEach(function (btn) {
+  $$('.wp-sug-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (wpModalInput) {
-        var quote = btn.dataset.quote || btn.textContent.replace(/^.+?\s/, '');
-        wpModalInput.value = quote;
-        updateModalCharCount();
-        var ta = $('#wpText');
-        if (ta) {
-          ta.value = quote;
-          renderWallpaper();
-        }
+      var quote = btn.dataset.quote || btn.textContent.replace(/^.+?\s/, '');
+      var ta = $('#wpText');
+      if (ta) {
+        ta.value = quote;
+        updateQuoteCharCount();
+        autoResizeWpText();
+        renderWallpaper();
+        saveWpSettings();
       }
     });
   });
@@ -1389,7 +1374,7 @@
     $('#wpGestureHint').style.cursor = 'pointer';
     $('#wpGestureHint').addEventListener('click', function () {
       if (wpState.activeLayer === 'text') {
-        wpOpenTextModal();
+        openQuoteEditor();
       }
     });
   }
@@ -1593,7 +1578,7 @@
       wasClick = true;
       if (wpPointerDownMeta.target === 'text') {
         setTimeout(function () {
-          wpOpenTextModal();
+          openQuoteEditor();
         }, 10);
       }
     }
