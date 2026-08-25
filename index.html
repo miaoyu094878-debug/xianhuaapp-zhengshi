@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.8.25.999">
+  <link rel="stylesheet" href="styles.css?v=2026.8.25.1001">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Luminara — Multi-Theme Design System
@@ -1344,34 +1344,27 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   transform: scale(0.96);
 }
 
-/* Row 3: Quick Inspiration Suggestions Carousel */
+/* Row 3: Quick Inspiration Suggestions (All fully displayed) */
 .wp-live-sug-wrap {
   width: 100%;
   position: relative;
-  overflow: hidden;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .wp-live-sug-strip {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  flex-wrap: nowrap;
-  padding: 2px 1px 4px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.wp-live-sug-strip::-webkit-scrollbar {
-  display: none;
+  gap: 6px 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 2px 0 2px;
 }
 
 .wp-live-sug-chip {
   flex-shrink: 0;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: -0.1px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--text);
@@ -4803,14 +4796,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   /* ═══════ PWA & Cache Invalidation ═══════ */
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=2026.8.25.999').then(function (reg) {
+    navigator.serviceWorker.register('sw.js?v=2026.8.25.1001').then(function (reg) {
       if (reg) reg.update();
     }).catch(function () {});
   }
   if (typeof caches !== 'undefined') {
     caches.keys().then(function (names) {
       names.forEach(function (name) {
-        if (name !== 'luminara-v2026.8.25.999') caches.delete(name);
+        if (name !== 'luminara-v2026.8.25.1001') caches.delete(name);
       });
     });
   }
@@ -4830,7 +4823,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   maybeShowQuiz();
 })();
   </script>
-  <script src="app.js?v=2026.8.25.999" defer></script>
+  <script src="app.js?v=2026.8.25.1001" defer></script>
 
 </body>
 </html>
