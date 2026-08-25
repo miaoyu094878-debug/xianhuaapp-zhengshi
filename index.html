@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.8.25.1002">
+  <link rel="stylesheet" href="styles.css?v=2026.8.25.1016">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Luminara — Multi-Theme Design System
@@ -804,14 +804,82 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   font-size: 24px;
 }
 
-.wp-bgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
-.wp-bg {
-  aspect-ratio: 9 / 16; border-radius: 12px; border: 2px solid transparent; cursor: pointer;
-  position: relative; overflow: hidden; padding: 0; transition: 0.25s; box-shadow: var(--shadow-card);
+.wp-bgs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
 }
-.wp-bg canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.wp-bg.active { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); }
-.wp-bg:hover { transform: translateY(-2px); }
+@media (max-width: 600px) {
+  .wp-bgs {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+/* Desktop default: landscape 16:9 thumbnails */
+.wp-bg {
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  background: #151515;
+}
+/* Mobile device: vertical 9:16 thumbnails */
+@media (max-width: 768px) {
+  .wp-bg {
+    aspect-ratio: 9 / 16;
+    border-radius: 12px;
+  }
+}
+html.device-mobile .wp-bg {
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+}
+html.device-desktop .wp-bg {
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+}
+
+/* Explicit ratio overrides when ratio mode is chosen */
+.wp-bgs[data-ratio="desktop"] {
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+}
+.wp-bgs[data-ratio="desktop"] .wp-bg {
+  aspect-ratio: 16 / 9 !important;
+  border-radius: 12px !important;
+}
+.wp-bgs[data-ratio="phone"] {
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 8px !important;
+}
+.wp-bgs[data-ratio="phone"] .wp-bg {
+  aspect-ratio: 9 / 16 !important;
+  border-radius: 12px !important;
+}
+.wp-bg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wp-bg:hover img {
+  transform: scale(1.08);
+}
+.wp-bg.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 60%, transparent), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.wp-bg:hover {
+  transform: translateY(-2px);
+}
 
 .wp-ctrl-block { margin-top: 14px; }
 .wp-ctrl-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -861,6 +929,54 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   font-size: 13px;
   line-height: 1;
   display: inline-block;
+}
+
+.wp-bar-export-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 80%, #000) 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, #ffffff) !important;
+  border-radius: 999px !important;
+  padding: 6px 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 35%, transparent),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.wp-bar-export-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
+}
+.wp-bar-export-btn:hover {
+  transform: translateY(-1.5px) scale(1.02) !important;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 50%, transparent),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 90%, #fff) 0%, var(--accent) 100%) !important;
+}
+.wp-bar-export-btn:hover::before {
+  left: 100%;
+}
+.wp-bar-export-btn:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+.wp-bar-export-btn .wp-btn-svg {
+  transition: transform 0.25s ease;
+}
+.wp-bar-export-btn:hover .wp-btn-svg {
+  transform: translateY(1.5px);
 }
 
 /* Quick Action Icon Buttons */
@@ -1451,14 +1567,91 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 }
 
 .wp-export-main-btn {
-  margin-top: 4px;
+  margin-top: 14px;
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 82%, #000) 100%);
+  color: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, rgba(255,255,255,0.4));
+  font-size: 14.5px;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent),
+              inset 0 1.5px 0.5px rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wp-export-main-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 0.75s ease;
+}
+
+.wp-export-main-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 45%, transparent),
+              inset 0 1.5px 0.5px rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 92%, #fff) 0%, var(--accent) 100%);
+}
+
+.wp-export-main-btn:hover::after {
+  transform: translateX(100%);
+}
+
+.wp-export-main-btn:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.wp-export-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.25s ease, background 0.25s ease;
+  flex-shrink: 0;
+}
+
+.wp-export-main-btn:hover .wp-export-icon-wrap {
+  transform: translateY(1.5px);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.wp-export-main-text {
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.wp-export-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 /* ---------- AI AVATAR ---------- */
@@ -1568,12 +1761,64 @@ html.device-desktop .more-grid { grid-template-columns: repeat(4, 1fr); gap: 16p
 html.device-desktop .vision-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
 
 /* ── Two-column feature pages ── */
-html.device-desktop .wp-main-grid { display: grid; grid-template-columns: minmax(320px, 440px) minmax(360px, 1fr); gap: 28px; align-items: start; }
-html.device-desktop .wp-preview-col { position: sticky; top: 24px; order: 2; }
-html.device-desktop .wp-settings-col { order: 1; }
+html.device-desktop #tab-wallpaper.active {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+html.device-desktop .wp-main-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 460px) minmax(420px, 1fr);
+  gap: 28px;
+  align-items: stretch;
+  height: calc(100vh - 165px);
+  min-height: 560px;
+  box-sizing: border-box;
+}
+html.device-desktop .wp-settings-col {
+  order: 1;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+  padding-bottom: 24px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+}
+html.device-desktop .wp-preview-col {
+  order: 2;
+  position: static;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+  padding-bottom: 24px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+}
+html.device-desktop .wp-settings-col::-webkit-scrollbar,
+html.device-desktop .wp-preview-col::-webkit-scrollbar {
+  width: 6px;
+}
+html.device-desktop .wp-settings-col::-webkit-scrollbar-track,
+html.device-desktop .wp-preview-col::-webkit-scrollbar-track {
+  background: transparent;
+}
+html.device-desktop .wp-settings-col::-webkit-scrollbar-thumb,
+html.device-desktop .wp-preview-col::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border-strong) 75%, transparent);
+  border-radius: 999px;
+}
+html.device-desktop .wp-settings-col::-webkit-scrollbar-thumb:hover,
+html.device-desktop .wp-preview-col::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
 html.device-desktop .wp-studio-bar { display: none; }
 html.device-desktop .wp-tab-panel { display: block !important; margin-bottom: 16px; }
-html.device-desktop .wp-canvas { max-height: 580px; }
+html.device-desktop .wp-canvas { max-height: 540px; }
 html.device-desktop .wp-bg-entry-grid { display: flex; }
 html.device-desktop .wp-desktop-bg-section { display: block; }
 html.device-desktop .wp-icon-action-btn {
@@ -2073,6 +2318,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                     <span class="wp-bar-btn-ico">✨</span>
                     <span>Presets</span>
                   </button>
+                  <button id="wpTopExportBtn" class="wp-bar-btn wp-bar-export-btn" type="button" title="Download high-res wallpaper">
+                    <svg class="wp-btn-svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Download HD</span>
+                  </button>
                 </div>
               </div>
 
@@ -2206,12 +2459,15 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               </div>
 
               <button id="wpExport" class="btn-primary wp-export-main-btn" type="button">
-                <svg class="wp-svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span>Download Wallpaper</span>
+                <div class="wp-export-icon-wrap">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </div>
+                <span class="wp-export-main-text">Download High-Res Wallpaper</span>
+                <span class="wp-export-badge">PNG · 4K</span>
               </button>
             </div>
           </div>
@@ -2229,8 +2485,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <!-- Curated Presets Section -->
               <div id="wpPresetsSection" class="wp-source-section">
                 <div class="wp-section-head">
-                  <label class="field-label" style="margin-bottom: 0;">✨ Curated Presets</label>
-                  <span class="wp-section-sub">12 Aesthetic Backgrounds</span>
+                  <label class="field-label" style="margin-bottom: 0;">✨ Curated Nature Landscapes</label>
+                  <span class="wp-section-sub">6 Serene Presets</span>
                 </div>
                 <div class="wp-bgs" id="wpBgs"></div>
               </div>
@@ -2314,10 +2570,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- Photo Adjustments (shown when custom photo is uploaded) -->
-              <div id="wpPhotoControls" class="wp-photo-controls hidden">
+              <!-- Background Adjustments (zoom, fit, fill, reset) -->
+              <div id="wpPhotoControls" class="wp-photo-controls">
                 <div class="wp-ctrl-head">
-                  <label for="wpPhotoZoom">Photo Zoom</label>
+                  <label for="wpPhotoZoom">Background Zoom</label>
                   <span id="wpPhotoZoomVal" class="wp-val-badge">100%</span>
                 </div>
                 <div class="wp-slider-row">
@@ -2328,7 +2584,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <div class="chips wp-photo-actions">
                   <button id="wpFitPhoto" class="chip" type="button">⤢ Fit</button>
                   <button id="wpFillPhoto" class="chip" type="button">⬛ Fill</button>
-                  <button id="wpResetPhoto" class="chip" type="button">↺ Reset Photo</button>
+                  <button id="wpResetPhoto" class="chip" type="button">↺ Reset Background</button>
                 </div>
               </div>
             </div>
@@ -3343,9 +3599,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     'I open my heart to endless possibilities'
   ];
 
+  var isDesktopPlatform = document.documentElement.classList.contains('device-desktop') || (window.innerWidth > 768);
+
   var wpState = {
     preset: 0,
-    ratio: 'phone',
+    ratio: isDesktopPlatform ? 'desktop' : 'phone',
     pos: 'center',
     tone: 'light',
     size: 48,
@@ -3355,7 +3613,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     photoScale: 1.0,
     photoOffsetX: 0,
     photoOffsetY: 0,
-    activeLayer: 'text',
+    activeLayer: 'text', // 'text' | 'photo'
     _dragging: false,
     _dragTarget: null,
     _activeHandle: null,
@@ -3372,6 +3630,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
   }
+  // Deterministic PRNG for stable star seeds across repaints
   function wpRand(i) { var x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
   function wpStars(c, w, h, n, opts) {
     opts = opts || {};
@@ -3395,64 +3654,80 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,' + amt + ')');
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   }
-  var WP_PRESETS = [
-    // 1 · Aurora Veil (Light)
-    function (c, w, h) {
-      var g = c.createLinearGradient(0, 0, w * 0.4, h);
-      g.addColorStop(0, '#eef7ff'); g.addColorStop(0.55, '#f4f0ff'); g.addColorStop(1, '#fff8ee');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.22, w * 0.85, 'rgba(72,216,188,0.40)');
-      wpBlob(c, w * 0.3, h * 0.34, w * 0.70, 'rgba(130,150,245,0.34)');
-      wpBlob(c, w * 0.72, h * 0.30, w * 0.60, 'rgba(210,130,235,0.30)');
-      wpVignette(c, w, h, 0.10);
+  var WP_NATURE_PRESETS = [
+    {
+      id: 'forest',
+      name: 'Misty Pine Forest',
+      src: 'assets/nature/forest.jpg',
+      desktopSrc: 'assets/nature/desktop_forest.jpg',
+      vignette: 0.16
     },
-    // 2 · Midnight Bloom (Light)
-    function (c, w, h) {
-      var g = c.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, Math.max(w, h) * 0.9);
-      g.addColorStop(0, '#ffeef7'); g.addColorStop(1, '#f5eeff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.72, h * 0.26, w * 0.70, 'rgba(240,140,195,0.45)');
-      wpBlob(c, w * 0.22, h * 0.82, w * 0.60, 'rgba(170,130,235,0.40)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'alpine_lake',
+      name: 'Alpine Lake Mirror',
+      src: 'assets/nature/alpine_lake.jpg',
+      desktopSrc: 'assets/nature/desktop_alpine_lake.jpg',
+      vignette: 0.14
     },
-    // 3 · Cosmic Drift (Light)
-    function (c, w, h) {
-      var g = c.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, '#eef4ff'); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, '#eef1ff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.20, h * 0.30, w * 0.50, 'rgba(160,180,255,0.30)');
-      wpBlob(c, w * 0.50, h * 0.46, w * 0.55, 'rgba(190,165,245,0.28)');
-      wpBlob(c, w * 0.82, h * 0.62, w * 0.50, 'rgba(140,190,255,0.30)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'golden_meadow',
+      name: 'Golden Sunset Meadow',
+      src: 'assets/nature/golden_meadow.jpg',
+      desktopSrc: 'assets/nature/desktop_golden_meadow.jpg',
+      vignette: 0.15
     },
-    // 4 · Ember Glow (Light)
-    function (c, w, h) {
-      var g = c.createRadialGradient(w * 0.3, h * 0.9, 0, w * 0.5, h * 0.6, Math.max(w, h));
-      g.addColorStop(0, '#fff4e6'); g.addColorStop(1, '#ffe9e2');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.28, h * 0.86, w * 0.80, 'rgba(255,185,105,0.45)');
-      wpBlob(c, w * 0.82, h * 0.20, w * 0.50, 'rgba(255,150,135,0.32)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'ocean_waves',
+      name: 'Serene Ocean Waves',
+      src: 'assets/nature/ocean_waves.jpg',
+      desktopSrc: 'assets/nature/desktop_ocean_waves.jpg',
+      vignette: 0.18
     },
-    // 5 · Ocean Depths (Light)
-    function (c, w, h) {
-      var g = c.createLinearGradient(0, h, 0, 0);
-      g.addColorStop(0, '#e6fffb'); g.addColorStop(1, '#e4f2ff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.64, w * 0.95, 'rgba(88,220,215,0.42)');
-      wpBlob(c, w * 0.32, h * 0.30, w * 0.50, 'rgba(110,170,240,0.36)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'bamboo_grove',
+      name: 'Zen Bamboo Grove',
+      src: 'assets/nature/bamboo_grove.jpg',
+      desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg',
+      vignette: 0.15
     },
-    // 6 · Rose Quartz Night (Light)
-    function (c, w, h) {
-      var g = c.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, Math.max(w, h) * 0.85);
-      g.addColorStop(0, '#fff0f6'); g.addColorStop(1, '#f7efff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.34, w * 0.85, 'rgba(243,170,205,0.42)');
-      wpBlob(c, w * 0.74, h * 0.80, w * 0.50, 'rgba(182,140,230,0.40)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'tropical_island',
+      name: 'Tropical Island Sanctuary',
+      src: 'assets/nature/tropical_island.jpg',
+      desktopSrc: 'assets/nature/desktop_tropical_island.jpg',
+      vignette: 0.14
     }
   ];
+
+  var wpPresetImgCache = {};
+  function getPresetImage(presetIndex, ratioKey, callback) {
+    if (typeof ratioKey === 'function') {
+      callback = ratioKey;
+      ratioKey = wpState.ratio;
+    }
+    ratioKey = ratioKey || wpState.ratio;
+    var preset = WP_NATURE_PRESETS[presetIndex];
+    if (!preset) return null;
+    var isDesk = ratioKey === 'desktop';
+    var cacheKey = preset.id + (isDesk ? '_desktop' : '_phone');
+    if (wpPresetImgCache[cacheKey] && wpPresetImgCache[cacheKey].complete && wpPresetImgCache[cacheKey].naturalWidth > 0) {
+      if (callback) callback(wpPresetImgCache[cacheKey]);
+      return wpPresetImgCache[cacheKey];
+    }
+    var img = new Image();
+    img.onload = function () {
+      wpPresetImgCache[cacheKey] = img;
+      if (callback) callback(img);
+    };
+    img.src = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
+    return null;
+  }
+
+  // Preload all healing nature images for both phone (9:16) and desktop (16:9)
+  WP_NATURE_PRESETS.forEach(function (p, i) {
+    getPresetImage(i, 'phone');
+    getPresetImage(i, 'desktop');
+  });
 
   function hideWpActionOverlays() {
     var overlays = $('#wpCanvasActionOverlays');
@@ -3477,27 +3752,55 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     }
   }
 
-  function wpThumb(preset) {
-    var cnv = document.createElement('canvas'); cnv.width = 180; cnv.height = 320;
-    WP_PRESETS[preset](cnv.getContext('2d'), 180, 320);
-    return cnv;
+  function updateWpRatioUI() {
+    $$('.wp-ratio').forEach(function (x) {
+      x.classList.toggle('active', x.dataset.ratio === wpState.ratio);
+    });
+    var wrap = $('#wpBgs');
+    if (wrap) {
+      wrap.dataset.ratio = wpState.ratio;
+      $$('.wp-bg').forEach(function (btn) {
+        var idx = +btn.dataset.preset;
+        var p = WP_NATURE_PRESETS[idx];
+        if (p) {
+          var img = btn.querySelector('img');
+          if (img) {
+            var isDesk = wpState.ratio === 'desktop';
+            img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+          }
+        }
+      });
+    }
   }
+
   function renderWpPresets() {
     var wrap = $('#wpBgs'); if (!wrap) return;
+    wrap.dataset.ratio = wpState.ratio;
     wrap.innerHTML = '';
-    WP_PRESETS.forEach(function (p, i) {
+    var isDesk = wpState.ratio === 'desktop';
+    WP_NATURE_PRESETS.forEach(function (p, i) {
       var btn = document.createElement('button');
       btn.className = 'wp-bg' + (wpState.preset === i && !wpState.photo ? ' active' : '');
-      btn.type = 'button'; btn.dataset.preset = i;
-      btn.appendChild(wpThumb(i));
+      btn.type = 'button';
+      btn.dataset.preset = i;
+      btn.title = p.name;
+
+      var img = document.createElement('img');
+      img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+      img.alt = p.name;
+      img.loading = 'lazy';
+      btn.appendChild(img);
+
       btn.addEventListener('click', function () {
-        wpState.preset = i; wpState.photo = null;
-        $('#wpPrevBox').classList.add('hidden'); $('#wpPhoto').value = '';
-        $('#wpPhotoControls').classList.add('hidden');
-        $('#wpLayerPhoto').classList.add('hidden');
-        $('#wpResetPhotoBtn').classList.add('hidden');
+        wpState.preset = i;
+        wpState.photo = null;
+        wpState.photoOffsetX = 0;
+        wpState.photoOffsetY = 0;
+        wpState.photoScale = 1.0;
+        $('#wpPrevBox').classList.add('hidden');
+        $('#wpPhoto').value = '';
+        updateWpPhotoControls();
         updateWpBarUploadState();
-        setActiveLayer('text');
         $$('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
         hideWpActionOverlays();
         renderWallpaper();
@@ -3514,10 +3817,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     if (btnP) btnP.classList.toggle('active', layer === 'photo');
     var hint = $('#wpGestureHint');
     if (hint) {
-      if (layer === 'photo' && wpState.photo) {
-        hint.textContent = '🖼 Photo active: Drag to pan · Pinch, scroll wheel, or use slider to zoom';
+      if (layer === 'photo') {
+        hint.textContent = '🖼 Background active: Drag to pan · Scroll wheel or pinch to zoom';
       } else {
-        hint.textContent = '✦ Text active: Drag to move · Drag corners, pinch, scroll, or use slider to resize';
+        hint.textContent = '✦ Text active: Drag text to place · Drag handles to resize · Drag background to pan';
       }
     }
     renderWallpaper();
@@ -3633,7 +3936,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   $$('.wp-ratio').forEach(function (b) {
     b.addEventListener('click', function () {
       wpState.ratio = b.dataset.ratio;
-      $$('.wp-ratio').forEach(function (x) { x.classList.toggle('active', x === b); });
+      updateWpRatioUI();
       renderWallpaper();
       saveWpSettings();
     });
@@ -3723,9 +4026,19 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   if ($('#wpFitPhoto')) {
     $('#wpFitPhoto').addEventListener('click', function () {
-      if (!wpImgCache) return;
+      var img = null;
+      if (wpState.photo) {
+        img = wpImgCache;
+      } else {
+        var preset = WP_NATURE_PRESETS[wpState.preset] || WP_NATURE_PRESETS[0];
+        var isDesk = wpState.ratio === 'desktop';
+        img = wpPresetImgCache[preset.id + (isDesk ? '_desktop' : '_phone')];
+      }
+      if (!img) return;
       var ratio = WP_RATIOS[wpState.ratio];
-      var ir = wpImgCache.width / wpImgCache.height, cr = ratio.w / ratio.h;
+      var imgW = img.naturalWidth || img.width || 1;
+      var imgH = img.naturalHeight || img.height || 1;
+      var ir = imgW / imgH, cr = ratio.w / ratio.h;
       var fitScale = (ir > cr) ? (cr / ir) : (ir / cr);
       wpState.photoScale = Math.max(0.3, Math.min(1.0, fitScale));
       wpState.photoOffsetX = 0;
@@ -3790,7 +4103,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   /* ---- Interactive Canvas (Direct Mouse & Touch Gestures) ---- */
   var wpCanvas = $('#wpCanvas');
   var wpCanvasWrap = $('#wpCanvasWrap');
-  
   /* ---- Real-Time Live Affirmation Text Editor & Canvas Input Bar ---- */
   function updateQuoteCharCounts() {
     var ta = $('#wpText');
@@ -4028,12 +4340,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         return { target: 'text', box: b };
       }
     }
-    if (wpState.photo) {
-      return { target: 'photo' };
-    }
-    return { target: 'text' };
+    return { target: 'photo' };
   }
 
+  // Update canvas hover cursor
   wpCanvas.addEventListener('pointermove', function (e) {
     if (!wpState._dragging && wpActivePointers.size === 0) {
       var p = wpCanvasPoint(e.clientX, e.clientY);
@@ -4042,14 +4352,13 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         wpCanvas.style.cursor = (hit.handle === 'tl' || hit.handle === 'br') ? 'nwse-resize' : 'nesw-resize';
       } else if (hit.target === 'text') {
         wpCanvas.style.cursor = 'move';
-      } else if (wpState.photo) {
-        wpCanvas.style.cursor = 'grab';
       } else {
-        wpCanvas.style.cursor = 'default';
+        wpCanvas.style.cursor = 'grab';
       }
     }
   });
 
+  // Pointer tracking & multi-touch pinch state
   var wpActivePointers = new Map();
   var wpDragStartData = null;
   var wpPinchStart = null;
@@ -4110,6 +4419,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
       }
     } else if (wpActivePointers.size === 2) {
+      // 2-finger Pinch to zoom
       var pts = Array.from(wpActivePointers.values());
       var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       wpPinchStart = {
@@ -4135,6 +4445,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       }
     }
 
+    // Handle 2-finger pinch
     if (wpActivePointers.size === 2 && wpPinchStart) {
       var pts = Array.from(wpActivePointers.values());
       var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -4210,24 +4521,27 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     if (wpActivePointers.size === 0) wpEndPointer(e);
   });
 
+  // Mouse wheel zoom on canvas (when Ctrl/Cmd/Alt modifier is held, otherwise smooth column scrolling)
   wpCanvas.addEventListener('wheel', function (e) {
-    e.preventDefault();
-    var delta = e.deltaY < 0 ? 1 : -1;
-    var p = wpCanvasPoint(e.clientX, e.clientY);
-    var hit = wpHitTest(p);
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      e.preventDefault();
+      var delta = e.deltaY < 0 ? 1 : -1;
+      var p = wpCanvasPoint(e.clientX, e.clientY);
+      var hit = wpHitTest(p);
 
-    if (hit.target === 'photo' || (wpState.activeLayer === 'photo' && wpState.photo)) {
-      var factor = delta > 0 ? 1.08 : 0.92;
-      wpState.photoScale = Math.max(0.3, Math.min(3.5, wpState.photoScale * factor));
-      updateWpPhotoControls();
-      setActiveLayer('photo');
-    } else {
-      wpState.size = Math.max(20, Math.min(100, wpState.size + delta * 2));
-      updateWpSizeControls();
-      setActiveLayer('text');
+      if (hit.target === 'photo' || wpState.activeLayer === 'photo') {
+        var factor = delta > 0 ? 1.08 : 0.92;
+        wpState.photoScale = Math.max(0.3, Math.min(3.5, wpState.photoScale * factor));
+        updateWpPhotoControls();
+        setActiveLayer('photo');
+      } else {
+        wpState.size = Math.max(20, Math.min(100, wpState.size + delta * 2));
+        updateWpSizeControls();
+        setActiveLayer('text');
+      }
+      renderWallpaper();
+      saveWpSettings();
     }
-    renderWallpaper();
-    saveWpSettings();
   }, { passive: false });
 
   $('#wpResetPos').addEventListener('click', function () {
@@ -4334,6 +4648,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         c.strokeRect(wpState._box.x, wpState._box.y, wpState._box.w, wpState._box.h);
         c.setLineDash([]);
 
+        // 4 corner handles
         var handleR = Math.max(16, px * 0.28);
         var corners = [
           [wpState._box.x, wpState._box.y],
@@ -4384,10 +4699,29 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         if (wpImgCache) {
           drawCoverScaled(c, wpImgCache, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
         }
+        drawWpText(c, ratio, !!forExport);
       } else {
-        WP_PRESETS[wpState.preset](c, ratio.w, ratio.h);
+        var preset = WP_NATURE_PRESETS[wpState.preset] || WP_NATURE_PRESETS[0];
+        var isDesk = wpState.ratio === 'desktop';
+        var cacheKey = preset.id + (isDesk ? '_desktop' : '_phone');
+        var cached = wpPresetImgCache[cacheKey];
+        if (cached && cached.complete && cached.naturalWidth > 0) {
+          drawCoverScaled(c, cached, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
+          if (preset.vignette) {
+            wpVignette(c, ratio.w, ratio.h, preset.vignette);
+          }
+          drawWpText(c, ratio, !!forExport);
+        } else {
+          getPresetImage(wpState.preset, wpState.ratio, function (loadedImg) {
+            c.clearRect(0, 0, ratio.w, ratio.h);
+            drawCoverScaled(c, loadedImg, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
+            if (preset.vignette) {
+              wpVignette(c, ratio.w, ratio.h, preset.vignette);
+            }
+            drawWpText(c, ratio, !!forExport);
+          });
+        }
       }
-      drawWpText(c, ratio, !!forExport);
     }
 
     if (wpState.photo) {
@@ -4407,30 +4741,36 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     }
   }
 
+  function triggerWallpaperExport() {
+    // 1. Render clean canvas without UI selection boxes or handles
+    renderWallpaper(true);
+    var cnv = $('#wpCanvas');
+    if (!cnv) return;
+
+    var fileName = 'luminara-affirmation-' + (wpState.ratio || '9:16') + '.png';
+    var dataUrl = cnv.toDataURL('image/png');
+
+    // 2. Restore interactive editing state
+    renderWallpaper(false);
+
+    // 3. Immediately & directly trigger download in background
+    var a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      a.remove();
+    }, 800);
+  }
+
   var wpExportBtn = $('#wpExport');
   if (wpExportBtn) {
-    wpExportBtn.addEventListener('click', function () {
-      // 1. Render clean canvas without UI selection boxes or handles
-      renderWallpaper(true);
-      var cnv = $('#wpCanvas');
-      if (!cnv) return;
-
-      var fileName = 'luminara-affirmation-' + (wpState.ratio || '9:16') + '.png';
-      var dataUrl = cnv.toDataURL('image/png');
-
-      // 2. Restore interactive editing state
-      renderWallpaper(false);
-
-      // 3. Immediately & directly trigger download in background
-      var a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () {
-        a.remove();
-      }, 800);
-    });
+    wpExportBtn.addEventListener('click', triggerWallpaperExport);
+  }
+  var wpTopExportBtn = $('#wpTopExportBtn');
+  if (wpTopExportBtn) {
+    wpTopExportBtn.addEventListener('click', triggerWallpaperExport);
   }
 
   /* Studio Tab Switcher (Mobile) */
@@ -4490,6 +4830,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   }
 
   renderWpPresets();
+  updateWpRatioUI();
   updateWpBarUploadState();
   if ($('#wpText')) $('#wpText').value = WP_QUOTES[0];
   if ($('#wpLiveInput')) $('#wpLiveInput').value = WP_QUOTES[0];
@@ -4817,18 +5158,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     });
   });
 
-  /* ═══════ PWA & Cache Invalidation ═══════ */
+  /* ═══════ PWA ═══════ */
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=2026.8.25.1002').then(function (reg) {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
       if (reg) reg.update();
     }).catch(function () {});
-  }
-  if (typeof caches !== 'undefined') {
-    caches.keys().then(function (names) {
-      names.forEach(function (name) {
-        if (name !== 'luminara-v2026.8.25.1002') caches.delete(name);
-      });
-    });
   }
   var deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', function (e) {
@@ -4845,8 +5179,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   initSwipe();
   maybeShowQuiz();
 })();
+
   </script>
-  <script src="app.js?v=2026.8.25.1002" defer></script>
+  <script src="app.js?v=2026.8.25.1016" defer></script>
 
 </body>
 </html>

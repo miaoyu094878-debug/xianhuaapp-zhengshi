@@ -820,9 +820,11 @@
     'I open my heart to endless possibilities'
   ];
 
+  var isDesktopPlatform = document.documentElement.classList.contains('device-desktop') || (window.innerWidth > 768);
+
   var wpState = {
     preset: 0,
-    ratio: 'phone',
+    ratio: isDesktopPlatform ? 'desktop' : 'phone',
     pos: 'center',
     tone: 'light',
     size: 48,
@@ -873,64 +875,80 @@
     g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,' + amt + ')');
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   }
-  var WP_PRESETS = [
-    // 1 · Aurora Veil (Light)
-    function (c, w, h) {
-      var g = c.createLinearGradient(0, 0, w * 0.4, h);
-      g.addColorStop(0, '#eef7ff'); g.addColorStop(0.55, '#f4f0ff'); g.addColorStop(1, '#fff8ee');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.22, w * 0.85, 'rgba(72,216,188,0.40)');
-      wpBlob(c, w * 0.3, h * 0.34, w * 0.70, 'rgba(130,150,245,0.34)');
-      wpBlob(c, w * 0.72, h * 0.30, w * 0.60, 'rgba(210,130,235,0.30)');
-      wpVignette(c, w, h, 0.10);
+  var WP_NATURE_PRESETS = [
+    {
+      id: 'forest',
+      name: 'Misty Pine Forest',
+      src: 'assets/nature/forest.jpg',
+      desktopSrc: 'assets/nature/desktop_forest.jpg',
+      vignette: 0.16
     },
-    // 2 · Midnight Bloom (Light)
-    function (c, w, h) {
-      var g = c.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, Math.max(w, h) * 0.9);
-      g.addColorStop(0, '#ffeef7'); g.addColorStop(1, '#f5eeff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.72, h * 0.26, w * 0.70, 'rgba(240,140,195,0.45)');
-      wpBlob(c, w * 0.22, h * 0.82, w * 0.60, 'rgba(170,130,235,0.40)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'alpine_lake',
+      name: 'Alpine Lake Mirror',
+      src: 'assets/nature/alpine_lake.jpg',
+      desktopSrc: 'assets/nature/desktop_alpine_lake.jpg',
+      vignette: 0.14
     },
-    // 3 · Cosmic Drift (Light)
-    function (c, w, h) {
-      var g = c.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, '#eef4ff'); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, '#eef1ff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.20, h * 0.30, w * 0.50, 'rgba(160,180,255,0.30)');
-      wpBlob(c, w * 0.50, h * 0.46, w * 0.55, 'rgba(190,165,245,0.28)');
-      wpBlob(c, w * 0.82, h * 0.62, w * 0.50, 'rgba(140,190,255,0.30)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'golden_meadow',
+      name: 'Golden Sunset Meadow',
+      src: 'assets/nature/golden_meadow.jpg',
+      desktopSrc: 'assets/nature/desktop_golden_meadow.jpg',
+      vignette: 0.15
     },
-    // 4 · Ember Glow (Light)
-    function (c, w, h) {
-      var g = c.createRadialGradient(w * 0.3, h * 0.9, 0, w * 0.5, h * 0.6, Math.max(w, h));
-      g.addColorStop(0, '#fff4e6'); g.addColorStop(1, '#ffe9e2');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.28, h * 0.86, w * 0.80, 'rgba(255,185,105,0.45)');
-      wpBlob(c, w * 0.82, h * 0.20, w * 0.50, 'rgba(255,150,135,0.32)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'ocean_waves',
+      name: 'Serene Ocean Waves',
+      src: 'assets/nature/ocean_waves.jpg',
+      desktopSrc: 'assets/nature/desktop_ocean_waves.jpg',
+      vignette: 0.18
     },
-    // 5 · Ocean Depths (Light)
-    function (c, w, h) {
-      var g = c.createLinearGradient(0, h, 0, 0);
-      g.addColorStop(0, '#e6fffb'); g.addColorStop(1, '#e4f2ff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.64, w * 0.95, 'rgba(88,220,215,0.42)');
-      wpBlob(c, w * 0.32, h * 0.30, w * 0.50, 'rgba(110,170,240,0.36)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'bamboo_grove',
+      name: 'Zen Bamboo Grove',
+      src: 'assets/nature/bamboo_grove.jpg',
+      desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg',
+      vignette: 0.15
     },
-    // 6 · Rose Quartz Night (Light)
-    function (c, w, h) {
-      var g = c.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.4, Math.max(w, h) * 0.85);
-      g.addColorStop(0, '#fff0f6'); g.addColorStop(1, '#f7efff');
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
-      wpBlob(c, w * 0.5, h * 0.34, w * 0.85, 'rgba(243,170,205,0.42)');
-      wpBlob(c, w * 0.74, h * 0.80, w * 0.50, 'rgba(182,140,230,0.40)');
-      wpVignette(c, w, h, 0.10);
+    {
+      id: 'tropical_island',
+      name: 'Tropical Island Sanctuary',
+      src: 'assets/nature/tropical_island.jpg',
+      desktopSrc: 'assets/nature/desktop_tropical_island.jpg',
+      vignette: 0.14
     }
   ];
+
+  var wpPresetImgCache = {};
+  function getPresetImage(presetIndex, ratioKey, callback) {
+    if (typeof ratioKey === 'function') {
+      callback = ratioKey;
+      ratioKey = wpState.ratio;
+    }
+    ratioKey = ratioKey || wpState.ratio;
+    var preset = WP_NATURE_PRESETS[presetIndex];
+    if (!preset) return null;
+    var isDesk = ratioKey === 'desktop';
+    var cacheKey = preset.id + (isDesk ? '_desktop' : '_phone');
+    if (wpPresetImgCache[cacheKey] && wpPresetImgCache[cacheKey].complete && wpPresetImgCache[cacheKey].naturalWidth > 0) {
+      if (callback) callback(wpPresetImgCache[cacheKey]);
+      return wpPresetImgCache[cacheKey];
+    }
+    var img = new Image();
+    img.onload = function () {
+      wpPresetImgCache[cacheKey] = img;
+      if (callback) callback(img);
+    };
+    img.src = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
+    return null;
+  }
+
+  // Preload all healing nature images for both phone (9:16) and desktop (16:9)
+  WP_NATURE_PRESETS.forEach(function (p, i) {
+    getPresetImage(i, 'phone');
+    getPresetImage(i, 'desktop');
+  });
 
   function hideWpActionOverlays() {
     var overlays = $('#wpCanvasActionOverlays');
@@ -955,27 +973,55 @@
     }
   }
 
-  function wpThumb(preset) {
-    var cnv = document.createElement('canvas'); cnv.width = 180; cnv.height = 320;
-    WP_PRESETS[preset](cnv.getContext('2d'), 180, 320);
-    return cnv;
+  function updateWpRatioUI() {
+    $$('.wp-ratio').forEach(function (x) {
+      x.classList.toggle('active', x.dataset.ratio === wpState.ratio);
+    });
+    var wrap = $('#wpBgs');
+    if (wrap) {
+      wrap.dataset.ratio = wpState.ratio;
+      $$('.wp-bg').forEach(function (btn) {
+        var idx = +btn.dataset.preset;
+        var p = WP_NATURE_PRESETS[idx];
+        if (p) {
+          var img = btn.querySelector('img');
+          if (img) {
+            var isDesk = wpState.ratio === 'desktop';
+            img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+          }
+        }
+      });
+    }
   }
+
   function renderWpPresets() {
     var wrap = $('#wpBgs'); if (!wrap) return;
+    wrap.dataset.ratio = wpState.ratio;
     wrap.innerHTML = '';
-    WP_PRESETS.forEach(function (p, i) {
+    var isDesk = wpState.ratio === 'desktop';
+    WP_NATURE_PRESETS.forEach(function (p, i) {
       var btn = document.createElement('button');
       btn.className = 'wp-bg' + (wpState.preset === i && !wpState.photo ? ' active' : '');
-      btn.type = 'button'; btn.dataset.preset = i;
-      btn.appendChild(wpThumb(i));
+      btn.type = 'button';
+      btn.dataset.preset = i;
+      btn.title = p.name;
+
+      var img = document.createElement('img');
+      img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+      img.alt = p.name;
+      img.loading = 'lazy';
+      btn.appendChild(img);
+
       btn.addEventListener('click', function () {
-        wpState.preset = i; wpState.photo = null;
-        $('#wpPrevBox').classList.add('hidden'); $('#wpPhoto').value = '';
-        $('#wpPhotoControls').classList.add('hidden');
-        $('#wpLayerPhoto').classList.add('hidden');
-        $('#wpResetPhotoBtn').classList.add('hidden');
+        wpState.preset = i;
+        wpState.photo = null;
+        wpState.photoOffsetX = 0;
+        wpState.photoOffsetY = 0;
+        wpState.photoScale = 1.0;
+        $('#wpPrevBox').classList.add('hidden');
+        $('#wpPhoto').value = '';
+        updateWpPhotoControls();
         updateWpBarUploadState();
-        setActiveLayer('text');
         $$('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
         hideWpActionOverlays();
         renderWallpaper();
@@ -992,10 +1038,10 @@
     if (btnP) btnP.classList.toggle('active', layer === 'photo');
     var hint = $('#wpGestureHint');
     if (hint) {
-      if (layer === 'photo' && wpState.photo) {
-        hint.textContent = '🖼 Photo active: Drag to pan · Pinch, scroll wheel, or use slider to zoom';
+      if (layer === 'photo') {
+        hint.textContent = '🖼 Background active: Drag to pan · Scroll wheel or pinch to zoom';
       } else {
-        hint.textContent = '✦ Text active: Drag to move · Drag corners, pinch, scroll, or use slider to resize';
+        hint.textContent = '✦ Text active: Drag text to place · Drag handles to resize · Drag background to pan';
       }
     }
     renderWallpaper();
@@ -1111,7 +1157,7 @@
   $$('.wp-ratio').forEach(function (b) {
     b.addEventListener('click', function () {
       wpState.ratio = b.dataset.ratio;
-      $$('.wp-ratio').forEach(function (x) { x.classList.toggle('active', x === b); });
+      updateWpRatioUI();
       renderWallpaper();
       saveWpSettings();
     });
@@ -1201,9 +1247,19 @@
 
   if ($('#wpFitPhoto')) {
     $('#wpFitPhoto').addEventListener('click', function () {
-      if (!wpImgCache) return;
+      var img = null;
+      if (wpState.photo) {
+        img = wpImgCache;
+      } else {
+        var preset = WP_NATURE_PRESETS[wpState.preset] || WP_NATURE_PRESETS[0];
+        var isDesk = wpState.ratio === 'desktop';
+        img = wpPresetImgCache[preset.id + (isDesk ? '_desktop' : '_phone')];
+      }
+      if (!img) return;
       var ratio = WP_RATIOS[wpState.ratio];
-      var ir = wpImgCache.width / wpImgCache.height, cr = ratio.w / ratio.h;
+      var imgW = img.naturalWidth || img.width || 1;
+      var imgH = img.naturalHeight || img.height || 1;
+      var ir = imgW / imgH, cr = ratio.w / ratio.h;
       var fitScale = (ir > cr) ? (cr / ir) : (ir / cr);
       wpState.photoScale = Math.max(0.3, Math.min(1.0, fitScale));
       wpState.photoOffsetX = 0;
@@ -1505,10 +1561,7 @@
         return { target: 'text', box: b };
       }
     }
-    if (wpState.photo) {
-      return { target: 'photo' };
-    }
-    return { target: 'text' };
+    return { target: 'photo' };
   }
 
   // Update canvas hover cursor
@@ -1520,10 +1573,8 @@
         wpCanvas.style.cursor = (hit.handle === 'tl' || hit.handle === 'br') ? 'nwse-resize' : 'nesw-resize';
       } else if (hit.target === 'text') {
         wpCanvas.style.cursor = 'move';
-      } else if (wpState.photo) {
-        wpCanvas.style.cursor = 'grab';
       } else {
-        wpCanvas.style.cursor = 'default';
+        wpCanvas.style.cursor = 'grab';
       }
     }
   });
@@ -1691,25 +1742,27 @@
     if (wpActivePointers.size === 0) wpEndPointer(e);
   });
 
-  // Mouse wheel zoom on canvas
+  // Mouse wheel zoom on canvas (when Ctrl/Cmd/Alt modifier is held, otherwise smooth column scrolling)
   wpCanvas.addEventListener('wheel', function (e) {
-    e.preventDefault();
-    var delta = e.deltaY < 0 ? 1 : -1;
-    var p = wpCanvasPoint(e.clientX, e.clientY);
-    var hit = wpHitTest(p);
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      e.preventDefault();
+      var delta = e.deltaY < 0 ? 1 : -1;
+      var p = wpCanvasPoint(e.clientX, e.clientY);
+      var hit = wpHitTest(p);
 
-    if (hit.target === 'photo' || (wpState.activeLayer === 'photo' && wpState.photo)) {
-      var factor = delta > 0 ? 1.08 : 0.92;
-      wpState.photoScale = Math.max(0.3, Math.min(3.5, wpState.photoScale * factor));
-      updateWpPhotoControls();
-      setActiveLayer('photo');
-    } else {
-      wpState.size = Math.max(20, Math.min(100, wpState.size + delta * 2));
-      updateWpSizeControls();
-      setActiveLayer('text');
+      if (hit.target === 'photo' || wpState.activeLayer === 'photo') {
+        var factor = delta > 0 ? 1.08 : 0.92;
+        wpState.photoScale = Math.max(0.3, Math.min(3.5, wpState.photoScale * factor));
+        updateWpPhotoControls();
+        setActiveLayer('photo');
+      } else {
+        wpState.size = Math.max(20, Math.min(100, wpState.size + delta * 2));
+        updateWpSizeControls();
+        setActiveLayer('text');
+      }
+      renderWallpaper();
+      saveWpSettings();
     }
-    renderWallpaper();
-    saveWpSettings();
   }, { passive: false });
 
   $('#wpResetPos').addEventListener('click', function () {
@@ -1867,10 +1920,29 @@
         if (wpImgCache) {
           drawCoverScaled(c, wpImgCache, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
         }
+        drawWpText(c, ratio, !!forExport);
       } else {
-        WP_PRESETS[wpState.preset](c, ratio.w, ratio.h);
+        var preset = WP_NATURE_PRESETS[wpState.preset] || WP_NATURE_PRESETS[0];
+        var isDesk = wpState.ratio === 'desktop';
+        var cacheKey = preset.id + (isDesk ? '_desktop' : '_phone');
+        var cached = wpPresetImgCache[cacheKey];
+        if (cached && cached.complete && cached.naturalWidth > 0) {
+          drawCoverScaled(c, cached, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
+          if (preset.vignette) {
+            wpVignette(c, ratio.w, ratio.h, preset.vignette);
+          }
+          drawWpText(c, ratio, !!forExport);
+        } else {
+          getPresetImage(wpState.preset, wpState.ratio, function (loadedImg) {
+            c.clearRect(0, 0, ratio.w, ratio.h);
+            drawCoverScaled(c, loadedImg, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
+            if (preset.vignette) {
+              wpVignette(c, ratio.w, ratio.h, preset.vignette);
+            }
+            drawWpText(c, ratio, !!forExport);
+          });
+        }
       }
-      drawWpText(c, ratio, !!forExport);
     }
 
     if (wpState.photo) {
@@ -1890,30 +1962,36 @@
     }
   }
 
+  function triggerWallpaperExport() {
+    // 1. Render clean canvas without UI selection boxes or handles
+    renderWallpaper(true);
+    var cnv = $('#wpCanvas');
+    if (!cnv) return;
+
+    var fileName = 'luminara-affirmation-' + (wpState.ratio || '9:16') + '.png';
+    var dataUrl = cnv.toDataURL('image/png');
+
+    // 2. Restore interactive editing state
+    renderWallpaper(false);
+
+    // 3. Immediately & directly trigger download in background
+    var a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      a.remove();
+    }, 800);
+  }
+
   var wpExportBtn = $('#wpExport');
   if (wpExportBtn) {
-    wpExportBtn.addEventListener('click', function () {
-      // 1. Render clean canvas without UI selection boxes or handles
-      renderWallpaper(true);
-      var cnv = $('#wpCanvas');
-      if (!cnv) return;
-
-      var fileName = 'luminara-affirmation-' + (wpState.ratio || '9:16') + '.png';
-      var dataUrl = cnv.toDataURL('image/png');
-
-      // 2. Restore interactive editing state
-      renderWallpaper(false);
-
-      // 3. Immediately & directly trigger download in background
-      var a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () {
-        a.remove();
-      }, 800);
-    });
+    wpExportBtn.addEventListener('click', triggerWallpaperExport);
+  }
+  var wpTopExportBtn = $('#wpTopExportBtn');
+  if (wpTopExportBtn) {
+    wpTopExportBtn.addEventListener('click', triggerWallpaperExport);
   }
 
   /* Studio Tab Switcher (Mobile) */
@@ -1973,6 +2051,7 @@
   }
 
   renderWpPresets();
+  updateWpRatioUI();
   updateWpBarUploadState();
   if ($('#wpText')) $('#wpText').value = WP_QUOTES[0];
   if ($('#wpLiveInput')) $('#wpLiveInput').value = WP_QUOTES[0];
