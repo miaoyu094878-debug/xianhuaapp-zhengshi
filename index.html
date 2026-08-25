@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.8.25.1001">
+  <link rel="stylesheet" href="styles.css?v=2026.8.25.1002">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Luminara — Multi-Theme Design System
@@ -1103,12 +1103,35 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 }
 
 @media (max-width: 768px) {
+  .wp-preview-card {
+    padding: 12px 10px 14px;
+    border-radius: 18px;
+  }
+  .wp-canvas-wrap {
+    padding: 2px 0 6px;
+    width: 100%;
+  }
   .wp-canvas {
-    max-height: 42vh;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 60vh;
     transition: max-height 0.2s ease;
   }
   body.wp-typing .wp-canvas {
-    max-height: 30vh;
+    max-height: 34vh;
+  }
+}
+
+@media (max-width: 480px) {
+  main {
+    padding: 8px 10px 0;
+  }
+  .wp-preview-card {
+    padding: 10px 8px 12px;
+  }
+  .wp-canvas {
+    max-height: 63vh;
   }
 }
 
@@ -4796,14 +4819,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   /* ═══════ PWA & Cache Invalidation ═══════ */
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=2026.8.25.1001').then(function (reg) {
+    navigator.serviceWorker.register('sw.js?v=2026.8.25.1002').then(function (reg) {
       if (reg) reg.update();
     }).catch(function () {});
   }
   if (typeof caches !== 'undefined') {
     caches.keys().then(function (names) {
       names.forEach(function (name) {
-        if (name !== 'luminara-v2026.8.25.1001') caches.delete(name);
+        if (name !== 'luminara-v2026.8.25.1002') caches.delete(name);
       });
     });
   }
@@ -4823,7 +4846,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   maybeShowQuiz();
 })();
   </script>
-  <script src="app.js?v=2026.8.25.1001" defer></script>
+  <script src="app.js?v=2026.8.25.1002" defer></script>
 
 </body>
 </html>

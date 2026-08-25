@@ -1086,12 +1086,35 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 }
 
 @media (max-width: 768px) {
+  .wp-preview-card {
+    padding: 12px 10px 14px;
+    border-radius: 18px;
+  }
+  .wp-canvas-wrap {
+    padding: 2px 0 6px;
+    width: 100%;
+  }
   .wp-canvas {
-    max-height: 42vh;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 60vh;
     transition: max-height 0.2s ease;
   }
   body.wp-typing .wp-canvas {
-    max-height: 30vh;
+    max-height: 34vh;
+  }
+}
+
+@media (max-width: 480px) {
+  main {
+    padding: 8px 10px 0;
+  }
+  .wp-preview-card {
+    padding: 10px 8px 12px;
+  }
+  .wp-canvas {
+    max-height: 63vh;
   }
 }
 
