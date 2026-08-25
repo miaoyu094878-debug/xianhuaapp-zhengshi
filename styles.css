@@ -1098,6 +1098,17 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 /* ════════════════════════════════════════════════════════════════
    Modern Live Affirmation Glass Studio Dock
    ════════════════════════════════════════════════════════════════ */
+.wp-live-dock button,
+.wp-live-dock textarea,
+.wp-live-dock input {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
 .wp-live-dock {
   width: 100%;
   margin: 8px 0 6px;
