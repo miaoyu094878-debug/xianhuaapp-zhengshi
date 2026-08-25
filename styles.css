@@ -810,8 +810,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   padding: 0;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  background: linear-gradient(135deg, #1b3824 0%, #2c5837 50%, #102417 100%);
-  color: #ffffff;
+  background: #151515;
 }
 /* Mobile device: vertical 9:16 thumbnails */
 @media (max-width: 768px) {
