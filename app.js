@@ -881,6 +881,9 @@
       name: 'Misty Pine Forest',
       src: 'assets/nature/forest.jpg',
       desktopSrc: 'assets/nature/desktop_forest.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #1b3824 0%, #2c5837 50%, #102417 100%)',
       vignette: 0.16
     },
     {
@@ -888,6 +891,9 @@
       name: 'Alpine Lake Mirror',
       src: 'assets/nature/alpine_lake.jpg',
       desktopSrc: 'assets/nature/desktop_alpine_lake.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #1b3248 0%, #2b5378 50%, #0e2030 100%)',
       vignette: 0.14
     },
     {
@@ -895,6 +901,9 @@
       name: 'Golden Sunset Meadow',
       src: 'assets/nature/golden_meadow.jpg',
       desktopSrc: 'assets/nature/desktop_golden_meadow.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #593b16 0%, #8f5f24 50%, #36220a 100%)',
       vignette: 0.15
     },
     {
@@ -902,6 +911,9 @@
       name: 'Serene Ocean Waves',
       src: 'assets/nature/ocean_waves.jpg',
       desktopSrc: 'assets/nature/desktop_ocean_waves.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #14404b 0%, #246a7a 50%, #0c2930 100%)',
       vignette: 0.18
     },
     {
@@ -909,6 +921,9 @@
       name: 'Zen Bamboo Grove',
       src: 'assets/nature/bamboo_grove.jpg',
       desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #18381c 0%, #2b5730 50%, #0d2110 100%)',
       vignette: 0.15
     },
     {
@@ -916,6 +931,9 @@
       name: 'Tropical Island Sanctuary',
       src: 'assets/nature/tropical_island.jpg',
       desktopSrc: 'assets/nature/desktop_tropical_island.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #133f47 0%, #2a6e7c 50%, #0b262c 100%)',
       vignette: 0.14
     }
   ];
@@ -935,12 +953,22 @@
       if (callback) callback(wpPresetImgCache[cacheKey]);
       return wpPresetImgCache[cacheKey];
     }
+
+    var primarySrc = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
+    var fallbackSrc = (isDesk && preset.onlineDesktopSrc) ? preset.onlineDesktopSrc : preset.onlineSrc;
+
     var img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = function () {
       wpPresetImgCache[cacheKey] = img;
       if (callback) callback(img);
     };
-    img.src = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
+    img.onerror = function () {
+      if (img.src !== fallbackSrc && fallbackSrc) {
+        img.src = fallbackSrc;
+      }
+    };
+    img.src = primarySrc;
     return null;
   }
 
@@ -987,7 +1015,17 @@
           var img = btn.querySelector('img');
           if (img) {
             var isDesk = wpState.ratio === 'desktop';
-            img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+            var primarySrc = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+            var fallbackSrc = (isDesk && p.onlineDesktopSrc) ? p.onlineDesktopSrc : p.onlineSrc;
+            img.onerror = function () {
+              if (this.src !== fallbackSrc && fallbackSrc) {
+                this.src = fallbackSrc;
+              } else {
+                this.style.display = 'none';
+              }
+            };
+            img.style.display = '';
+            img.src = primarySrc;
           }
         }
       });
@@ -1005,12 +1043,30 @@
       btn.type = 'button';
       btn.dataset.preset = i;
       btn.title = p.name;
+      if (p.gradient) {
+        btn.style.background = p.gradient;
+      }
+
+      var primarySrc = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+      var fallbackSrc = (isDesk && p.onlineDesktopSrc) ? p.onlineDesktopSrc : p.onlineSrc;
 
       var img = document.createElement('img');
-      img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+      img.src = primarySrc;
       img.alt = p.name;
       img.loading = 'lazy';
+      img.onerror = function () {
+        if (this.src !== fallbackSrc && fallbackSrc) {
+          this.src = fallbackSrc;
+        } else {
+          this.style.display = 'none';
+        }
+      };
       btn.appendChild(img);
+
+      var titleSpan = document.createElement('span');
+      titleSpan.className = 'wp-bg-title';
+      titleSpan.textContent = p.name;
+      btn.appendChild(titleSpan);
 
       btn.addEventListener('click', function () {
         wpState.preset = i;
@@ -1933,13 +1989,25 @@
           }
           drawWpText(c, ratio, !!forExport);
         } else {
+          // Draw instant peaceful nature gradient background so canvas is never black
+          c.clearRect(0, 0, ratio.w, ratio.h);
+          var grad = c.createLinearGradient(0, 0, ratio.w, ratio.h);
+          grad.addColorStop(0, '#1a3323');
+          grad.addColorStop(0.5, '#2b5239');
+          grad.addColorStop(1, '#112117');
+          c.fillStyle = grad;
+          c.fillRect(0, 0, ratio.w, ratio.h);
+          drawWpText(c, ratio, !!forExport);
+
           getPresetImage(wpState.preset, wpState.ratio, function (loadedImg) {
-            c.clearRect(0, 0, ratio.w, ratio.h);
-            drawCoverScaled(c, loadedImg, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
-            if (preset.vignette) {
-              wpVignette(c, ratio.w, ratio.h, preset.vignette);
+            if (loadedImg && loadedImg.complete && loadedImg.naturalWidth > 0) {
+              c.clearRect(0, 0, ratio.w, ratio.h);
+              drawCoverScaled(c, loadedImg, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
+              if (preset.vignette) {
+                wpVignette(c, ratio.w, ratio.h, preset.vignette);
+              }
+              drawWpText(c, ratio, !!forExport);
             }
-            drawWpText(c, ratio, !!forExport);
           });
         }
       }

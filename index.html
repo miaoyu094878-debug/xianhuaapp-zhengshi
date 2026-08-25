@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.8.25.1016">
+  <link rel="stylesheet" href="styles.css?v=2026.8.25.1017">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Luminara — Multi-Theme Design System
@@ -827,7 +827,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   padding: 0;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  background: #151515;
+  background: linear-gradient(135deg, #1b3824 0%, #2c5837 50%, #102417 100%);
+  color: #ffffff;
 }
 /* Mobile device: vertical 9:16 thumbnails */
 @media (max-width: 768px) {
@@ -869,9 +870,29 @@ html.device-desktop .wp-bg {
   height: 100%;
   object-fit: cover;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  color: transparent;
+  font-size: 0;
 }
 .wp-bg:hover img {
   transform: scale(1.08);
+}
+.wp-bg-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 6px 6px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.45) 60%, transparent 100%);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.25;
+  pointer-events: none;
+  word-break: break-word;
+  letter-spacing: 0.1px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  z-index: 2;
 }
 .wp-bg.active {
   border-color: var(--accent);
@@ -3660,6 +3681,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       name: 'Misty Pine Forest',
       src: 'assets/nature/forest.jpg',
       desktopSrc: 'assets/nature/desktop_forest.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #1b3824 0%, #2c5837 50%, #102417 100%)',
       vignette: 0.16
     },
     {
@@ -3667,6 +3691,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       name: 'Alpine Lake Mirror',
       src: 'assets/nature/alpine_lake.jpg',
       desktopSrc: 'assets/nature/desktop_alpine_lake.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #1b3248 0%, #2b5378 50%, #0e2030 100%)',
       vignette: 0.14
     },
     {
@@ -3674,6 +3701,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       name: 'Golden Sunset Meadow',
       src: 'assets/nature/golden_meadow.jpg',
       desktopSrc: 'assets/nature/desktop_golden_meadow.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #593b16 0%, #8f5f24 50%, #36220a 100%)',
       vignette: 0.15
     },
     {
@@ -3681,6 +3711,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       name: 'Serene Ocean Waves',
       src: 'assets/nature/ocean_waves.jpg',
       desktopSrc: 'assets/nature/desktop_ocean_waves.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #14404b 0%, #246a7a 50%, #0c2930 100%)',
       vignette: 0.18
     },
     {
@@ -3688,6 +3721,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       name: 'Zen Bamboo Grove',
       src: 'assets/nature/bamboo_grove.jpg',
       desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #18381c 0%, #2b5730 50%, #0d2110 100%)',
       vignette: 0.15
     },
     {
@@ -3695,6 +3731,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       name: 'Tropical Island Sanctuary',
       src: 'assets/nature/tropical_island.jpg',
       desktopSrc: 'assets/nature/desktop_tropical_island.jpg',
+      onlineSrc: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=800&auto=format&fit=crop',
+      onlineDesktopSrc: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=1920&auto=format&fit=crop',
+      gradient: 'linear-gradient(135deg, #133f47 0%, #2a6e7c 50%, #0b262c 100%)',
       vignette: 0.14
     }
   ];
@@ -3714,12 +3753,22 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       if (callback) callback(wpPresetImgCache[cacheKey]);
       return wpPresetImgCache[cacheKey];
     }
+
+    var primarySrc = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
+    var fallbackSrc = (isDesk && preset.onlineDesktopSrc) ? preset.onlineDesktopSrc : preset.onlineSrc;
+
     var img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = function () {
       wpPresetImgCache[cacheKey] = img;
       if (callback) callback(img);
     };
-    img.src = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
+    img.onerror = function () {
+      if (img.src !== fallbackSrc && fallbackSrc) {
+        img.src = fallbackSrc;
+      }
+    };
+    img.src = primarySrc;
     return null;
   }
 
@@ -3766,7 +3815,17 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           var img = btn.querySelector('img');
           if (img) {
             var isDesk = wpState.ratio === 'desktop';
-            img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+            var primarySrc = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+            var fallbackSrc = (isDesk && p.onlineDesktopSrc) ? p.onlineDesktopSrc : p.onlineSrc;
+            img.onerror = function () {
+              if (this.src !== fallbackSrc && fallbackSrc) {
+                this.src = fallbackSrc;
+              } else {
+                this.style.display = 'none';
+              }
+            };
+            img.style.display = '';
+            img.src = primarySrc;
           }
         }
       });
@@ -3784,12 +3843,30 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       btn.type = 'button';
       btn.dataset.preset = i;
       btn.title = p.name;
+      if (p.gradient) {
+        btn.style.background = p.gradient;
+      }
+
+      var primarySrc = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+      var fallbackSrc = (isDesk && p.onlineDesktopSrc) ? p.onlineDesktopSrc : p.onlineSrc;
 
       var img = document.createElement('img');
-      img.src = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
+      img.src = primarySrc;
       img.alt = p.name;
       img.loading = 'lazy';
+      img.onerror = function () {
+        if (this.src !== fallbackSrc && fallbackSrc) {
+          this.src = fallbackSrc;
+        } else {
+          this.style.display = 'none';
+        }
+      };
       btn.appendChild(img);
+
+      var titleSpan = document.createElement('span');
+      titleSpan.className = 'wp-bg-title';
+      titleSpan.textContent = p.name;
+      btn.appendChild(titleSpan);
 
       btn.addEventListener('click', function () {
         wpState.preset = i;
@@ -4712,13 +4789,25 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           }
           drawWpText(c, ratio, !!forExport);
         } else {
+          // Draw instant peaceful nature gradient background so canvas is never black
+          c.clearRect(0, 0, ratio.w, ratio.h);
+          var grad = c.createLinearGradient(0, 0, ratio.w, ratio.h);
+          grad.addColorStop(0, '#1a3323');
+          grad.addColorStop(0.5, '#2b5239');
+          grad.addColorStop(1, '#112117');
+          c.fillStyle = grad;
+          c.fillRect(0, 0, ratio.w, ratio.h);
+          drawWpText(c, ratio, !!forExport);
+
           getPresetImage(wpState.preset, wpState.ratio, function (loadedImg) {
-            c.clearRect(0, 0, ratio.w, ratio.h);
-            drawCoverScaled(c, loadedImg, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
-            if (preset.vignette) {
-              wpVignette(c, ratio.w, ratio.h, preset.vignette);
+            if (loadedImg && loadedImg.complete && loadedImg.naturalWidth > 0) {
+              c.clearRect(0, 0, ratio.w, ratio.h);
+              drawCoverScaled(c, loadedImg, ratio.w, ratio.h, wpState.photoScale, wpState.photoOffsetX, wpState.photoOffsetY);
+              if (preset.vignette) {
+                wpVignette(c, ratio.w, ratio.h, preset.vignette);
+              }
+              drawWpText(c, ratio, !!forExport);
             }
-            drawWpText(c, ratio, !!forExport);
           });
         }
       }
@@ -5181,7 +5270,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 })();
 
   </script>
-  <script src="app.js?v=2026.8.25.1016" defer></script>
+  <script src="app.js?v=2026.8.25.1017" defer></script>
 
 </body>
 </html>
