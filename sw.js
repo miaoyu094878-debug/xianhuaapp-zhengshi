@@ -1,5 +1,5 @@
 /* Luminara — Manifest Service Worker */
-var CACHE = 'luminara-v200';
+var CACHE = 'luminara-v2026.8.25.999';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
@@ -19,7 +19,7 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
-  // Always fetch fresh network copies for html, css, js
+  // Always fetch fresh network copies
   e.respondWith(
     fetch(e.request, { cache: 'no-cache' }).catch(function () {
       return caches.match(e.request);
