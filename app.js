@@ -879,60 +879,60 @@
     {
       id: 'forest',
       name: 'Misty Pine Forest',
-      src: 'assets/nature/forest.jpg',
-      desktopSrc: 'assets/nature/desktop_forest.jpg',
-      onlineSrc: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=800&auto=format&fit=crop',
-      onlineDesktopSrc: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=1920&auto=format&fit=crop',
+      src: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=800&auto=format&fit=crop',
+      desktopSrc: 'https://images.unsplash.com/photo-1511497584788-8767611136f6?q=80&w=1920&auto=format&fit=crop',
+      localSrc: 'assets/nature/forest.jpg',
+      localDesktopSrc: 'assets/nature/desktop_forest.jpg',
       gradient: 'linear-gradient(135deg, #1b3824 0%, #2c5837 50%, #102417 100%)',
       vignette: 0.16
     },
     {
       id: 'alpine_lake',
       name: 'Alpine Lake Mirror',
-      src: 'assets/nature/alpine_lake.jpg',
-      desktopSrc: 'assets/nature/desktop_alpine_lake.jpg',
-      onlineSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
-      onlineDesktopSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1920&auto=format&fit=crop',
+      src: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop',
+      desktopSrc: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1920&auto=format&fit=crop',
+      localSrc: 'assets/nature/alpine_lake.jpg',
+      localDesktopSrc: 'assets/nature/desktop_alpine_lake.jpg',
       gradient: 'linear-gradient(135deg, #1b3248 0%, #2b5378 50%, #0e2030 100%)',
       vignette: 0.14
     },
     {
       id: 'golden_meadow',
       name: 'Golden Sunset Meadow',
-      src: 'assets/nature/golden_meadow.jpg',
-      desktopSrc: 'assets/nature/desktop_golden_meadow.jpg',
-      onlineSrc: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
-      onlineDesktopSrc: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop',
+      src: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
+      desktopSrc: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop',
+      localSrc: 'assets/nature/golden_meadow.jpg',
+      localDesktopSrc: 'assets/nature/desktop_golden_meadow.jpg',
       gradient: 'linear-gradient(135deg, #593b16 0%, #8f5f24 50%, #36220a 100%)',
       vignette: 0.15
     },
     {
       id: 'ocean_waves',
       name: 'Serene Ocean Waves',
-      src: 'assets/nature/ocean_waves.jpg',
-      desktopSrc: 'assets/nature/desktop_ocean_waves.jpg',
-      onlineSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
-      onlineDesktopSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1920&auto=format&fit=crop',
+      src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+      desktopSrc: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1920&auto=format&fit=crop',
+      localSrc: 'assets/nature/ocean_waves.jpg',
+      localDesktopSrc: 'assets/nature/desktop_ocean_waves.jpg',
       gradient: 'linear-gradient(135deg, #14404b 0%, #246a7a 50%, #0c2930 100%)',
       vignette: 0.18
     },
     {
       id: 'bamboo_grove',
       name: 'Zen Bamboo Grove',
-      src: 'assets/nature/bamboo_grove.jpg',
-      desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg',
-      onlineSrc: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=800&auto=format&fit=crop',
-      onlineDesktopSrc: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1920&auto=format&fit=crop',
+      src: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=800&auto=format&fit=crop',
+      desktopSrc: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1920&auto=format&fit=crop',
+      localSrc: 'assets/nature/bamboo_grove.jpg',
+      localDesktopSrc: 'assets/nature/desktop_bamboo_grove.jpg',
       gradient: 'linear-gradient(135deg, #18381c 0%, #2b5730 50%, #0d2110 100%)',
       vignette: 0.15
     },
     {
       id: 'tropical_island',
       name: 'Tropical Island Sanctuary',
-      src: 'assets/nature/tropical_island.jpg',
-      desktopSrc: 'assets/nature/desktop_tropical_island.jpg',
-      onlineSrc: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=800&auto=format&fit=crop',
-      onlineDesktopSrc: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=1920&auto=format&fit=crop',
+      src: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=800&auto=format&fit=crop',
+      desktopSrc: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=1920&auto=format&fit=crop',
+      localSrc: 'assets/nature/tropical_island.jpg',
+      localDesktopSrc: 'assets/nature/desktop_tropical_island.jpg',
       gradient: 'linear-gradient(135deg, #133f47 0%, #2a6e7c 50%, #0b262c 100%)',
       vignette: 0.14
     }
@@ -955,7 +955,7 @@
     }
 
     var primarySrc = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
-    var fallbackSrc = (isDesk && preset.onlineDesktopSrc) ? preset.onlineDesktopSrc : preset.onlineSrc;
+    var fallbackSrc = (isDesk && preset.localDesktopSrc) ? preset.localDesktopSrc : preset.localSrc;
 
     var img = new Image();
     img.crossOrigin = 'anonymous';
@@ -964,7 +964,7 @@
       if (callback) callback(img);
     };
     img.onerror = function () {
-      if (img.src !== fallbackSrc && fallbackSrc) {
+      if (fallbackSrc && img.src !== fallbackSrc && !img.src.endsWith(fallbackSrc)) {
         img.src = fallbackSrc;
       }
     };
@@ -1016,9 +1016,9 @@
           if (img) {
             var isDesk = wpState.ratio === 'desktop';
             var primarySrc = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
-            var fallbackSrc = (isDesk && p.onlineDesktopSrc) ? p.onlineDesktopSrc : p.onlineSrc;
+            var fallbackSrc = (isDesk && p.localDesktopSrc) ? p.localDesktopSrc : p.localSrc;
             img.onerror = function () {
-              if (this.src !== fallbackSrc && fallbackSrc) {
+              if (fallbackSrc && this.src !== fallbackSrc && !this.src.endsWith(fallbackSrc)) {
                 this.src = fallbackSrc;
               } else {
                 this.style.display = 'none';
@@ -1048,25 +1048,20 @@
       }
 
       var primarySrc = (isDesk && p.desktopSrc) ? p.desktopSrc : p.src;
-      var fallbackSrc = (isDesk && p.onlineDesktopSrc) ? p.onlineDesktopSrc : p.onlineSrc;
+      var fallbackSrc = (isDesk && p.localDesktopSrc) ? p.localDesktopSrc : p.localSrc;
 
       var img = document.createElement('img');
       img.src = primarySrc;
-      img.alt = p.name;
+      img.alt = '';
       img.loading = 'lazy';
       img.onerror = function () {
-        if (this.src !== fallbackSrc && fallbackSrc) {
+        if (fallbackSrc && this.src !== fallbackSrc && !this.src.endsWith(fallbackSrc)) {
           this.src = fallbackSrc;
         } else {
           this.style.display = 'none';
         }
       };
       btn.appendChild(img);
-
-      var titleSpan = document.createElement('span');
-      titleSpan.className = 'wp-bg-title';
-      titleSpan.textContent = p.name;
-      btn.appendChild(titleSpan);
 
       btn.addEventListener('click', function () {
         wpState.preset = i;
