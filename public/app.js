@@ -979,13 +979,6 @@
     getPresetImage(i, 'desktop');
   });
 
-  function hideWpActionOverlays() {
-    var overlays = $('#wpCanvasActionOverlays');
-    if (overlays) {
-      overlays.classList.add('hidden');
-    }
-  }
-
   function updateWpBarUploadState() {
     var label = $('#wpBarUploadLabel');
     var ico = $('#wpBarUploadIco');
@@ -1053,7 +1046,6 @@
         updateWpPhotoControls();
         updateWpBarUploadState();
         $$('.wp-bg').forEach(function (b) { b.classList.toggle('active', +b.dataset.preset === i); });
-        hideWpActionOverlays();
         renderWallpaper();
       });
       wrap.appendChild(btn);
@@ -1131,7 +1123,6 @@
     updateWpPhotoControls();
     updateWpBarUploadState();
     setActiveLayer('photo');
-    hideWpActionOverlays();
     renderWallpaper();
     saveWpSettings();
   }
@@ -2071,17 +2062,7 @@
     }
   }
 
-  var wpOverlayUploadBtn = $('#wpOverlayUploadBtn');
-  if (wpOverlayUploadBtn) {
-    wpOverlayUploadBtn.addEventListener('click', handleDirectPhotoUpload);
-  }
-
-  var wpOverlayPresetBtn = $('#wpOverlayPresetBtn');
-  if (wpOverlayPresetBtn) {
-    wpOverlayPresetBtn.addEventListener('click', jumpToPresets);
-  }
-
-  /* Permanent Compact Editor Bar Buttons (Upper Right of Canvas Area) */
+  /* Editor Top Bar Quick Action Buttons */
   var wpBarUploadBtn = $('#wpBarUploadBtn');
   if (wpBarUploadBtn) {
     wpBarUploadBtn.addEventListener('click', handleDirectPhotoUpload);
