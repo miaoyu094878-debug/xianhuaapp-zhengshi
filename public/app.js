@@ -2101,12 +2101,44 @@
     }
   }
 
+  function requestNativeFullscreen() {
+    var el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(function () {});
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen().catch(function () {});
+    } else if (el.mozRequestFullScreen) {
+      el.mozRequestFullScreen().catch(function () {});
+    } else if (el.msRequestFullscreen) {
+      el.msRequestFullscreen().catch(function () {});
+    }
+  }
+
+  function exitNativeFullscreen() {
+    var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    if (isFs) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(function () {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen().catch(function () {});
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen().catch(function () {});
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen().catch(function () {});
+      }
+    }
+  }
+
   function openWallpaperFullscreen() {
     if (!wpFullscreenModal) return;
     wpFullscreenModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     updateFullscreenPreviewUI();
     resetFsIdleTimer();
+    
+    // Automatically trigger native browser fullscreen by default on both desktop & mobile
+    requestNativeFullscreen();
+    updateBrowserFsBtnState();
   }
 
   function closeWallpaperFullscreen() {
@@ -2114,9 +2146,8 @@
     wpFullscreenModal.classList.add('hidden');
     document.body.style.overflow = '';
     clearTimeout(wpFsIdleTimer);
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(function () {});
-    }
+    exitNativeFullscreen();
+    updateBrowserFsBtnState();
   }
 
   var wasIdleOnTouch = false;
@@ -2231,27 +2262,29 @@
   var wpFsBrowserFsBtn = $('#wpFsBrowserFsBtn');
   if (wpFsBrowserFsBtn) {
     wpFsBrowserFsBtn.addEventListener('click', function () {
-      if (!document.fullscreenElement) {
-        var el = wpFullscreenModal || document.documentElement;
-        if (el.requestFullscreen) {
-          el.requestFullscreen().catch(function () {});
-        }
+      var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+      if (!isFs) {
+        requestNativeFullscreen();
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(function () {});
-        }
+        exitNativeFullscreen();
       }
+      resetFsIdleTimer(2000);
     });
   }
 
   function updateBrowserFsBtnState() {
-    var isFs = !!document.fullscreenElement;
+    var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
     var ico = $('#wpFsBrowserFsIco');
     var txt = $('#wpFsBrowserFsTxt');
+    var btn = $('#wpFsBrowserFsBtn');
     if (ico) ico.textContent = isFs ? '🗗' : '⛶';
     if (txt) txt.textContent = isFs ? 'Exit Screen' : 'Fullscreen';
+    if (btn) btn.classList.toggle('active', isFs);
   }
-  document.addEventListener('fullscreenchange', updateBrowserFsBtnState);
+
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(function (evt) {
+    document.addEventListener(evt, updateBrowserFsBtnState);
+  });
 
   var wpFsExportBtn = $('#wpFsExportBtn');
   if (wpFsExportBtn) {
