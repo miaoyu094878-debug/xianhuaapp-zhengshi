@@ -2051,7 +2051,7 @@
     if (!wpFullscreenModal || wpFullscreenModal.classList.contains('hidden')) return;
     wpFullscreenModal.classList.remove('idle');
     clearTimeout(wpFsIdleTimer);
-    var timeout = typeof duration === 'number' ? duration : 1000;
+    var timeout = typeof duration === 'number' ? duration : 2000;
     wpFsIdleTimer = setTimeout(function () {
       if (wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
         wpFullscreenModal.classList.add('idle');
@@ -2121,25 +2121,25 @@
 
   if (wpFullscreenModal) {
     wpFullscreenModal.addEventListener('mousemove', function () {
-      resetFsIdleTimer(1000);
+      resetFsIdleTimer(2000);
     });
     wpFullscreenModal.addEventListener('touchstart', function () {
-      resetFsIdleTimer(1000);
+      resetFsIdleTimer(2000);
     }, { passive: true });
     wpFullscreenModal.addEventListener('touchmove', function () {
-      resetFsIdleTimer(1000);
+      resetFsIdleTimer(2000);
     }, { passive: true });
     wpFullscreenModal.addEventListener('click', function (e) {
       // If clicking directly on wallpaper canvas, frame background or backdrop (not on buttons/toolbars)
       if (e.target === wpFsCanvas || e.target === wpFsFrame || e.target === wpFullscreenModal || e.target.classList.contains('wp-fs-backdrop') || e.target.classList.contains('wp-fs-stage')) {
         if (wpFullscreenModal.classList.contains('idle')) {
-          resetFsIdleTimer(1000);
+          resetFsIdleTimer(2000);
         } else {
           clearTimeout(wpFsIdleTimer);
           wpFullscreenModal.classList.add('idle');
         }
       } else {
-        resetFsIdleTimer(1000);
+        resetFsIdleTimer(2000);
       }
     });
   }
