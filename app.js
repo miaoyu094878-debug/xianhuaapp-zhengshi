@@ -917,27 +917,6 @@
       src: 'assets/nature/tropical_island.jpg',
       desktopSrc: 'assets/nature/desktop_tropical_island.jpg',
       vignette: 0.14
-    },
-    {
-      id: 'mountain_sunrise',
-      name: 'Mountain Sunrise',
-      src: 'assets/nature/mountain_sunrise.jpg',
-      desktopSrc: 'assets/nature/mountain_sunrise.jpg',
-      vignette: 0.15
-    },
-    {
-      id: 'lavender_field',
-      name: 'Lavender Field',
-      src: 'assets/nature/lavender_field.jpg',
-      desktopSrc: 'assets/nature/desktop_lavender_field.jpg',
-      vignette: 0.15
-    },
-    {
-      id: 'waterfall',
-      name: 'Serene Waterfall',
-      src: 'assets/nature/waterfall.jpg',
-      desktopSrc: 'assets/nature/waterfall.jpg',
-      vignette: 0.15
     }
   ];
 
