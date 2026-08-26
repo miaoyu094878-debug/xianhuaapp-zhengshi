@@ -1518,6 +1518,7 @@
       }
       var ta = $('#wpText');
       if (ta) ta.blur();
+      setMobileWallpaperSelected(false);
     });
   }
 
@@ -1543,6 +1544,65 @@
       }
     });
   }
+
+  /* ---- Mobile Double-Tap Selection & Edit Mode ---- */
+  wpState.isMobileSelected = false;
+  var lastCanvasTapTime = 0;
+  var lastCanvasTapPos = { x: 0, y: 0 };
+
+  function isMobileTouchMode() {
+    return (('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 768));
+  }
+
+  function setMobileWallpaperSelected(selected) {
+    wpState.isMobileSelected = !!selected;
+    if (wpCanvas) wpCanvas.classList.toggle('is-selected', wpState.isMobileSelected);
+    if (wpCanvasWrap) wpCanvasWrap.classList.toggle('is-selected', wpState.isMobileSelected);
+
+    var badge = $('#wpMobileSelectBadge');
+    if (badge) {
+      if (wpState.isMobileSelected) {
+        badge.classList.add('active');
+        badge.innerHTML = '<span class="wp-mobile-select-ico">✓</span><span class="wp-mobile-select-text">完成编辑</span>';
+      } else {
+        badge.classList.remove('active');
+        badge.innerHTML = '<span class="wp-mobile-select-ico">👆</span><span class="wp-mobile-select-text">双击编辑壁纸</span>';
+      }
+    }
+
+    var hint = $('#wpGestureHint');
+    if (hint) {
+      if (wpState.isMobileSelected) {
+        hint.innerHTML = '<svg class="wp-hint-ico" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg><span>✨ 壁纸已选中：可拖动文字与把手、单指平移背景或双指缩放 · 点击外部退出</span>';
+      } else {
+        hint.innerHTML = '<svg class="wp-hint-ico" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg><span>👆 双击壁纸进入编辑 · 单指滑动可正常浏览页面</span>';
+      }
+    }
+
+    renderWallpaper();
+  }
+
+  var wpMobileSelectBadge = $('#wpMobileSelectBadge');
+  if (wpMobileSelectBadge) {
+    wpMobileSelectBadge.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setMobileWallpaperSelected(!wpState.isMobileSelected);
+    });
+  }
+
+  // Double-click support
+  wpCanvas.addEventListener('dblclick', function (e) {
+    setMobileWallpaperSelected(!wpState.isMobileSelected);
+  });
+
+  // Tap outside canvas to deselect on mobile
+  document.addEventListener('pointerdown', function (e) {
+    if (wpState.isMobileSelected && isMobileTouchMode()) {
+      if (wpCanvasWrap && !wpCanvasWrap.contains(e.target) && !e.target.closest('#wpMobileSelectBadge') && !e.target.closest('.wp-studio-bar') && !e.target.closest('.wp-tab-panel') && !e.target.closest('.wp-live-dock')) {
+        setMobileWallpaperSelected(false);
+      }
+    }
+  });
 
   function wpCanvasPoint(clientX, clientY) {
     var ratio = WP_RATIOS[wpState.ratio];
@@ -1607,13 +1667,39 @@
   var wpPointerDownMeta = null;
 
   wpCanvas.addEventListener('pointerdown', function (e) {
+    var isTouch = e.pointerType === 'touch' || isMobileTouchMode();
+
+    if (isTouch) {
+      var now = Date.now();
+      var timeDiff = now - lastCanvasTapTime;
+      var dist = Math.hypot(e.clientX - lastCanvasTapPos.x, e.clientY - lastCanvasTapPos.y);
+
+      if (timeDiff > 0 && timeDiff < 400 && dist < 45) {
+        // Double tap recognized!
+        lastCanvasTapTime = 0;
+        setMobileWallpaperSelected(!wpState.isMobileSelected);
+        if (navigator.vibrate) {
+          try { navigator.vibrate(30); } catch (_) {}
+        }
+        e.preventDefault();
+        return;
+      }
+
+      lastCanvasTapTime = now;
+      lastCanvasTapPos = { x: e.clientX, y: e.clientY };
+
+      if (!wpState.isMobileSelected) {
+        // On mobile, if not selected, do NOT prevent default or capture pointer -> allow smooth page scroll!
+        return;
+      }
+    }
+
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (wpActivePointers.size === 1) {
       var p = wpCanvasPoint(e.clientX, e.clientY);
       var ratio = WP_RATIOS[wpState.ratio];
       var hit = wpHitTest(p);
-      var isTouch = e.pointerType === 'touch';
 
       wpPointerDownMeta = {
         startX: e.clientX,
@@ -1622,56 +1708,9 @@
         target: hit.target,
         handle: hit.handle || null,
         box: hit.box || null,
-        moved: false,
-        isTouch: isTouch,
-        pointerId: e.pointerId
+        moved: false
       };
 
-      if (isTouch) {
-        // Mobile touch:
-        // 1. Touching photo background area: yield to native vertical page scroll
-        if (hit.target === 'photo') {
-          wpState._dragging = false;
-          wpState._dragTarget = null;
-          wpState._pendingTextDrag = null;
-          return;
-        }
-
-        // 2. Touching text resize corner handle: intentional resize
-        if (hit.target === 'text-handle') {
-          wpState._dragging = true;
-          wpState._dragTarget = hit.target;
-          wpState._activeHandle = hit.handle || null;
-          wpCanvas.classList.add('resizing');
-          wpDragStartData = {
-            initP: p,
-            initSize: wpState.size,
-            cx: hit.box.cx,
-            cy: hit.box.cy,
-            initDist: Math.hypot(p.x - hit.box.cx, p.y - hit.box.cy) || 1
-          };
-          setActiveLayer('text');
-          if (wpCanvas.setPointerCapture) {
-            try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-          }
-          e.preventDefault();
-          renderWallpaper();
-          return;
-        }
-
-        // 3. Touching text box: wait for direction disambiguation in pointermove
-        // If movement is predominantly vertical (swiping down), we let the page scroll!
-        wpState._dragging = false;
-        wpState._dragTarget = null;
-        wpState._pendingTextDrag = {
-          p: p,
-          offX: p.x - wpState.textNX * ratio.w,
-          offY: p.y - wpState.textNY * ratio.h
-        };
-        return;
-      }
-
-      // Mouse mode (desktop):
       wpState._dragging = true;
       wpState._dragTarget = hit.target;
       wpState._activeHandle = hit.handle || null;
@@ -1708,8 +1747,6 @@
       if (wpCanvas.setPointerCapture) {
         try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
       }
-      e.preventDefault();
-      renderWallpaper();
     } else if (wpActivePointers.size === 2) {
       // 2-finger Pinch to zoom
       var pts = Array.from(wpActivePointers.values());
@@ -1720,8 +1757,10 @@
         initPhotoScale: wpState.photoScale,
         layer: wpState.activeLayer
       };
-      e.preventDefault();
     }
+
+    e.preventDefault();
+    renderWallpaper();
   });
 
   wpCanvas.addEventListener('pointermove', function (e) {
@@ -1729,35 +1768,9 @@
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (wpPointerDownMeta) {
-      var dx = e.clientX - wpPointerDownMeta.startX;
-      var dy = e.clientY - wpPointerDownMeta.startY;
-      var distMove = Math.hypot(dx, dy);
-      if (distMove > 8) {
+      var distMove = Math.hypot(e.clientX - wpPointerDownMeta.startX, e.clientY - wpPointerDownMeta.startY);
+      if (distMove > 6) {
         wpPointerDownMeta.moved = true;
-      }
-
-      // Check pending touch drag on text
-      if (wpPointerDownMeta.isTouch && wpState._pendingTextDrag && !wpState._dragging) {
-        // If movement is predominantly vertical (Math.abs(dy) > Math.abs(dx) * 1.2), user is scrolling page!
-        if (Math.abs(dy) > Math.abs(dx) * 1.2) {
-          wpState._pendingTextDrag = null;
-          return;
-        } else if (distMove > 10) {
-          // Intentional text movement (horizontal / diagonal)
-          wpState._dragging = true;
-          wpState._dragTarget = 'text';
-          wpCanvas.classList.add('dragging');
-          wpDragStartData = {
-            offX: wpState._pendingTextDrag.offX,
-            offY: wpState._pendingTextDrag.offY
-          };
-          setActiveLayer('text');
-          wpState._pendingTextDrag = null;
-          if (wpCanvas.setPointerCapture) {
-            try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-          }
-          e.preventDefault();
-        }
       }
     }
 
@@ -1817,7 +1830,6 @@
       }
     }
     wpPointerDownMeta = null;
-    wpState._pendingTextDrag = null;
 
     wpActivePointers.delete(e.pointerId);
     if (wpActivePointers.size === 0) {
@@ -1954,10 +1966,13 @@
     };
 
     if (!forExport) {
+      var isTouchMobile = isMobileTouchMode();
+      var isSelectedForEdit = !isTouchMobile || wpState.isMobileSelected;
+
       if (wpState._dragging) {
         wpDrawGuides(c, ratio);
       }
-      if (wpState.activeLayer === 'text' || wpState._dragging) {
+      if (isSelectedForEdit && (wpState.activeLayer === 'text' || wpState._dragging)) {
         c.save();
         c.strokeStyle = 'rgba(255,255,255,0.92)';
         c.lineWidth = Math.max(3, px * 0.05);
