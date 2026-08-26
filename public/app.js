@@ -1054,10 +1054,6 @@
 
   function setActiveLayer(layer) {
     wpState.activeLayer = layer;
-    var btnT = $('#wpLayerText');
-    var btnP = $('#wpLayerPhoto');
-    if (btnT) btnT.classList.toggle('active', layer === 'text');
-    if (btnP) btnP.classList.toggle('active', layer === 'photo');
     var hint = $('#wpGestureHint');
     if (hint) {
       if (layer === 'photo') {
@@ -1067,13 +1063,6 @@
       }
     }
     renderWallpaper();
-  }
-
-  if ($('#wpLayerText')) {
-    $('#wpLayerText').addEventListener('click', function () { setActiveLayer('text'); });
-  }
-  if ($('#wpLayerPhoto')) {
-    $('#wpLayerPhoto').addEventListener('click', function () { setActiveLayer('photo'); });
   }
 
   function loadWpHighResPhoto(file, cb) {
@@ -1117,7 +1106,6 @@
     $('#wpPrevImg').src = data;
     $('#wpPrevBox').classList.remove('hidden');
     $('#wpPhotoControls').classList.remove('hidden');
-    $('#wpLayerPhoto').classList.remove('hidden');
     $('#wpResetPhotoBtn').classList.remove('hidden');
     $$('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
     updateWpPhotoControls();
@@ -1160,7 +1148,6 @@
     $('#wpPrevBox').classList.add('hidden');
     $('#wpPhoto').value = '';
     $('#wpPhotoControls').classList.add('hidden');
-    $('#wpLayerPhoto').classList.add('hidden');
     $('#wpResetPhotoBtn').classList.add('hidden');
     updateWpBarUploadState();
     setActiveLayer('text');

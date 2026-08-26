@@ -2271,12 +2271,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <div class="wp-preview-col">
             <div class="card glass form-card wp-preview-card">
               <!-- Layer & Quick Actions Toolbar -->
-              <div class="wp-layer-bar">
-                <div class="wp-bar-left">
-                  <span class="wp-layer-title">Layer:</span>
-                  <button id="wpLayerText" class="chip wp-layer-btn active" type="button" data-layer="text">✍️ Text</button>
-                  <button id="wpLayerPhoto" class="chip wp-layer-btn hidden" type="button" data-layer="photo">🖼 Photo</button>
-                </div>
+              <div class="wp-layer-bar" style="justify-content: flex-end;">
                 <div class="wp-bar-right">
                   <button id="wpBarUploadBtn" class="wp-bar-btn wp-bar-upload-btn" type="button" title="Upload custom photo">
                     <span id="wpBarUploadIco" class="wp-bar-btn-ico">📤</span>
@@ -3884,10 +3879,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   function setActiveLayer(layer) {
     wpState.activeLayer = layer;
-    var btnT = $('#wpLayerText');
-    var btnP = $('#wpLayerPhoto');
-    if (btnT) btnT.classList.toggle('active', layer === 'text');
-    if (btnP) btnP.classList.toggle('active', layer === 'photo');
     var hint = $('#wpGestureHint');
     if (hint) {
       if (layer === 'photo') {
@@ -3897,13 +3888,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       }
     }
     renderWallpaper();
-  }
-
-  if ($('#wpLayerText')) {
-    $('#wpLayerText').addEventListener('click', function () { setActiveLayer('text'); });
-  }
-  if ($('#wpLayerPhoto')) {
-    $('#wpLayerPhoto').addEventListener('click', function () { setActiveLayer('photo'); });
   }
 
   function loadWpHighResPhoto(file, cb) {
@@ -3947,7 +3931,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     $('#wpPrevImg').src = data;
     $('#wpPrevBox').classList.remove('hidden');
     $('#wpPhotoControls').classList.remove('hidden');
-    $('#wpLayerPhoto').classList.remove('hidden');
     $('#wpResetPhotoBtn').classList.remove('hidden');
     $$('.wp-bg').forEach(function (b) { b.classList.remove('active'); });
     updateWpPhotoControls();
@@ -3990,7 +3973,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     $('#wpPrevBox').classList.add('hidden');
     $('#wpPhoto').value = '';
     $('#wpPhotoControls').classList.add('hidden');
-    $('#wpLayerPhoto').classList.add('hidden');
     $('#wpResetPhotoBtn').classList.add('hidden');
     updateWpBarUploadState();
     setActiveLayer('text');

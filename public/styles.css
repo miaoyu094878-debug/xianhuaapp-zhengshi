@@ -1072,6 +1072,9 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   -webkit-user-select: none;
   transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
+.wp-canvas:not(.is-selected) {
+  touch-action: pan-y !important;
+}
 .wp-canvas.is-selected {
   touch-action: none;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 2px var(--accent, #9a63d2), 0 0 24px rgba(154, 99, 210, 0.45);
