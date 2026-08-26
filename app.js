@@ -879,72 +879,98 @@
     {
       id: 'forest',
       name: 'Misty Pine Forest',
-      src: 'assets/nature/forest.jpg',
-      desktopSrc: 'assets/nature/desktop_forest.jpg',
+      src: 'assets/nature/forest.jpg?v=202608260955',
+      desktopSrc: 'assets/nature/desktop_forest.jpg?v=202608260955',
       vignette: 0.16
     },
     {
       id: 'alpine_lake',
       name: 'Alpine Lake Mirror',
-      src: 'assets/nature/alpine_lake.jpg',
-      desktopSrc: 'assets/nature/desktop_alpine_lake.jpg',
+      src: 'assets/nature/alpine_lake.jpg?v=202608260955',
+      desktopSrc: 'assets/nature/desktop_alpine_lake.jpg?v=202608260955',
       vignette: 0.14
     },
     {
       id: 'golden_meadow',
       name: 'Golden Sunset Meadow',
-      src: 'assets/nature/golden_meadow.jpg',
-      desktopSrc: 'assets/nature/desktop_golden_meadow.jpg',
+      src: 'assets/nature/golden_meadow.jpg?v=202608260955',
+      desktopSrc: 'assets/nature/desktop_golden_meadow.jpg?v=202608260955',
       vignette: 0.15
     },
     {
       id: 'ocean_waves',
       name: 'Serene Ocean Waves',
-      src: 'assets/nature/ocean_waves.jpg',
-      desktopSrc: 'assets/nature/desktop_ocean_waves.jpg',
+      src: 'assets/nature/ocean_waves.jpg?v=202608260955',
+      desktopSrc: 'assets/nature/desktop_ocean_waves.jpg?v=202608260955',
       vignette: 0.18
     },
     {
       id: 'bamboo_grove',
       name: 'Zen Bamboo Grove',
-      src: 'assets/nature/bamboo_grove.jpg',
-      desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg',
+      src: 'assets/nature/bamboo_grove.jpg?v=202608260955',
+      desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg?v=202608260955',
       vignette: 0.15
     },
     {
       id: 'tropical_island',
       name: 'Tropical Island Sanctuary',
-      src: 'assets/nature/tropical_island.jpg',
-      desktopSrc: 'assets/nature/desktop_tropical_island.jpg',
+      src: 'assets/nature/tropical_island.jpg?v=202608260955',
+      desktopSrc: 'assets/nature/desktop_tropical_island.jpg?v=202608260955',
       vignette: 0.14
     }
   ];
 
   var wpPresetImgCache = {};
+  var wpPresetImgCallbacks = {};
+
   function getPresetImage(presetIndex, ratioKey, callback) {
     if (typeof ratioKey === 'function') {
       callback = ratioKey;
       ratioKey = wpState.ratio;
     }
-    ratioKey = ratioKey || wpState.ratio;
+    ratioKey = ratioKey || wpState.ratio || 'phone';
     var preset = WP_NATURE_PRESETS[presetIndex];
     if (!preset) return null;
     var isDesk = ratioKey === 'desktop';
     var cacheKey = preset.id + (isDesk ? '_desktop' : '_phone');
+
     if (wpPresetImgCache[cacheKey] && wpPresetImgCache[cacheKey].complete && wpPresetImgCache[cacheKey].naturalWidth > 0) {
       if (callback) callback(wpPresetImgCache[cacheKey]);
+      return wpPresetImgCache[cacheKey];
+    }
+
+    if (!wpPresetImgCallbacks[cacheKey]) {
+      wpPresetImgCallbacks[cacheKey] = [];
+    }
+    if (callback) {
+      wpPresetImgCallbacks[cacheKey].push(callback);
+    }
+
+    if (wpPresetImgCache[cacheKey]) {
       return wpPresetImgCache[cacheKey];
     }
 
     var primarySrc = (isDesk && preset.desktopSrc) ? preset.desktopSrc : preset.src;
 
     var img = new Image();
+    img.crossOrigin = 'anonymous';
+    wpPresetImgCache[cacheKey] = img;
+
     img.onload = function () {
-      wpPresetImgCache[cacheKey] = img;
-      if (callback) callback(img);
+      var cbs = wpPresetImgCallbacks[cacheKey] || [];
+      wpPresetImgCallbacks[cacheKey] = [];
+      cbs.forEach(function (cb) {
+        try { cb(img); } catch (e) {}
+      });
+      if (wpState.preset === presetIndex && !wpState.photo) {
+        renderWallpaper();
+      }
+    };
+    img.onerror = function () {
+      console.warn('Failed to load preset wallpaper image:', primarySrc);
     };
     img.src = primarySrc;
-    return null;
+    return img;
   }
 
   // Preload all healing nature images for both phone (9:16) and desktop (16:9)
@@ -1014,7 +1040,6 @@
       var img = document.createElement('img');
       img.src = primarySrc;
       img.alt = '';
-      img.loading = 'lazy';
       btn.appendChild(img);
 
       btn.addEventListener('click', function () {
