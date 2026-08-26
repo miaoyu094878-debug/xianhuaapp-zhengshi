@@ -1169,8 +1169,10 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   padding: max(14px, env(safe-area-inset-top, 14px)) 24px 24px;
   box-sizing: border-box;
   gap: 12px;
-  background: linear-gradient(180deg, rgba(5, 3, 10, 0.85) 0%, rgba(5, 3, 10, 0.45) 60%, rgba(5, 3, 10, 0) 100%);
-  pointer-events: none;
+  background: linear-gradient(180deg, rgba(5, 3, 10, 0.88) 0%, rgba(5, 3, 10, 0.5) 60%, rgba(5, 3, 10, 0) 100%);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
@@ -1178,14 +1180,16 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 .wp-fs-modal.idle .wp-fs-footer-tip {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-12px);
+  transform: translateY(-14px);
 }
 
-.wp-fs-topbar:hover,
-.wp-fs-footer-tip:hover {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  transform: translateY(0) !important;
+@media (hover: hover) and (pointer: fine) {
+  .wp-fs-topbar:hover,
+  .wp-fs-footer-tip:hover {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+  }
 }
 
 .wp-fs-bar-left, .wp-fs-bar-right {

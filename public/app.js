@@ -2047,15 +2047,16 @@
   var wpFsMockOverlay = $('#wpFsMockOverlay');
   var wpFsIdleTimer = null;
 
-  function resetFsIdleTimer() {
+  function resetFsIdleTimer(duration) {
     if (!wpFullscreenModal || wpFullscreenModal.classList.contains('hidden')) return;
     wpFullscreenModal.classList.remove('idle');
     clearTimeout(wpFsIdleTimer);
+    var timeout = typeof duration === 'number' ? duration : 1000;
     wpFsIdleTimer = setTimeout(function () {
       if (wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
         wpFullscreenModal.classList.add('idle');
       }
-    }, 1000);
+    }, timeout);
   }
 
   function updateFullscreenPreviewUI() {
@@ -2119,13 +2120,26 @@
   }
 
   if (wpFullscreenModal) {
-    wpFullscreenModal.addEventListener('mousemove', resetFsIdleTimer);
-    wpFullscreenModal.addEventListener('touchstart', resetFsIdleTimer);
+    wpFullscreenModal.addEventListener('mousemove', function () {
+      resetFsIdleTimer(1000);
+    });
+    wpFullscreenModal.addEventListener('touchstart', function () {
+      resetFsIdleTimer(1000);
+    }, { passive: true });
+    wpFullscreenModal.addEventListener('touchmove', function () {
+      resetFsIdleTimer(1000);
+    }, { passive: true });
     wpFullscreenModal.addEventListener('click', function (e) {
-      resetFsIdleTimer();
-      // If clicking directly on wallpaper canvas or backdrop, toggle controls
-      if (e.target === wpFsCanvas || e.target === wpFsFrame || e.target === wpFullscreenModal) {
-        wpFullscreenModal.classList.toggle('idle');
+      // If clicking directly on wallpaper canvas, frame background or backdrop (not on buttons/toolbars)
+      if (e.target === wpFsCanvas || e.target === wpFsFrame || e.target === wpFullscreenModal || e.target.classList.contains('wp-fs-backdrop') || e.target.classList.contains('wp-fs-stage')) {
+        if (wpFullscreenModal.classList.contains('idle')) {
+          resetFsIdleTimer(1000);
+        } else {
+          clearTimeout(wpFsIdleTimer);
+          wpFullscreenModal.classList.add('idle');
+        }
+      } else {
+        resetFsIdleTimer(1000);
       }
     });
   }
