@@ -2119,28 +2119,58 @@
     }
   }
 
+  var wasIdleOnTouch = false;
+  var lastTouchTime = 0;
+
   if (wpFullscreenModal) {
     wpFullscreenModal.addEventListener('mousemove', function () {
       resetFsIdleTimer(2000);
     });
+
     wpFullscreenModal.addEventListener('touchstart', function () {
+      wasIdleOnTouch = wpFullscreenModal.classList.contains('idle');
+      lastTouchTime = Date.now();
       resetFsIdleTimer(2000);
     }, { passive: true });
+
     wpFullscreenModal.addEventListener('touchmove', function () {
       resetFsIdleTimer(2000);
     }, { passive: true });
+
     wpFullscreenModal.addEventListener('click', function (e) {
-      // If clicking directly on wallpaper canvas, frame background or backdrop (not on buttons/toolbars)
-      if (e.target === wpFsCanvas || e.target === wpFsFrame || e.target === wpFullscreenModal || e.target.classList.contains('wp-fs-backdrop') || e.target.classList.contains('wp-fs-stage')) {
-        if (wpFullscreenModal.classList.contains('idle')) {
-          resetFsIdleTimer(2000);
+      var isRecentTouch = (Date.now() - lastTouchTime) < 500;
+      var isStageOrBackdrop = (
+        e.target === wpFsCanvas ||
+        e.target === wpFsFrame ||
+        e.target === wpFullscreenModal ||
+        (e.target.classList && (e.target.classList.contains('wp-fs-backdrop') || e.target.classList.contains('wp-fs-stage')))
+      );
+
+      if (isStageOrBackdrop) {
+        if (isRecentTouch) {
+          // Triggered by mobile tap
+          if (wasIdleOnTouch) {
+            // It was hidden before tap, now woken up -> KEEP it visible for 2s!
+            resetFsIdleTimer(2000);
+          } else {
+            // It was already visible before tap -> clicking empty background dismisses it
+            clearTimeout(wpFsIdleTimer);
+            wpFullscreenModal.classList.add('idle');
+          }
         } else {
-          clearTimeout(wpFsIdleTimer);
-          wpFullscreenModal.classList.add('idle');
+          // Desktop mouse click
+          if (wpFullscreenModal.classList.contains('idle')) {
+            resetFsIdleTimer(2000);
+          } else {
+            clearTimeout(wpFsIdleTimer);
+            wpFullscreenModal.classList.add('idle');
+          }
         }
       } else {
+        // Clicked on toolbar buttons or other controls
         resetFsIdleTimer(2000);
       }
+      wasIdleOnTouch = false;
     });
   }
 
