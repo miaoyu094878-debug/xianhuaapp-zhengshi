@@ -1613,6 +1613,7 @@
       var p = wpCanvasPoint(e.clientX, e.clientY);
       var ratio = WP_RATIOS[wpState.ratio];
       var hit = wpHitTest(p);
+      var isTouch = e.pointerType === 'touch';
 
       wpPointerDownMeta = {
         startX: e.clientX,
@@ -1621,9 +1622,56 @@
         target: hit.target,
         handle: hit.handle || null,
         box: hit.box || null,
-        moved: false
+        moved: false,
+        isTouch: isTouch,
+        pointerId: e.pointerId
       };
 
+      if (isTouch) {
+        // Mobile touch:
+        // 1. Touching photo background area: yield to native vertical page scroll
+        if (hit.target === 'photo') {
+          wpState._dragging = false;
+          wpState._dragTarget = null;
+          wpState._pendingTextDrag = null;
+          return;
+        }
+
+        // 2. Touching text resize corner handle: intentional resize
+        if (hit.target === 'text-handle') {
+          wpState._dragging = true;
+          wpState._dragTarget = hit.target;
+          wpState._activeHandle = hit.handle || null;
+          wpCanvas.classList.add('resizing');
+          wpDragStartData = {
+            initP: p,
+            initSize: wpState.size,
+            cx: hit.box.cx,
+            cy: hit.box.cy,
+            initDist: Math.hypot(p.x - hit.box.cx, p.y - hit.box.cy) || 1
+          };
+          setActiveLayer('text');
+          if (wpCanvas.setPointerCapture) {
+            try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+          e.preventDefault();
+          renderWallpaper();
+          return;
+        }
+
+        // 3. Touching text box: wait for direction disambiguation in pointermove
+        // If movement is predominantly vertical (swiping down), we let the page scroll!
+        wpState._dragging = false;
+        wpState._dragTarget = null;
+        wpState._pendingTextDrag = {
+          p: p,
+          offX: p.x - wpState.textNX * ratio.w,
+          offY: p.y - wpState.textNY * ratio.h
+        };
+        return;
+      }
+
+      // Mouse mode (desktop):
       wpState._dragging = true;
       wpState._dragTarget = hit.target;
       wpState._activeHandle = hit.handle || null;
@@ -1660,6 +1708,8 @@
       if (wpCanvas.setPointerCapture) {
         try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
       }
+      e.preventDefault();
+      renderWallpaper();
     } else if (wpActivePointers.size === 2) {
       // 2-finger Pinch to zoom
       var pts = Array.from(wpActivePointers.values());
@@ -1670,10 +1720,8 @@
         initPhotoScale: wpState.photoScale,
         layer: wpState.activeLayer
       };
+      e.preventDefault();
     }
-
-    e.preventDefault();
-    renderWallpaper();
   });
 
   wpCanvas.addEventListener('pointermove', function (e) {
@@ -1681,9 +1729,35 @@
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (wpPointerDownMeta) {
-      var distMove = Math.hypot(e.clientX - wpPointerDownMeta.startX, e.clientY - wpPointerDownMeta.startY);
-      if (distMove > 6) {
+      var dx = e.clientX - wpPointerDownMeta.startX;
+      var dy = e.clientY - wpPointerDownMeta.startY;
+      var distMove = Math.hypot(dx, dy);
+      if (distMove > 8) {
         wpPointerDownMeta.moved = true;
+      }
+
+      // Check pending touch drag on text
+      if (wpPointerDownMeta.isTouch && wpState._pendingTextDrag && !wpState._dragging) {
+        // If movement is predominantly vertical (Math.abs(dy) > Math.abs(dx) * 1.2), user is scrolling page!
+        if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+          wpState._pendingTextDrag = null;
+          return;
+        } else if (distMove > 10) {
+          // Intentional text movement (horizontal / diagonal)
+          wpState._dragging = true;
+          wpState._dragTarget = 'text';
+          wpCanvas.classList.add('dragging');
+          wpDragStartData = {
+            offX: wpState._pendingTextDrag.offX,
+            offY: wpState._pendingTextDrag.offY
+          };
+          setActiveLayer('text');
+          wpState._pendingTextDrag = null;
+          if (wpCanvas.setPointerCapture) {
+            try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+          e.preventDefault();
+        }
       }
     }
 
@@ -1743,6 +1817,7 @@
       }
     }
     wpPointerDownMeta = null;
+    wpState._pendingTextDrag = null;
 
     wpActivePointers.delete(e.pointerId);
     if (wpActivePointers.size === 0) {
