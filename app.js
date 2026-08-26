@@ -1928,10 +1928,9 @@
   }
 
   var wpImgCache = null, wpImgSrc = null;
-  function renderWallpaper(forExport) {
-    var ratio = WP_RATIOS[wpState.ratio];
-    var cnv = $('#wpCanvas');
+  function paintWallpaperToCanvas(cnv, forExport) {
     if (!cnv) return;
+    var ratio = WP_RATIOS[wpState.ratio];
     cnv.width = ratio.w; cnv.height = ratio.h;
     cnv.style.aspectRatio = ratio.w + ' / ' + ratio.h;
     var c = cnv.getContext('2d');
@@ -1995,6 +1994,20 @@
     }
   }
 
+  function renderWallpaper(forExport) {
+    var cnv = $('#wpCanvas');
+    if (cnv) {
+      paintWallpaperToCanvas(cnv, forExport);
+    }
+    var fsModal = $('#wpFullscreenModal');
+    if (fsModal && !fsModal.classList.contains('hidden')) {
+      var fsCnv = $('#wpFsCanvas');
+      if (fsCnv) {
+        paintWallpaperToCanvas(fsCnv, true);
+      }
+    }
+  }
+
   function triggerWallpaperExport() {
     // 1. Render clean canvas without UI selection boxes or handles
     renderWallpaper(true);
@@ -2026,6 +2039,229 @@
   if (wpTopExportBtn) {
     wpTopExportBtn.addEventListener('click', triggerWallpaperExport);
   }
+
+  /* ═══════ Full-Screen Immersive Wallpaper Preview ═══════ */
+  var wpFullscreenModal = $('#wpFullscreenModal');
+  var wpFsFrame = $('#wpFsFrame');
+  var wpFsCanvas = $('#wpFsCanvas');
+  var wpFsMockOverlay = $('#wpFsMockOverlay');
+  var wpFsIdleTimer = null;
+
+  function resetFsIdleTimer() {
+    if (!wpFullscreenModal || wpFullscreenModal.classList.contains('hidden')) return;
+    wpFullscreenModal.classList.remove('idle');
+    clearTimeout(wpFsIdleTimer);
+    wpFsIdleTimer = setTimeout(function () {
+      if (wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
+        wpFullscreenModal.classList.add('idle');
+      }
+    }, 1000);
+  }
+
+  function updateFullscreenPreviewUI() {
+    if (!wpFullscreenModal || wpFullscreenModal.classList.contains('hidden')) return;
+
+    var isDesk = wpState.ratio === 'desktop';
+    if (wpFsFrame) {
+      wpFsFrame.setAttribute('data-ratio', isDesk ? 'desktop' : 'phone');
+    }
+    
+    var ratioLabel = $('#wpFsRatioLabel');
+    if (ratioLabel) {
+      ratioLabel.textContent = isDesk ? '16:9 Desktop (Full Display)' : '9:16 Phone (Lock Screen)';
+    }
+
+    var ratioIco = $('#wpFsRatioIco');
+    var ratioTxt = $('#wpFsRatioTxt');
+    if (ratioIco && ratioTxt) {
+      ratioIco.textContent = isDesk ? '📱' : '💻';
+      ratioTxt.textContent = isDesk ? 'Phone (9:16)' : 'Desktop (16:9)';
+    }
+
+    // Update real time for realistic lock screen mockup
+    var now = new Date();
+    var hrs = String(now.getHours()).padStart(2, '0');
+    var mins = String(now.getMinutes()).padStart(2, '0');
+    var timeStr = hrs + ':' + mins;
+    var mockTime = $('#wpFsMockTime');
+    var mockBigTime = $('#wpFsMockBigTime');
+    if (mockTime) mockTime.textContent = timeStr;
+    if (mockBigTime) mockBigTime.textContent = timeStr;
+
+    var mockDate = $('#wpFsMockDate');
+    if (mockDate) {
+      var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      mockDate.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+    }
+
+    if (wpFsCanvas) {
+      paintWallpaperToCanvas(wpFsCanvas, true);
+    }
+  }
+
+  function openWallpaperFullscreen() {
+    if (!wpFullscreenModal) return;
+    wpFullscreenModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    updateFullscreenPreviewUI();
+    resetFsIdleTimer();
+  }
+
+  function closeWallpaperFullscreen() {
+    if (!wpFullscreenModal) return;
+    wpFullscreenModal.classList.add('hidden');
+    document.body.style.overflow = '';
+    clearTimeout(wpFsIdleTimer);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+  }
+
+  if (wpFullscreenModal) {
+    wpFullscreenModal.addEventListener('mousemove', resetFsIdleTimer);
+    wpFullscreenModal.addEventListener('touchstart', resetFsIdleTimer);
+    wpFullscreenModal.addEventListener('click', function (e) {
+      resetFsIdleTimer();
+      // If clicking directly on wallpaper canvas or backdrop, toggle controls
+      if (e.target === wpFsCanvas || e.target === wpFsFrame || e.target === wpFullscreenModal) {
+        wpFullscreenModal.classList.toggle('idle');
+      }
+    });
+  }
+
+  /* Canvas In-Box Fullscreen Button Hover / Touch 3-second Timer */
+  var wpCanvasWrap = $('#wpCanvasWrap');
+  var wpCanvasExpandBtn = $('#wpCanvasExpandBtn');
+  var wpCanvasBtnTimer = null;
+
+  function showCanvasExpandBtn() {
+    if (!wpCanvasExpandBtn) return;
+    wpCanvasExpandBtn.classList.add('visible');
+    clearTimeout(wpCanvasBtnTimer);
+    wpCanvasBtnTimer = setTimeout(function () {
+      if (wpCanvasExpandBtn && !wpCanvasExpandBtn.matches(':hover')) {
+        wpCanvasExpandBtn.classList.remove('visible');
+      }
+    }, 3000);
+  }
+
+  function hideCanvasExpandBtn() {
+    clearTimeout(wpCanvasBtnTimer);
+    if (wpCanvasExpandBtn && !wpCanvasExpandBtn.matches(':hover')) {
+      wpCanvasExpandBtn.classList.remove('visible');
+    }
+  }
+
+  if (wpCanvasWrap) {
+    wpCanvasWrap.addEventListener('mouseenter', showCanvasExpandBtn);
+    wpCanvasWrap.addEventListener('mousemove', showCanvasExpandBtn);
+    wpCanvasWrap.addEventListener('touchstart', showCanvasExpandBtn, { passive: true });
+    wpCanvasWrap.addEventListener('touchmove', showCanvasExpandBtn, { passive: true });
+    wpCanvasWrap.addEventListener('mouseleave', function () {
+      hideCanvasExpandBtn();
+    });
+  }
+
+  if (wpCanvasExpandBtn) {
+    wpCanvasExpandBtn.addEventListener('mouseenter', function () {
+      clearTimeout(wpCanvasBtnTimer);
+      wpCanvasExpandBtn.classList.add('visible');
+    });
+    wpCanvasExpandBtn.addEventListener('mouseleave', function () {
+      showCanvasExpandBtn();
+    });
+    wpCanvasExpandBtn.addEventListener('click', openWallpaperFullscreen);
+  }
+
+  var wpFsCloseBtn = $('#wpFsCloseBtn');
+  if (wpFsCloseBtn) {
+    wpFsCloseBtn.addEventListener('click', closeWallpaperFullscreen);
+  }
+
+  var wpFsBackdrop = $('#wpFsBackdrop');
+  if (wpFsBackdrop) {
+    wpFsBackdrop.addEventListener('click', closeWallpaperFullscreen);
+  }
+
+  var wpFsBrowserFsBtn = $('#wpFsBrowserFsBtn');
+  if (wpFsBrowserFsBtn) {
+    wpFsBrowserFsBtn.addEventListener('click', function () {
+      if (!document.fullscreenElement) {
+        var el = wpFullscreenModal || document.documentElement;
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(function () {});
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(function () {});
+        }
+      }
+    });
+  }
+
+  function updateBrowserFsBtnState() {
+    var isFs = !!document.fullscreenElement;
+    var ico = $('#wpFsBrowserFsIco');
+    var txt = $('#wpFsBrowserFsTxt');
+    if (ico) ico.textContent = isFs ? '🗗' : '⛶';
+    if (txt) txt.textContent = isFs ? 'Exit Screen' : 'Fullscreen';
+  }
+  document.addEventListener('fullscreenchange', updateBrowserFsBtnState);
+
+  var wpFsExportBtn = $('#wpFsExportBtn');
+  if (wpFsExportBtn) {
+    wpFsExportBtn.addEventListener('click', function () {
+      triggerWallpaperExport();
+    });
+  }
+
+  var wpFsShuffleBtn = $('#wpFsShuffleBtn');
+  if (wpFsShuffleBtn) {
+    wpFsShuffleBtn.addEventListener('click', function () {
+      var quote = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
+      syncAffirmationText(quote, 'fs');
+      updateFullscreenPreviewUI();
+      resetFsIdleTimer();
+    });
+  }
+
+  var wpFsRatioBtn = $('#wpFsRatioBtn');
+  if (wpFsRatioBtn) {
+    wpFsRatioBtn.addEventListener('click', function () {
+      wpState.ratio = wpState.ratio === 'desktop' ? 'phone' : 'desktop';
+      updateWpRatioUI();
+      renderWpPresets();
+      renderWallpaper();
+      updateFullscreenPreviewUI();
+      saveWpSettings();
+      resetFsIdleTimer();
+    });
+  }
+
+  var wpFsToggleClockBtn = $('#wpFsToggleClockBtn');
+  if (wpFsToggleClockBtn) {
+    wpFsToggleClockBtn.addEventListener('click', function () {
+      if (wpFsMockOverlay) {
+        var isHidden = wpFsMockOverlay.classList.contains('hidden');
+        wpFsMockOverlay.classList.toggle('hidden', !isHidden);
+        wpFsToggleClockBtn.classList.toggle('active', isHidden);
+      }
+      resetFsIdleTimer();
+    });
+  }
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
+      closeWallpaperFullscreen();
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
+      updateFullscreenPreviewUI();
+    }
+  });
 
   /* Studio Tab Switcher (Mobile) */
   function switchToWpTab(tabName) {

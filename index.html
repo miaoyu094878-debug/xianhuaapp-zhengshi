@@ -2299,6 +2299,15 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
               <div class="wp-canvas-wrap" id="wpCanvasWrap">
                 <canvas id="wpCanvas" class="wp-canvas"></canvas>
+                <button id="wpCanvasExpandBtn" class="wp-canvas-expand-badge" type="button" title="Expand Full Screen Preview" aria-label="Expand Full Screen Preview">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h6v6"></path>
+                    <path d="M9 21H3v-6"></path>
+                    <path d="M21 3l-7 7"></path>
+                    <path d="M3 21l7-7"></path>
+                  </svg>
+                  <span>Full Screen</span>
+                </button>
               </div>
 
               <!-- Live Affirmation Modern Glass Studio Bar (Directly below canvas) -->
@@ -2729,6 +2738,92 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </div>
     </div>
 
+    <!-- Wallpaper Full Screen Immersive Preview Modal -->
+    <div id="wpFullscreenModal" class="wp-fs-modal hidden" role="dialog" aria-modal="true" aria-label="Wallpaper Fullscreen Preview">
+      <div class="wp-fs-backdrop" id="wpFsBackdrop"></div>
+      
+      <!-- Top Floating Navigation / Studio Toolbar -->
+      <header class="wp-fs-topbar">
+        <div class="wp-fs-bar-left">
+          <div class="wp-fs-badge">
+            <span class="wp-fs-pulse"></span>
+            <span id="wpFsRatioLabel">16:9 Desktop Preview</span>
+          </div>
+        </div>
+
+        <div class="wp-fs-bar-center">
+          <button id="wpFsToggleClockBtn" class="wp-fs-tool-btn" type="button" title="Toggle Lock Screen Clock Simulation">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span id="wpFsClockBtnTxt">Lock Screen Clock</span>
+          </button>
+          <button id="wpFsShuffleBtn" class="wp-fs-tool-btn" type="button" title="Shuffle Affirmation Quote">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 3 21 3 21 8"></polyline>
+              <line x1="4" y1="20" x2="21" y2="3"></line>
+              <polyline points="21 16 21 21 16 21"></polyline>
+              <line x1="15" y1="15" x2="21" y2="21"></line>
+              <line x1="4" y1="4" x2="9" y2="9"></line>
+            </svg>
+            <span>Shuffle</span>
+          </button>
+          <button id="wpFsRatioBtn" class="wp-fs-tool-btn" type="button" title="Switch Ratio (Phone 9:16 / Desktop 16:9)">
+            <span id="wpFsRatioIco">📱</span>
+            <span id="wpFsRatioTxt">Switch Ratio</span>
+          </button>
+        </div>
+
+        <div class="wp-fs-bar-right">
+          <button id="wpFsBrowserFsBtn" class="wp-fs-tool-btn" type="button" title="Toggle Native Browser Fullscreen (F11)">
+            <span id="wpFsBrowserFsIco">⛶</span>
+            <span id="wpFsBrowserFsTxt">Screen Mode</span>
+          </button>
+          <button id="wpFsExportBtn" class="wp-fs-primary-btn" type="button" title="Download Wallpaper in High Definition">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Download HD</span>
+          </button>
+          <button id="wpFsCloseBtn" class="wp-fs-close-btn" type="button" title="Exit Full Screen Preview (Esc)" aria-label="Close Fullscreen Preview">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Stage Container Centering the Wallpaper at Maximum Viewport Size -->
+      <main class="wp-fs-stage" id="wpFsStage">
+        <div class="wp-fs-canvas-frame" id="wpFsFrame">
+          <canvas id="wpFsCanvas" class="wp-fs-canvas"></canvas>
+          
+          <!-- Simulated Phone Status Bar & Lock Screen Clock Overlay -->
+          <div class="wp-fs-mock-overlay hidden" id="wpFsMockOverlay">
+            <div class="wp-fs-mock-status">
+              <span id="wpFsMockTime">09:41</span>
+              <div class="wp-fs-mock-icons">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"></path></svg>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="2" y="7" width="17" height="10" rx="3" stroke="currentColor" fill="none" stroke-width="1.8"></rect><rect x="4" y="9" width="11" height="6" rx="1.5"></rect><path d="M21 11v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+              </div>
+            </div>
+            <div class="wp-fs-mock-clock-wrap">
+              <div class="wp-fs-mock-date" id="wpFsMockDate">Wednesday, August 26</div>
+              <div class="wp-fs-mock-big-time" id="wpFsMockBigTime">09:41</div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Bottom Floating Quick Tip -->
+      <footer class="wp-fs-footer-tip">
+        <span>Press <kbd>Esc</kbd> or click outside to return to editor · Click and drag to reposition preview</span>
+      </footer>
+    </div>
 
   </div>
 
@@ -4663,10 +4758,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   }
 
   var wpImgCache = null, wpImgSrc = null;
-  function renderWallpaper(forExport) {
-    var ratio = WP_RATIOS[wpState.ratio];
-    var cnv = $('#wpCanvas');
+  function paintWallpaperToCanvas(cnv, forExport) {
     if (!cnv) return;
+    var ratio = WP_RATIOS[wpState.ratio];
     cnv.width = ratio.w; cnv.height = ratio.h;
     cnv.style.aspectRatio = ratio.w + ' / ' + ratio.h;
     var c = cnv.getContext('2d');
@@ -4730,6 +4824,20 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     }
   }
 
+  function renderWallpaper(forExport) {
+    var cnv = $('#wpCanvas');
+    if (cnv) {
+      paintWallpaperToCanvas(cnv, forExport);
+    }
+    var fsModal = $('#wpFullscreenModal');
+    if (fsModal && !fsModal.classList.contains('hidden')) {
+      var fsCnv = $('#wpFsCanvas');
+      if (fsCnv) {
+        paintWallpaperToCanvas(fsCnv, true);
+      }
+    }
+  }
+
   function triggerWallpaperExport() {
     // 1. Render clean canvas without UI selection boxes or handles
     renderWallpaper(true);
@@ -4761,6 +4869,229 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   if (wpTopExportBtn) {
     wpTopExportBtn.addEventListener('click', triggerWallpaperExport);
   }
+
+  /* ═══════ Full-Screen Immersive Wallpaper Preview ═══════ */
+  var wpFullscreenModal = $('#wpFullscreenModal');
+  var wpFsFrame = $('#wpFsFrame');
+  var wpFsCanvas = $('#wpFsCanvas');
+  var wpFsMockOverlay = $('#wpFsMockOverlay');
+  var wpFsIdleTimer = null;
+
+  function resetFsIdleTimer() {
+    if (!wpFullscreenModal || wpFullscreenModal.classList.contains('hidden')) return;
+    wpFullscreenModal.classList.remove('idle');
+    clearTimeout(wpFsIdleTimer);
+    wpFsIdleTimer = setTimeout(function () {
+      if (wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
+        wpFullscreenModal.classList.add('idle');
+      }
+    }, 1000);
+  }
+
+  function updateFullscreenPreviewUI() {
+    if (!wpFullscreenModal || wpFullscreenModal.classList.contains('hidden')) return;
+
+    var isDesk = wpState.ratio === 'desktop';
+    if (wpFsFrame) {
+      wpFsFrame.setAttribute('data-ratio', isDesk ? 'desktop' : 'phone');
+    }
+    
+    var ratioLabel = $('#wpFsRatioLabel');
+    if (ratioLabel) {
+      ratioLabel.textContent = isDesk ? '16:9 Desktop (Full Display)' : '9:16 Phone (Lock Screen)';
+    }
+
+    var ratioIco = $('#wpFsRatioIco');
+    var ratioTxt = $('#wpFsRatioTxt');
+    if (ratioIco && ratioTxt) {
+      ratioIco.textContent = isDesk ? '📱' : '💻';
+      ratioTxt.textContent = isDesk ? 'Phone (9:16)' : 'Desktop (16:9)';
+    }
+
+    // Update real time for realistic lock screen mockup
+    var now = new Date();
+    var hrs = String(now.getHours()).padStart(2, '0');
+    var mins = String(now.getMinutes()).padStart(2, '0');
+    var timeStr = hrs + ':' + mins;
+    var mockTime = $('#wpFsMockTime');
+    var mockBigTime = $('#wpFsMockBigTime');
+    if (mockTime) mockTime.textContent = timeStr;
+    if (mockBigTime) mockBigTime.textContent = timeStr;
+
+    var mockDate = $('#wpFsMockDate');
+    if (mockDate) {
+      var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      mockDate.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+    }
+
+    if (wpFsCanvas) {
+      paintWallpaperToCanvas(wpFsCanvas, true);
+    }
+  }
+
+  function openWallpaperFullscreen() {
+    if (!wpFullscreenModal) return;
+    wpFullscreenModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    updateFullscreenPreviewUI();
+    resetFsIdleTimer();
+  }
+
+  function closeWallpaperFullscreen() {
+    if (!wpFullscreenModal) return;
+    wpFullscreenModal.classList.add('hidden');
+    document.body.style.overflow = '';
+    clearTimeout(wpFsIdleTimer);
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+  }
+
+  if (wpFullscreenModal) {
+    wpFullscreenModal.addEventListener('mousemove', resetFsIdleTimer);
+    wpFullscreenModal.addEventListener('touchstart', resetFsIdleTimer);
+    wpFullscreenModal.addEventListener('click', function (e) {
+      resetFsIdleTimer();
+      // If clicking directly on wallpaper canvas or backdrop, toggle controls
+      if (e.target === wpFsCanvas || e.target === wpFsFrame || e.target === wpFullscreenModal) {
+        wpFullscreenModal.classList.toggle('idle');
+      }
+    });
+  }
+
+  /* Canvas In-Box Fullscreen Button Hover / Touch 3-second Timer */
+  var wpCanvasWrap = $('#wpCanvasWrap');
+  var wpCanvasExpandBtn = $('#wpCanvasExpandBtn');
+  var wpCanvasBtnTimer = null;
+
+  function showCanvasExpandBtn() {
+    if (!wpCanvasExpandBtn) return;
+    wpCanvasExpandBtn.classList.add('visible');
+    clearTimeout(wpCanvasBtnTimer);
+    wpCanvasBtnTimer = setTimeout(function () {
+      if (wpCanvasExpandBtn && !wpCanvasExpandBtn.matches(':hover')) {
+        wpCanvasExpandBtn.classList.remove('visible');
+      }
+    }, 3000);
+  }
+
+  function hideCanvasExpandBtn() {
+    clearTimeout(wpCanvasBtnTimer);
+    if (wpCanvasExpandBtn && !wpCanvasExpandBtn.matches(':hover')) {
+      wpCanvasExpandBtn.classList.remove('visible');
+    }
+  }
+
+  if (wpCanvasWrap) {
+    wpCanvasWrap.addEventListener('mouseenter', showCanvasExpandBtn);
+    wpCanvasWrap.addEventListener('mousemove', showCanvasExpandBtn);
+    wpCanvasWrap.addEventListener('touchstart', showCanvasExpandBtn, { passive: true });
+    wpCanvasWrap.addEventListener('touchmove', showCanvasExpandBtn, { passive: true });
+    wpCanvasWrap.addEventListener('mouseleave', function () {
+      hideCanvasExpandBtn();
+    });
+  }
+
+  if (wpCanvasExpandBtn) {
+    wpCanvasExpandBtn.addEventListener('mouseenter', function () {
+      clearTimeout(wpCanvasBtnTimer);
+      wpCanvasExpandBtn.classList.add('visible');
+    });
+    wpCanvasExpandBtn.addEventListener('mouseleave', function () {
+      showCanvasExpandBtn();
+    });
+    wpCanvasExpandBtn.addEventListener('click', openWallpaperFullscreen);
+  }
+
+  var wpFsCloseBtn = $('#wpFsCloseBtn');
+  if (wpFsCloseBtn) {
+    wpFsCloseBtn.addEventListener('click', closeWallpaperFullscreen);
+  }
+
+  var wpFsBackdrop = $('#wpFsBackdrop');
+  if (wpFsBackdrop) {
+    wpFsBackdrop.addEventListener('click', closeWallpaperFullscreen);
+  }
+
+  var wpFsBrowserFsBtn = $('#wpFsBrowserFsBtn');
+  if (wpFsBrowserFsBtn) {
+    wpFsBrowserFsBtn.addEventListener('click', function () {
+      if (!document.fullscreenElement) {
+        var el = wpFullscreenModal || document.documentElement;
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(function () {});
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(function () {});
+        }
+      }
+    });
+  }
+
+  function updateBrowserFsBtnState() {
+    var isFs = !!document.fullscreenElement;
+    var ico = $('#wpFsBrowserFsIco');
+    var txt = $('#wpFsBrowserFsTxt');
+    if (ico) ico.textContent = isFs ? '🗗' : '⛶';
+    if (txt) txt.textContent = isFs ? 'Exit Screen' : 'Fullscreen';
+  }
+  document.addEventListener('fullscreenchange', updateBrowserFsBtnState);
+
+  var wpFsExportBtn = $('#wpFsExportBtn');
+  if (wpFsExportBtn) {
+    wpFsExportBtn.addEventListener('click', function () {
+      triggerWallpaperExport();
+    });
+  }
+
+  var wpFsShuffleBtn = $('#wpFsShuffleBtn');
+  if (wpFsShuffleBtn) {
+    wpFsShuffleBtn.addEventListener('click', function () {
+      var quote = WP_QUOTES[Math.floor(Math.random() * WP_QUOTES.length)];
+      syncAffirmationText(quote, 'fs');
+      updateFullscreenPreviewUI();
+      resetFsIdleTimer();
+    });
+  }
+
+  var wpFsRatioBtn = $('#wpFsRatioBtn');
+  if (wpFsRatioBtn) {
+    wpFsRatioBtn.addEventListener('click', function () {
+      wpState.ratio = wpState.ratio === 'desktop' ? 'phone' : 'desktop';
+      updateWpRatioUI();
+      renderWpPresets();
+      renderWallpaper();
+      updateFullscreenPreviewUI();
+      saveWpSettings();
+      resetFsIdleTimer();
+    });
+  }
+
+  var wpFsToggleClockBtn = $('#wpFsToggleClockBtn');
+  if (wpFsToggleClockBtn) {
+    wpFsToggleClockBtn.addEventListener('click', function () {
+      if (wpFsMockOverlay) {
+        var isHidden = wpFsMockOverlay.classList.contains('hidden');
+        wpFsMockOverlay.classList.toggle('hidden', !isHidden);
+        wpFsToggleClockBtn.classList.toggle('active', isHidden);
+      }
+      resetFsIdleTimer();
+    });
+  }
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
+      closeWallpaperFullscreen();
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden')) {
+      updateFullscreenPreviewUI();
+    }
+  });
 
   /* Studio Tab Switcher (Mobile) */
   function switchToWpTab(tabName) {
