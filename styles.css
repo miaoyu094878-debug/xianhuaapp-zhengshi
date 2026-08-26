@@ -1067,9 +1067,15 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.12);
   background: #000000;
   cursor: grab;
-  touch-action: none;
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.wp-canvas.is-selected {
+  touch-action: none;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 2px var(--accent, #9a63d2), 0 0 24px rgba(154, 99, 210, 0.45);
+  animation: wpSelectPulse 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .wp-canvas.dragging { cursor: grabbing; }
 .wp-canvas.resizing { cursor: nwse-resize; }
@@ -1114,55 +1120,6 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 }
 .wp-canvas-expand-badge:active {
   transform: translateY(0) scale(0.97) !important;
-}
-
-/* Mobile Double-tap Selection & Edit Mode */
-.wp-mobile-select-badge {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .wp-canvas {
-    touch-action: pan-y;
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
-  }
-  
-  .wp-canvas.is-selected {
-    touch-action: none;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 2px var(--accent, #9a63d2), 0 0 24px rgba(154, 99, 210, 0.45);
-    animation: wpSelectPulse 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .wp-mobile-select-badge {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(18, 12, 32, 0.82);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.32);
-    color: #ffffff;
-    border-radius: 999px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    z-index: 10;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  .wp-mobile-select-badge.active {
-    background: color-mix(in srgb, var(--accent, #9a63d2) 85%, #000);
-    border-color: #ffffff;
-    color: #ffffff;
-    box-shadow: 0 4px 20px rgba(154, 99, 210, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.4);
-  }
 }
 
 @keyframes wpSelectPulse {

@@ -1558,36 +1558,7 @@
     wpState.isMobileSelected = !!selected;
     if (wpCanvas) wpCanvas.classList.toggle('is-selected', wpState.isMobileSelected);
     if (wpCanvasWrap) wpCanvasWrap.classList.toggle('is-selected', wpState.isMobileSelected);
-
-    var badge = $('#wpMobileSelectBadge');
-    if (badge) {
-      if (wpState.isMobileSelected) {
-        badge.classList.add('active');
-        badge.innerHTML = '<span class="wp-mobile-select-ico">✓</span><span class="wp-mobile-select-text">完成编辑</span>';
-      } else {
-        badge.classList.remove('active');
-        badge.innerHTML = '<span class="wp-mobile-select-ico">👆</span><span class="wp-mobile-select-text">双击编辑壁纸</span>';
-      }
-    }
-
-    var hint = $('#wpGestureHint');
-    if (hint) {
-      if (wpState.isMobileSelected) {
-        hint.innerHTML = '<svg class="wp-hint-ico" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg><span>✨ 壁纸已选中：可拖动文字与把手、单指平移背景或双指缩放 · 点击外部退出</span>';
-      } else {
-        hint.innerHTML = '<svg class="wp-hint-ico" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg><span>👆 双击壁纸进入编辑 · 单指滑动可正常浏览页面</span>';
-      }
-    }
-
     renderWallpaper();
-  }
-
-  var wpMobileSelectBadge = $('#wpMobileSelectBadge');
-  if (wpMobileSelectBadge) {
-    wpMobileSelectBadge.addEventListener('click', function (e) {
-      e.stopPropagation();
-      setMobileWallpaperSelected(!wpState.isMobileSelected);
-    });
   }
 
   // Double-click support
@@ -1595,14 +1566,20 @@
     setMobileWallpaperSelected(!wpState.isMobileSelected);
   });
 
-  // Tap outside canvas to deselect on mobile
+  // Tap or scroll outside canvas to deselect on mobile
   document.addEventListener('pointerdown', function (e) {
     if (wpState.isMobileSelected && isMobileTouchMode()) {
-      if (wpCanvasWrap && !wpCanvasWrap.contains(e.target) && !e.target.closest('#wpMobileSelectBadge') && !e.target.closest('.wp-studio-bar') && !e.target.closest('.wp-tab-panel') && !e.target.closest('.wp-live-dock')) {
+      if (wpCanvasWrap && !wpCanvasWrap.contains(e.target) && !e.target.closest('.wp-studio-bar') && !e.target.closest('.wp-tab-panel') && !e.target.closest('.wp-live-dock')) {
         setMobileWallpaperSelected(false);
       }
     }
   });
+
+  window.addEventListener('scroll', function () {
+    if (wpState.isMobileSelected && isMobileTouchMode() && !wpState._dragging) {
+      setMobileWallpaperSelected(false);
+    }
+  }, { passive: true });
 
   function wpCanvasPoint(clientX, clientY) {
     var ratio = WP_RATIOS[wpState.ratio];
@@ -1677,7 +1654,15 @@
       if (timeDiff > 0 && timeDiff < 400 && dist < 45) {
         // Double tap recognized!
         lastCanvasTapTime = 0;
-        setMobileWallpaperSelected(!wpState.isMobileSelected);
+        var willSelect = !wpState.isMobileSelected;
+        setMobileWallpaperSelected(willSelect);
+        if (willSelect) {
+          var pDouble = wpCanvasPoint(e.clientX, e.clientY);
+          var hitDouble = wpHitTest(pDouble);
+          if (hitDouble.target === 'text' || hitDouble.target === 'text-handle') {
+            setActiveLayer('text');
+          }
+        }
         if (navigator.vibrate) {
           try { navigator.vibrate(30); } catch (_) {}
         }
