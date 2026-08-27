@@ -422,82 +422,494 @@
     });
   }
 
-  /* ═══════ Future Self (audio manifestation) ═══════ */
-  function buildFutureScript(name, desire) {
-    var n = name ? name : 'friend';
-    var d = desire || (db.profile && db.profile.area ? 'your ' + db.profile.area.toLowerCase() + ' dream' : 'your deepest desire');
-    return 'Hello ' + n + '. I am you — from a future where ' + d + ' is already completely real.\n\n' +
-      'I want you to know: it happened. Gently, surely, exactly as it was meant to. Every small step you took mattered. The doubt you felt was only the old you loosening its grip.\n\n' +
-      'In my reality now, ' + d + ' fills my days with ease and quiet joy. You are already on the way. Keep going — I am already here, waiting for you with open arms.\n\n' +
-      'Breathe. You have got this. ✧';
+  /* ═══════ Stella Flow — Living Reality AI Voice Manifestation ═══════ */
+  var fsState = {
+    storyData: null,
+    isPlaying: false,
+    isPaused: false,
+    audioCtx: null,
+    sourceNode: null,
+    audioBuffer: null,
+    voiceGainNode: null,
+    ambGainNode: null,
+    ambNodes: null,
+    currentUtterance: null,
+    activeParagraphIdx: 0,
+    paragraphs: [],
+    highlightTimer: null
+  };
+
+  function getFsAudioContext() {
+    if (!fsState.audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) fsState.audioCtx = new AC();
+    }
+    if (fsState.audioCtx && fsState.audioCtx.state === 'suspended') {
+      fsState.audioCtx.resume();
+    }
+    return fsState.audioCtx;
   }
-  var fsPlaying = false;
-  function pickVoice() {
+
+  // Solfeggio & Atmospheric Frequency Synthesizer
+  function startFsAmbient(freqType) {
+    stopFsAmbient();
+    if (!freqType || freqType === 'off') return;
+
+    try {
+      var ctx = getFsAudioContext();
+      if (!ctx) return;
+
+      var masterAmbGain = ctx.createGain();
+      var ambVolVal = parseFloat($('#fsAmbVol') ? $('#fsAmbVol').value : 0.5);
+      masterAmbGain.gain.setValueAtTime(0.001, ctx.currentTime);
+      masterAmbGain.gain.linearRampToValueAtTime(0.12 * ambVolVal, ctx.currentTime + 1.2);
+      masterAmbGain.connect(ctx.destination);
+      fsState.ambGainNode = masterAmbGain;
+
+      var oscList = [];
+
+      if (freqType === '528') {
+        // 528Hz Miracle & Transformation (Solfeggio MI) with Theta Binaural 6Hz (528 & 534)
+        var f1 = 528, f2 = 534, sub = 264;
+        var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator();
+        o1.type = 'sine'; o1.frequency.value = f1;
+        o2.type = 'sine'; o2.frequency.value = f2;
+        o3.type = 'sine'; o3.frequency.value = sub;
+
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 1200;
+
+        o1.connect(filter); o2.connect(filter); o3.connect(filter);
+        filter.connect(masterAmbGain);
+        o1.start(); o2.start(); o3.start();
+        oscList = [o1, o2, o3];
+      } else if (freqType === '432') {
+        // 432Hz Natural Healing & Deep Resonance with Alpha 8Hz (432 & 440)
+        var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator();
+        o1.type = 'sine'; o1.frequency.value = 432;
+        o2.type = 'sine'; o2.frequency.value = 440;
+        o3.type = 'sine'; o3.frequency.value = 216;
+
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 900;
+
+        o1.connect(filter); o2.connect(filter); o3.connect(filter);
+        filter.connect(masterAmbGain);
+        o1.start(); o2.start(); o3.start();
+        oscList = [o1, o2, o3];
+      } else if (freqType === '639') {
+        // 639Hz Heart Chakra Connection & Harmonious Relationship
+        var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator();
+        o1.type = 'sine'; o1.frequency.value = 639;
+        o2.type = 'sine'; o2.frequency.value = 645;
+        o3.type = 'sine'; o3.frequency.value = 319.5;
+
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 1400;
+
+        o1.connect(filter); o2.connect(filter); o3.connect(filter);
+        filter.connect(masterAmbGain);
+        o1.start(); o2.start(); o3.start();
+        oscList = [o1, o2, o3];
+      } else if (freqType === 'bowl') {
+        // Zen Tibetan Singing Bowl (Harmonic Overtones + Gentle Tremolo)
+        var freqs = [174, 348, 522, 696];
+        var lfo = ctx.createOscillator();
+        var lfoGain = ctx.createGain();
+        lfo.frequency.value = 0.2; // Slow 5-second breath wave
+        lfoGain.gain.value = 0.04;
+        lfo.connect(lfoGain.gain);
+
+        freqs.forEach(function (f, idx) {
+          var osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = f;
+          var g = ctx.createGain();
+          g.gain.value = 0.3 / (idx + 1);
+          osc.connect(g);
+          g.connect(masterAmbGain);
+          osc.start();
+          oscList.push(osc);
+        });
+        lfo.start();
+        oscList.push(lfo);
+      }
+
+      fsState.ambNodes = oscList;
+    } catch (e) {
+      console.warn('AudioContext ambient start error:', e);
+    }
+  }
+
+  function stopFsAmbient() {
+    if (fsState.ambGainNode && fsState.audioCtx) {
+      try {
+        fsState.ambGainNode.gain.linearRampToValueAtTime(0.0001, fsState.audioCtx.currentTime + 0.5);
+      } catch (e) {}
+    }
+    setTimeout(function () {
+      if (fsState.ambNodes) {
+        fsState.ambNodes.forEach(function (node) {
+          try { node.stop(); node.disconnect(); } catch (e) {}
+        });
+        fsState.ambNodes = null;
+      }
+      fsState.ambGainNode = null;
+    }, 600);
+  }
+
+  // Update Ambient Volume dynamically
+  if ($('#fsAmbVol')) {
+    $('#fsAmbVol').addEventListener('input', function () {
+      var val = parseFloat(this.value);
+      if (fsState.ambGainNode && fsState.audioCtx) {
+        fsState.ambGainNode.gain.setValueAtTime(0.12 * val, fsState.audioCtx.currentTime);
+      }
+    });
+  }
+
+  // Frequency selector live switch
+  if ($('#fsFreq')) {
+    $('#fsFreq').addEventListener('change', function () {
+      if (fsState.isPlaying) {
+        startFsAmbient(this.value);
+      }
+      var label = $('#fsAmbLabel');
+      if (label) {
+        var txt = this.options[this.selectedIndex].text.split('·')[0].trim();
+        label.textContent = '🎵 ' + txt + ' 音量';
+      }
+    });
+  }
+
+  // Quick Preset Buttons
+  $$('.fs-preset-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var goal = btn.dataset.goal;
+      var textarea = $('#fsDesire');
+      if (textarea && goal) {
+        textarea.value = goal;
+        textarea.focus();
+        btn.style.transform = 'scale(0.96)';
+        setTimeout(function () { btn.style.transform = ''; }, 150);
+      }
+    });
+  });
+
+  // Decode raw 24kHz PCM from Gemini TTS
+  function pcmToAudioBuffer(base64Data, sampleRate, ctx) {
+    try {
+      var binary = atob(base64Data);
+      var len = binary.length;
+      var bytes = new Uint8Array(len);
+      for (var i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      var int16 = new Int16Array(bytes.buffer);
+      var float32 = new Float32Array(int16.length);
+      for (var j = 0; j < int16.length; j++) {
+        float32[j] = int16[j] / 32768.0;
+      }
+      var audioBuf = ctx.createBuffer(1, float32.length, sampleRate || 24000);
+      audioBuf.copyToChannel(float32, 0, 0);
+      return audioBuf;
+    } catch (e) {
+      console.error('Failed to decode PCM audio:', e);
+      return null;
+    }
+  }
+
+  function pickNaturalVoice(isZh) {
     if (!('speechSynthesis' in window)) return null;
     var vs = window.speechSynthesis.getVoices();
     if (!vs.length) return null;
-    return vs.filter(function (v) { return /en/i.test(v.lang) && /female|samantha|victoria|zira|karen|moira|google US|woman|girl/i.test(v.name); })[0] ||
-           vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
-           vs.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+    if (isZh) {
+      return vs.filter(function (v) { return /zh|cmn|chinese/i.test(v.lang) && /ting|xiaoxiao|meijia|sinji|google|natural/i.test(v.name); })[0] ||
+             vs.filter(function (v) { return /zh[-_](cn|hk|tw)/i.test(v.lang); })[0] ||
+             vs.filter(function (v) { return /^zh/i.test(v.lang); })[0] || null;
+    } else {
+      return vs.filter(function (v) { return /en/i.test(v.lang) && /samantha|victoria|karen|zira|natural|google US/i.test(v.name); })[0] ||
+             vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
+             vs.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+    }
   }
-  function fsSpeak(text) {
-    if (!('speechSynthesis' in window)) { alert('Text-to-speech is not supported on this device.'); return; }
+
+  function updateFsPlaybackUI(playing) {
+    fsState.isPlaying = playing;
+    var orbIcon = $('#fsOrbIcon');
+    var playBtn = $('#fsPlayBtn');
+    var orbPlay = $('#fsOrbPlay');
+    var stage = $('#fsPlayer');
+
+    if (playing) {
+      if (orbIcon) orbIcon.textContent = '⏸';
+      if (playBtn) playBtn.textContent = '⏸ 暂停诵读';
+      if (orbPlay) orbPlay.classList.add('playing');
+      if (stage) stage.classList.add('is-playing');
+    } else {
+      if (orbIcon) orbIcon.textContent = '▶';
+      if (playBtn) playBtn.textContent = '▶ 播放诵读';
+      if (orbPlay) orbPlay.classList.remove('playing');
+      if (stage) stage.classList.remove('is-playing');
+    }
+  }
+
+  function highlightParagraph(idx) {
+    fsState.activeParagraphIdx = idx;
+    var pEls = $$('.fs-story-p');
+    pEls.forEach(function (p, i) {
+      var active = (i === idx);
+      p.classList.toggle('current-reading', active);
+      if (active) {
+        p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  // Play narration using Web Speech synthesis with gentle cadence
+  function playWithWebSpeech(startIdx) {
+    if (!('speechSynthesis' in window)) {
+      alert('您的浏览器暂不支持语音合成，但您可以静心阅读上方的显化故事。');
+      return;
+    }
+
     window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.9; u.pitch = 1.0;
-    var v = pickVoice(); if (v) u.voice = v;
-    u.onend = function () { fsPlaying = false; $('#fsPlay').textContent = '▶ Play'; };
-    u.onerror = function () { fsPlaying = false; $('#fsPlay').textContent = '▶ Play'; };
-    window.speechSynthesis.speak(u);
-    fsPlaying = true; $('#fsPlay').textContent = '⏸ Pause';
+    var idx = startIdx || 0;
+    var paragraphs = fsState.paragraphs;
+    if (!paragraphs || !paragraphs.length) return;
+
+    var speed = parseFloat($('#fsSpeed') ? $('#fsSpeed').value : 0.95);
+    var isZh = /[\u4e00-\u9fa5]/.test(paragraphs.join(' '));
+    var voice = pickNaturalVoice(isZh);
+
+    function speakNext() {
+      if (idx >= paragraphs.length) {
+        updateFsPlaybackUI(false);
+        stopFsAmbient();
+        return;
+      }
+
+      highlightParagraph(idx);
+      var text = paragraphs[idx];
+      var u = new SpeechSynthesisUtterance(text);
+      u.rate = speed;
+      u.pitch = 0.96; // Warm & grounded pitch
+      if (voice) u.voice = voice;
+
+      u.onend = function () {
+        idx++;
+        // Gentle breath pause between paragraphs
+        setTimeout(function () {
+          if (fsState.isPlaying) speakNext();
+        }, 900);
+      };
+
+      u.onerror = function () {
+        idx++;
+        if (fsState.isPlaying) speakNext();
+      };
+
+      fsState.currentUtterance = u;
+      window.speechSynthesis.speak(u);
+    }
+
+    updateFsPlaybackUI(true);
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    startFsAmbient(freq);
+    speakNext();
   }
-  $('#fsForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var raw = $('#fsDesire').value.trim();
-    var desire = raw || (db.profile && db.profile.desire) || '';
-    if (!desire) return;
-    var script = buildFutureScript(db.profile && db.profile.name, desire);
-    $('#fsScript').textContent = script;
-    $('#fsScript').setAttribute('contenteditable', 'true');
-    $('#fsPlayer').classList.remove('hidden');
-    fsSpeak(script);
-  });
-  $('#fsPlay').addEventListener('click', function () {
-    var txt = $('#fsScript').textContent;
-    if (fsPlaying) { window.speechSynthesis.pause(); fsPlaying = false; $('#fsPlay').textContent = '▶ Resume'; }
-    else if (window.speechSynthesis && window.speechSynthesis.paused && window.speechSynthesis.speaking) {
-      window.speechSynthesis.resume(); fsPlaying = true; $('#fsPlay').textContent = '⏸ Pause';
-    } else { if (!txt) return; fsSpeak(txt); }
-  });
-  /* Ambient pad via Web Audio */
-  var ambCtx = null, ambNodes = null, ambOn = false;
-  function startAmbient() {
-    try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      ambCtx = new AC();
-      var o1 = ambCtx.createOscillator(); o1.type = 'sine'; o1.frequency.value = 110;
-      var o2 = ambCtx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 164.81;
-      var filter = ambCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 600;
-      var gain = ambCtx.createGain(); gain.gain.value = 0.045;
-      o1.connect(filter); o2.connect(filter); filter.connect(gain); gain.connect(ambCtx.destination);
-      o1.start(); o2.start();
-      ambNodes = { o1: o1, o2: o2 };
-      ambOn = true;
-      $('#fsAmbient').textContent = 'Ambient: On'; $('#fsAmbient').setAttribute('aria-pressed', 'true');
-    } catch (e) { /* ignore */ }
+
+  // Start / Resume Playback
+  function playFsManifestation(fromBeginning) {
+    if (!fsState.storyData) return;
+
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    startFsAmbient(freq);
+
+    if (fromBeginning) {
+      fsState.activeParagraphIdx = 0;
+    }
+
+    if (window.speechSynthesis && window.speechSynthesis.paused && !fromBeginning) {
+      window.speechSynthesis.resume();
+      updateFsPlaybackUI(true);
+      return;
+    }
+
+    playWithWebSpeech(fsState.activeParagraphIdx);
   }
-  function stopAmbient() {
-    if (ambNodes) { try { ambNodes.o1.stop(); ambNodes.o2.stop(); } catch (e) {} ambNodes = null; }
-    if (ambCtx) { try { ambCtx.close(); } catch (e) {} ambCtx = null; }
-    ambOn = false;
-    var b = $('#fsAmbient'); if (b) { b.textContent = 'Ambient: Off'; b.setAttribute('aria-pressed', 'false'); }
+
+  function pauseFsManifestation() {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.pause();
+    }
+    stopFsAmbient();
+    updateFsPlaybackUI(false);
   }
-  $('#fsAmbient').addEventListener('click', function () { if (ambOn) stopAmbient(); else startAmbient(); });
+
   function stopFutureAudio() {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    if (fsPlaying) { fsPlaying = false; var p = $('#fsPlay'); if (p) p.textContent = '▶ Play'; }
-    if (ambOn) stopAmbient();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    stopFsAmbient();
+    updateFsPlaybackUI(false);
   }
+
+  // Render Story into UI
+  function renderFsStoryUI(data) {
+    fsState.storyData = data;
+    $('#fsSceneTitle').textContent = data.title || '✨ 现时显化之境';
+    $('#fsAffirmBadge').textContent = data.affirmation || '我已完全安住在丰盛与宁静之中';
+    $('#fsAnchorDesc').textContent = data.sensoryAnchor || '轻轻将手放在心口，感受温热平稳的心跳，对自己微笑。';
+
+    var rawStory = data.story || '';
+    var paragraphs = rawStory.split(/\n+/).map(function (p) { return p.trim(); }).filter(Boolean);
+    if (!paragraphs.length) paragraphs = [rawStory];
+    fsState.paragraphs = paragraphs;
+
+    var storyBody = $('#fsStoryBody');
+    storyBody.innerHTML = '';
+    paragraphs.forEach(function (pText, i) {
+      var pEl = document.createElement('p');
+      pEl.className = 'fs-story-p';
+      pEl.textContent = pText;
+      pEl.addEventListener('click', function () {
+        // Click to jump to this paragraph
+        fsState.activeParagraphIdx = i;
+        playWithWebSpeech(i);
+      });
+      storyBody.appendChild(pEl);
+    });
+
+    $('#fsLoading').classList.add('hidden');
+    $('#fsPlayer').classList.remove('hidden');
+
+    // Auto-scroll into view smoothly
+    $('#fsPlayer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Begin immersive playback
+    playFsManifestation(true);
+  }
+
+  // Form Submit: Call Gemini API /api/manifest-story
+  if ($('#fsForm')) {
+    $('#fsForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var raw = $('#fsDesire').value.trim();
+      var desire = raw || (db.profile && db.profile.desire) || '';
+      if (!desire) {
+        alert('请输入你想要显化实现的心愿或目标 ✨');
+        $('#fsDesire').focus();
+        return;
+      }
+
+      stopFutureAudio();
+
+      $('#fsPlayer').classList.add('hidden');
+      $('#fsLoading').classList.remove('hidden');
+      $('#fsLoading').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
+      var name = (db.profile && db.profile.name) || '';
+
+      try {
+        var res = await fetch('/api/manifest-story', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            desire: desire,
+            name: name,
+            mood: mood
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error('Server returned ' + res.status);
+        }
+
+        var data = await res.json();
+        renderFsStoryUI(data);
+      } catch (err) {
+        console.warn('API error, using client fallback:', err);
+        // Instant graceful client-side fallback
+        var isZh = /[\u4e00-\u9fa5]/.test(desire);
+        var fallbackData = isZh ? {
+          title: '心愿已成 · ' + desire.slice(0, 12),
+          affirmation: '我已经完全沉浸在【' + desire + '】的现实中，内心充盈且富足。',
+          story: '此时此刻，你正深深地呼吸着，空气中流动着温暖而安宁的气息。\n\n曾几何时你所渴望的一切——“' + desire + '”，现在就真真切切地发生在你当下的生活里。每一个细节都是如此真实，你的嘴角不自觉地扬起微笑，胸口涌动着平静而巨大的喜悦与感激。\n\n所有过去的迷茫与追寻，都在这一刻化为了笃定。你正从容地享受着这份丰盛，每一步都踏在轻盈与自由的节奏上。这就是你亲手创造并拥有的生活。\n\n把手轻轻放在心口，感受那份平稳而有力的心跳——现在的你，已经安住在属于你的理想之境中。',
+          sensoryAnchor: '轻轻把右手放在心口，感受平稳温热的心跳，对自己微笑。',
+          frequency: '528Hz',
+          mood: mood
+        } : {
+          title: 'Reality Realized · ' + desire.slice(0, 18),
+          affirmation: 'I am fully living in the reality of ' + desire + ', with peace and ease.',
+          story: 'Right now, in this very moment, take a slow, gentle breath. Feel the warm, grounding air filling your lungs.\n\nLook around you. Everything you once envisioned — "' + desire + '" — is here, unfolding naturally in your everyday life. You feel the physical sensation of ease in your shoulders, the deep knowing in your chest that you have arrived.\n\nListen to the calm rhythm of this reality. You are peaceful, abundant, and completely at home within yourself.\n\nPlace your hand gently over your heart. Feel that warm, steady pulse — you are already here, thriving in your dream.',
+          sensoryAnchor: 'Place your hand over your heart, feel its steady warmth, and smile.',
+          frequency: '528Hz',
+          mood: mood
+        };
+        renderFsStoryUI(fallbackData);
+      }
+    });
+  }
+
+  // Play / Pause Click Handlers
+  if ($('#fsPlayBtn')) {
+    $('#fsPlayBtn').addEventListener('click', function () {
+      if (fsState.isPlaying) pauseFsManifestation();
+      else playFsManifestation(false);
+    });
+  }
+
+  if ($('#fsOrbPlay')) {
+    $('#fsOrbPlay').addEventListener('click', function () {
+      if (fsState.isPlaying) pauseFsManifestation();
+      else playFsManifestation(false);
+    });
+  }
+
+  // Transfer to Wallpaper Studio
+  if ($('#fsSendToWallpaper')) {
+    $('#fsSendToWallpaper').addEventListener('click', function () {
+      if (!fsState.storyData) return;
+      var textToSet = fsState.storyData.affirmation || fsState.storyData.title || '';
+      if (typeof syncAffirmationText === 'function') {
+        syncAffirmationText(textToSet, 'fs');
+      }
+      goTab('tab-wallpaper');
+      window.scrollTo(0, 0);
+    });
+  }
+
+  // Copy Story to Clipboard
+  if ($('#fsCopyText')) {
+    $('#fsCopyText').addEventListener('click', function () {
+      if (!fsState.storyData) return;
+      var text = '✨ ' + (fsState.storyData.title || '') + '\n\n' +
+                 '✦ 肯定语：' + (fsState.storyData.affirmation || '') + '\n\n' +
+                 (fsState.storyData.story || '') + '\n\n' +
+                 '⚓ 身体锚点：' + (fsState.storyData.sensoryAnchor || '');
+      navigator.clipboard.writeText(text).then(function () {
+        var orig = $('#fsCopyText').textContent;
+        $('#fsCopyText').textContent = '✓ 已复制到剪贴板';
+        setTimeout(function () { $('#fsCopyText').textContent = orig; }, 2000);
+      }).catch(function () {
+        alert('文本已选定，可长按复制。');
+      });
+    });
+  }
+
+  // Return to Form
+  if ($('#fsNewDesire')) {
+    $('#fsNewDesire').addEventListener('click', function () {
+      stopFutureAudio();
+      $('#fsPlayer').classList.add('hidden');
+      $('#fsDesire').focus();
+      $('#fsForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+
 
   /* ═══════ Cosmic Meditation ═══════ */
   var medState = { min: 5, left: 300, timer: null, breathTimer: null, running: false };

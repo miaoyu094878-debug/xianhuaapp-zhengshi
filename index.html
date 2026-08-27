@@ -1999,6 +1999,185 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 :root[data-theme="ios"] .breath-circle { background: radial-gradient(circle at 38% 30%, #5ac8fa, #007aff 55%, #0055d4); box-shadow: 0 0 50px rgba(0,122,255,0.4); }
 :root[data-theme="ios"] .more-card { border-color: rgba(255,255,255,0.6); }
 
+/* ════════════════════════════════════════════════════════════════
+   STELLA AI LIVING REALITY MANIFESTATION VOICE & AUDIO EXPERIENCE
+   ════════════════════════════════════════════════════════════════ */
+.fs-hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  margin-bottom: 8px;
+}
+.fs-presets-row {
+  display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 16px;
+}
+.fs-preset-btn {
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-soft); padding: 7px 13px; border-radius: 999px;
+  font-size: 12px; cursor: pointer; transition: all 0.25s ease;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+}
+.fs-preset-btn:hover {
+  background: var(--surface-hover); color: var(--text);
+  border-color: var(--accent); transform: translateY(-1px);
+}
+.fs-form-options {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px;
+}
+@media (max-width: 480px) {
+  .fs-form-options { grid-template-columns: 1fr; }
+}
+.fs-opt-group { display: flex; flex-direction: column; gap: 5px; }
+.fs-opt-group label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.fs-select {
+  width: 100%; padding: 9px 12px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text); font-size: 13px; outline: none; cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.fs-select:focus { border-color: var(--accent); }
+
+/* --- Stella Audio Visualizer & Stage --- */
+.fs-stage {
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; padding: 26px 18px 20px; text-align: center;
+  overflow: hidden;
+}
+.fs-orb-container {
+  position: relative; width: 140px; height: 140px; margin: 0 auto 18px;
+  display: flex; align-items: center; justify-content: center;
+}
+.fs-orb-glow {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent) 0%, color-mix(in srgb, var(--accent2, #e386b6) 25%, transparent) 55%, transparent 75%);
+  filter: blur(14px);
+  animation: fsPulseGlow 4s ease-in-out infinite alternate;
+}
+.fs-orb-core {
+  position: relative; z-index: 2; width: 88px; height: 88px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2, #e386b6));
+  box-shadow: 0 0 35px color-mix(in srgb, var(--accent) 55%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 32px; cursor: pointer; border: 2px solid rgba(255,255,255,0.7);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.fs-orb-core:hover { transform: scale(1.06); }
+.fs-orb-core.playing {
+  animation: fsOrbBreathe 3s ease-in-out infinite;
+  box-shadow: 0 0 50px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+@keyframes fsPulseGlow {
+  0% { transform: scale(0.88); opacity: 0.6; }
+  100% { transform: scale(1.18); opacity: 1; }
+}
+@keyframes fsOrbBreathe {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.08); filter: brightness(1.18); }
+}
+
+.fs-soundwave-bars {
+  display: flex; align-items: center; justify-content: center; gap: 4px; height: 24px; margin-bottom: 12px;
+}
+.fs-bar {
+  width: 3px; height: 6px; border-radius: 99px;
+  background: var(--accent); opacity: 0.4; transition: height 0.15s ease, opacity 0.15s ease;
+}
+.fs-stage.is-playing .fs-bar {
+  opacity: 0.9;
+  animation: fsWaveBounce 1.2s ease-in-out infinite alternate;
+}
+.fs-stage.is-playing .fs-bar:nth-child(2) { animation-delay: 0.15s; height: 18px; }
+.fs-stage.is-playing .fs-bar:nth-child(3) { animation-delay: 0.3s; height: 24px; }
+.fs-stage.is-playing .fs-bar:nth-child(4) { animation-delay: 0.45s; height: 16px; }
+.fs-stage.is-playing .fs-bar:nth-child(5) { animation-delay: 0.2s; height: 12px; }
+.fs-stage.is-playing .fs-bar:nth-child(6) { animation-delay: 0.35s; height: 20px; }
+.fs-stage.is-playing .fs-bar:nth-child(7) { animation-delay: 0.1s; height: 14px; }
+@keyframes fsWaveBounce {
+  0% { height: 4px; }
+  100% { height: 24px; }
+}
+
+.fs-scene-title {
+  font-family: var(--font-heading); font-size: 20px; font-weight: 700;
+  color: var(--text); margin-bottom: 8px; letter-spacing: 0.5px;
+}
+.fs-affirm-badge {
+  display: inline-block; padding: 8px 16px; border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent); font-weight: 600; font-size: 13px; line-height: 1.4;
+  margin-bottom: 18px; max-width: 90%;
+}
+.fs-story-card {
+  text-align: left; background: var(--surface-2); border-radius: 16px;
+  padding: 18px 16px; margin-bottom: 16px; border: 1px solid var(--border);
+  line-height: 1.85; font-size: 14px; color: var(--text-soft);
+  max-height: 280px; overflow-y: auto; scroll-behavior: smooth;
+}
+.fs-story-p {
+  margin-bottom: 14px; transition: color 0.3s ease, transform 0.3s ease;
+}
+.fs-story-p:last-child { margin-bottom: 0; }
+.fs-story-p.current-reading {
+  color: var(--text); font-weight: 500;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.fs-anchor-box {
+  display: flex; align-items: flex-start; gap: 10px; text-align: left;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 1px dashed color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 14px; padding: 12px 14px; margin-bottom: 18px; font-size: 12.5px; color: var(--text);
+}
+.fs-anchor-ico { font-size: 18px; flex-shrink: 0; line-height: 1.2; }
+.fs-anchor-text { flex: 1; line-height: 1.5; color: var(--text-soft); }
+.fs-anchor-text strong { color: var(--text); display: block; font-size: 12px; margin-bottom: 2px; }
+
+/* Sound & Volume Mixer */
+.fs-mixer {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 10px 14px; margin-bottom: 18px;
+}
+.fs-mixer-item {
+  display: flex; align-items: center; gap: 8px; flex: 1; min-width: 140px;
+}
+.fs-mixer-item span { font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 600; white-space: nowrap; }
+.fs-mixer-item input[type="range"] {
+  flex: 1; accent-color: var(--accent); height: 4px; cursor: pointer;
+}
+
+/* Action Controls Bar */
+.fs-controls-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; width: 100%;
+}
+.fs-btn-main {
+  min-width: 120px; padding: 10px 20px; font-size: 14px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.fs-secondary-btn {
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 14px; border-radius: 12px; font-size: 12px;
+  cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px;
+}
+.fs-secondary-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+
+/* Loading State for AI Manifestation generation */
+.fs-loading-overlay {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px; text-align: center; gap: 14px;
+}
+.fs-loading-spinner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  animation: fsSpin 1s linear infinite;
+}
+@keyframes fsSpin { to { transform: rotate(360deg); } }
+.fs-loading-txt { font-size: 14px; color: var(--text); font-weight: 500; }
+.fs-loading-sub { font-size: 12px; color: var(--text-dim); }
+
   </style>
 
   <script>
@@ -2036,7 +2215,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <button class="side-link" data-tab="tab-vision">◈ Vision Board</button>
         <button class="side-link" data-tab="tab-wallpaper">🖼 Wallpaper</button>
         <p class="ds-group">AI &amp; Guidance</p>
-        <button class="side-link" data-tab="tab-future">✧ Future Self</button>
+        <button class="side-link" data-tab="tab-future">🌌 Living Reality (显化剧场)</button>
         <button class="side-link" data-tab="tab-ai-vision">🎬 AI Vision</button>
         <button class="side-link" data-tab="tab-avatar">👤 Avatar</button>
         <button class="side-link" data-tab="tab-meditate">◎ Breathe</button>
@@ -2098,8 +2277,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
         <div class="card glass focus-card" data-goto="tab-future">
           <div class="focus-top">
-            <span class="focus-title">Future Self ✧</span>
-            <span class="focus-meta" id="glanceFuture">Hear your desire already true</span>
+            <span class="focus-title">Living Reality 🌌</span>
+            <span class="focus-meta" id="glanceFuture">进入目标已实现的现在进行时沉浸音频</span>
           </div>
         </div>
       </section>
@@ -2184,20 +2363,137 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <div id="visionBoard" class="vision-grid"></div>
       </section>
 
-      <!-- Future Self -->
+      <!-- Living Reality & Future Self (AI Voice Manifestation) -->
       <section id="tab-future" class="tab-page">
-        <h2 class="page-title">Future Self</h2>
-        <p class="page-sub">Hear your desire spoken as if it has already come true. Your future self is calling.</p>
+        <div class="fs-hero-badge">✦ Stella Flow · 现时显化导引</div>
+        <h2 class="page-title">沉浸显化剧场 · Living In Reality</h2>
+        <p class="page-sub">输入你的心愿目标，AI 将带你进入【现在进行时】的沉浸感官故事，配以疗愈音频与温柔声线导引，让你身临其境、心想事成。</p>
+
+        <!-- Intention & Goal Form -->
         <form id="fsForm" class="card glass form-card">
-          <label class="field-label">What are you manifesting?</label>
-          <textarea id="fsDesire" rows="3" placeholder="e.g. I run a thriving creative studio that lights people up" maxlength="160"></textarea>
-          <button type="submit" class="btn-primary">Generate My Future Self ✦</button>
+          <label class="field-label">1 · 设定你的心愿目标 (Your Goal / Desire)</label>
+          <textarea id="fsDesire" rows="3" placeholder="例如：我正拥有一栋靠海的明亮小院，每天闻着咖啡香在微风中写作，财富丰盛自由，充满幸福与笃定..." maxlength="300"></textarea>
+          
+          <!-- Quick Preset Chips -->
+          <div class="fs-presets-row">
+            <button type="button" class="fs-preset-btn" data-goal="我正拥有一栋依山傍海的阳光居所，每天伴着浪声醒来，身心自由，财务丰盛。">🌊 阳光海边居所</button>
+            <button type="button" class="fs-preset-btn" data-goal="我正经营着热爱的创意工作室，每一天都充满灵感，吸引着优秀的伙伴，收入丰盛。">💼 丰盛事业与财富</button>
+            <button type="button" class="fs-preset-btn" data-goal="我正与深度懂我、温柔爱护我的灵魂伴侣相伴，在充满笑声与温馨的家中共享三餐四季。">💖 甜蜜灵魂伴侣</button>
+            <button type="button" class="fs-preset-btn" data-goal="我的身体充满了蓬勃的活力与自愈力，内心情绪宁静如水，每一个细胞都健康喜悦。">🌿 身心充盈健康</button>
+            <button type="button" class="fs-preset-btn" data-goal="我已经顺利通过了所有挑战，站在梦想的舞台上，从容展现自己的才华与光芒。">🌟 自信发光与成就</button>
+          </div>
+
+          <!-- Atmosphere, Voice & Frequency Options -->
+          <div class="fs-form-options">
+            <div class="fs-opt-group">
+              <label for="fsMood">氛围心境 / Atmosphere</label>
+              <select id="fsMood" class="fs-select">
+                <option value="calm">🌅 晨曦希望 (Serene Sunrise)</option>
+                <option value="ocean">🌊 蔚蓝海浪 (Ocean Horizon)</option>
+                <option value="cosmic">🌌 浩瀚星海 (Cosmic Void)</option>
+                <option value="forest">🌲 旷野松林 (Deep Forest)</option>
+                <option value="radiant">✨ 纯净丰盛 (Golden Abundance)</option>
+              </select>
+            </div>
+            <div class="fs-opt-group">
+              <label for="fsFreq">疗愈频段 / Frequency</label>
+              <select id="fsFreq" class="fs-select">
+                <option value="528">528 Hz · 奇迹与DNA修复</option>
+                <option value="432">432 Hz · 宇宙共振与深度疗愈</option>
+                <option value="639">639 Hz · 心轮开启与爱意吸引</option>
+                <option value="bowl">颂钵空灵音波 (Zen Singing Bowl)</option>
+                <option value="off">静音 (No Ambient)</option>
+              </select>
+            </div>
+            <div class="fs-opt-group">
+              <label for="fsVoice">AI 导引声线 / Guide Voice</label>
+              <select id="fsVoice" class="fs-select">
+                <option value="Kore">温柔知性女声 (Kore)</option>
+                <option value="Zephyr">空灵冥想女声 (Zephyr)</option>
+                <option value="Puck">温暖沉稳男声 (Puck)</option>
+                <option value="Charon">深邃磁性男声 (Charon)</option>
+                <option value="local">系统原声 (Natural Device Voice)</option>
+              </select>
+            </div>
+            <div class="fs-opt-group">
+              <label for="fsSpeed">诵读语速 / Rhythm</label>
+              <select id="fsSpeed" class="fs-select">
+                <option value="0.85">慢节奏·深度冥想 (0.85x)</option>
+                <option value="0.95" selected>自然舒缓 (0.95x)</option>
+                <option value="1.05">轻快笃定 (1.05x)</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" id="fsGenerateBtn" class="btn-primary" style="margin-top: 18px; width: 100%;">
+            ✦ 进入我的现在进行时现实 · Enter My Reality
+          </button>
         </form>
-        <div id="fsPlayer" class="card glass hidden">
-          <p class="fs-script" id="fsScript"></p>
-          <div class="fs-controls">
-            <button id="fsPlay" class="btn-primary btn-small">▶ Play</button>
-            <button id="fsAmbient" class="chip" aria-pressed="false">Ambient: Off</button>
+
+        <!-- Loading State -->
+        <div id="fsLoading" class="card glass hidden fs-loading-overlay">
+          <div class="fs-loading-spinner"></div>
+          <p class="fs-loading-txt">正在构筑你的【现在进行时】感官世界...</p>
+          <span class="fs-loading-sub">AI 正在将你的愿望编织为当下此刻的沉浸画面与音频</span>
+        </div>
+
+        <!-- Immersive Stage & Audio Player -->
+        <div id="fsPlayer" class="card glass hidden fs-stage">
+          <!-- Stella Pulsing Orb -->
+          <div class="fs-orb-container">
+            <div class="fs-orb-glow"></div>
+            <div class="fs-orb-core" id="fsOrbPlay" title="Click to Play / Pause">
+              <span id="fsOrbIcon">▶</span>
+            </div>
+          </div>
+
+          <!-- Soundwave Animation -->
+          <div class="fs-soundwave-bars" id="fsWaveBars">
+            <span class="fs-bar"></span>
+            <span class="fs-bar"></span>
+            <span class="fs-bar"></span>
+            <span class="fs-bar"></span>
+            <span class="fs-bar"></span>
+            <span class="fs-bar"></span>
+            <span class="fs-bar"></span>
+          </div>
+
+          <!-- Reality Scene Title & Affirmation -->
+          <h3 class="fs-scene-title" id="fsSceneTitle">晨曦海风中的自由书房</h3>
+          <div class="fs-affirm-badge" id="fsAffirmBadge">我已经安住在丰盛与宁静之中</div>
+
+          <!-- Story Text (Karaoke / Highlighted Paragraphs) -->
+          <div class="fs-story-card" id="fsStoryCard">
+            <div id="fsStoryBody"></div>
+          </div>
+
+          <!-- Sensory Anchor Box -->
+          <div class="fs-anchor-box" id="fsAnchorBox">
+            <span class="fs-anchor-ico">⚓</span>
+            <div class="fs-anchor-text">
+              <strong>身体感官锚定 (Sensory Anchor)</strong>
+              <span id="fsAnchorDesc">轻轻将手放在心口，感受温热平稳的心跳，对自己微笑。</span>
+            </div>
+          </div>
+
+          <!-- Volume & Ambient Mixer -->
+          <div class="fs-mixer">
+            <div class="fs-mixer-item">
+              <span>🗣️ 语音音量</span>
+              <input type="range" id="fsVoiceVol" min="0" max="1" step="0.05" value="1">
+            </div>
+            <div class="fs-mixer-item">
+              <span id="fsAmbLabel">🎵 疗愈频段音量</span>
+              <input type="range" id="fsAmbVol" min="0" max="1" step="0.05" value="0.5">
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="fs-controls-bar">
+            <button id="fsPlayBtn" class="btn-primary fs-btn-main" type="button">▶ 播放朗读</button>
+            <button id="fsSendToWallpaper" class="fs-secondary-btn" type="button" title="将此显化语制作成锁屏壁纸">🖼️ 设为壁纸</button>
+            <button id="fsCopyText" class="fs-secondary-btn" type="button" title="复制完整故事文本">📋 复制故事</button>
+            <button id="fsNewDesire" class="fs-secondary-btn" type="button" title="更换心愿">↺ 重设目标</button>
           </div>
         </div>
       </section>
@@ -2681,9 +2977,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <span class="mc-desc">Cosmic meditation timer</span>
           </div>
           <div class="more-card" data-goto="tab-future">
-            <span class="mc-ico">✧</span>
-            <span class="mc-title">Future Self</span>
-            <span class="mc-desc">Hear your desire fulfilled</span>
+            <span class="mc-ico">🌌</span>
+            <span class="mc-title">Living Reality</span>
+            <span class="mc-desc">现在进行时显化剧场与导引</span>
           </div>
         </div>
       </section>
