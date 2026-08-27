@@ -4529,13 +4529,32 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
     // Multi-touch pinch zoom
     if (wpActivePointers.size === 2) {
+      if (wpLongPressTimer) {
+        clearTimeout(wpLongPressTimer);
+        wpLongPressTimer = null;
+      }
       var pts = Array.from(wpActivePointers.values());
       var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      var midX = (pts[0].x + pts[1].x) / 2;
+      var midY = (pts[0].y + pts[1].y) / 2;
+      var midP = wpCanvasPoint(midX, midY);
+      var hitMid = wpHitTest(midP);
+
+      // Determine pinch target layer:
+      // If user specifically has text layer active and pinched on text box, scale text.
+      // Otherwise (selected background, long-pressed wallpaper, or pinching wallpaper), scale wallpaper background!
+      var targetLayer = 'photo';
+      if (wpState.activeLayer === 'text' && (hitMid.target === 'text' || hitMid.target === 'text-handle')) {
+        targetLayer = 'text';
+      } else if (wpState.activeLayer === 'photo' || hitMid.target === 'photo') {
+        targetLayer = 'photo';
+      }
+
       wpPinchStart = {
         dist: dist || 1,
         initSize: wpState.size,
-        initPhotoScale: wpState.photoScale,
-        layer: wpState.activeLayer
+        initPhotoScale: wpState.photoScale || 1.0,
+        layer: targetLayer
       };
       e.preventDefault();
       return;
@@ -4624,7 +4643,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       var pinchFactor = dist / wpPinchStart.dist;
 
-      if (wpPinchStart.layer === 'photo' && wpState.photo) {
+      if (wpPinchStart.layer === 'photo') {
         wpState.photoScale = Math.max(0.3, Math.min(3.5, wpPinchStart.initPhotoScale * pinchFactor));
         updateWpPhotoControls();
       } else {
