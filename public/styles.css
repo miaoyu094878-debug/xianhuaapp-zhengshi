@@ -1070,18 +1070,38 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .wp-canvas:not(.is-selected) {
   touch-action: pan-y !important;
 }
 .wp-canvas.is-selected {
-  touch-action: none;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 2px var(--accent, #9a63d2), 0 0 24px rgba(154, 99, 210, 0.45);
-  animation: wpSelectPulse 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: none !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 
+              0 0 0 2.5px rgba(255, 255, 255, 0.95), 
+              0 0 24px rgba(168, 85, 247, 0.8), 
+              0 0 54px rgba(168, 85, 247, 0.45);
+  animation: wpSelectGlowPulse 2.4s ease-in-out infinite alternate;
 }
 .wp-canvas.dragging { cursor: grabbing; }
 .wp-canvas.resizing { cursor: nwse-resize; }
+
+@keyframes wpSelectGlowPulse {
+  0% {
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 
+                0 0 0 2.5px rgba(255, 255, 255, 0.9), 
+                0 0 22px rgba(168, 85, 247, 0.7), 
+                0 0 45px rgba(168, 85, 247, 0.4);
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 22px 54px rgba(0, 0, 0, 0.75), 
+                0 0 0 3px rgba(255, 255, 255, 1), 
+                0 0 34px rgba(192, 132, 252, 0.95), 
+                0 0 68px rgba(168, 85, 247, 0.55);
+    transform: scale(1.008);
+  }
+}
 
 /* In-Canvas Floating Expand Badge (Hidden by default, shown on canvas hover/touch for 3s) */
 .wp-canvas-expand-badge {

@@ -1548,19 +1548,22 @@
     renderWallpaper();
   }
 
-  // Double-click support
+  // Double-click / Double-tap support
   wpCanvas.addEventListener('dblclick', function (e) {
     setMobileWallpaperSelected(!wpState.isMobileSelected);
   });
 
-  // Tap or scroll outside canvas to deselect on mobile
-  document.addEventListener('pointerdown', function (e) {
-    if (wpState.isMobileSelected && isMobileTouchMode()) {
-      if (wpCanvasWrap && !wpCanvasWrap.contains(e.target) && !e.target.closest('.wp-studio-bar') && !e.target.closest('.wp-tab-panel') && !e.target.closest('.wp-live-dock')) {
+  // Tap outside canvas or scroll to deselect on mobile and return to normal
+  function handleOutsideCanvasDismiss(e) {
+    if (wpState.isMobileSelected && isMobileTouchMode() && !wpState._dragging) {
+      if (wpCanvas && !wpCanvas.contains(e.target) && !e.target.closest('.wp-studio-bar') && !e.target.closest('.wp-tab-panel') && !e.target.closest('.wp-live-dock')) {
         setMobileWallpaperSelected(false);
       }
     }
-  });
+  }
+
+  document.addEventListener('pointerdown', handleOutsideCanvasDismiss, true);
+  document.addEventListener('touchstart', handleOutsideCanvasDismiss, { passive: true, capture: true });
 
   window.addEventListener('scroll', function () {
     if (wpState.isMobileSelected && isMobileTouchMode() && !wpState._dragging) {
