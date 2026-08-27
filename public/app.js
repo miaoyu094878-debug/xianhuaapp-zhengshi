@@ -2305,8 +2305,21 @@
   var wpCanvasExpandBtn = $('#wpCanvasExpandBtn');
   var wpCanvasBtnTimer = null;
 
+  function positionCanvasExpandBtn() {
+    if (!wpCanvasExpandBtn || !wpCanvas) return;
+    var canvasRect = wpCanvas.getBoundingClientRect();
+    var wrapRect = wpCanvasWrap ? wpCanvasWrap.getBoundingClientRect() : canvasRect;
+    if (canvasRect.width > 0 && canvasRect.height > 0) {
+      var offsetRight = Math.max(8, wrapRect.right - canvasRect.right + 10);
+      var offsetTop = Math.max(8, canvasRect.top - wrapRect.top + 10);
+      wpCanvasExpandBtn.style.right = offsetRight + 'px';
+      wpCanvasExpandBtn.style.top = offsetTop + 'px';
+    }
+  }
+
   function showCanvasExpandBtn() {
     if (!wpCanvasExpandBtn) return;
+    positionCanvasExpandBtn();
     wpCanvasExpandBtn.classList.add('visible');
     clearTimeout(wpCanvasBtnTimer);
     wpCanvasBtnTimer = setTimeout(function () {
