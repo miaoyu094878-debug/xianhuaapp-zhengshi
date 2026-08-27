@@ -1573,13 +1573,20 @@
     }
   }, { passive: true });
 
-  function wpCanvasPoint(clientX, clientY) {
+  /* ---- Canvas Coordinate & Hit-Testing Utilities ---- */
+  function getCanvasPoint(clientX, clientY, targetCanvas) {
+    var cnv = targetCanvas || wpCanvas;
     var ratio = WP_RATIOS[wpState.ratio];
-    var rect = wpCanvas.getBoundingClientRect();
+    var rect = cnv.getBoundingClientRect();
+    if (!rect.width || !rect.height) return { x: 0, y: 0 };
     return {
       x: ((clientX - rect.left) / rect.width) * ratio.w,
       y: ((clientY - rect.top) / rect.height) * ratio.h
     };
+  }
+
+  function wpCanvasPoint(clientX, clientY) {
+    return getCanvasPoint(clientX, clientY, wpCanvas);
   }
 
   var WP_SNAP = 0.035;
@@ -1616,28 +1623,13 @@
     return { target: 'photo' };
   }
 
-  // Update canvas hover cursor
-  wpCanvas.addEventListener('pointermove', function (e) {
-    if (!wpState._dragging && wpActivePointers.size === 0) {
-      var p = wpCanvasPoint(e.clientX, e.clientY);
-      var hit = wpHitTest(p);
-      if (hit.target === 'text-handle') {
-        wpCanvas.style.cursor = (hit.handle === 'tl' || hit.handle === 'br') ? 'nwse-resize' : 'nesw-resize';
-      } else if (hit.target === 'text') {
-        wpCanvas.style.cursor = 'move';
-      } else {
-        wpCanvas.style.cursor = 'grab';
-      }
-    }
-  });
-
   // Pointer tracking & multi-touch pinch state
   var wpActivePointers = new Map();
   var wpDragStartData = null;
   var wpPinchStart = null;
 
-  function initDragForPoint(clientX, clientY, pointerId, explicitTarget) {
-    var p = wpCanvasPoint(clientX, clientY);
+  function initDragForPoint(targetCanvas, clientX, clientY, pointerId, explicitTarget) {
+    var p = getCanvasPoint(clientX, clientY, targetCanvas);
     var ratio = WP_RATIOS[wpState.ratio];
     var hit = wpHitTest(p);
     var target = explicitTarget || hit.target;
@@ -1647,8 +1639,9 @@
     wpState._activeHandle = hit.handle || null;
 
     if (target === 'text-handle') {
-      wpCanvas.classList.add('resizing');
+      if (targetCanvas) targetCanvas.classList.add('resizing');
       wpDragStartData = {
+        canvas: targetCanvas,
         initP: p,
         initSize: wpState.size,
         cx: hit.box ? hit.box.cx : wpState.textNX * ratio.w,
@@ -1657,15 +1650,17 @@
       };
       setActiveLayer('text');
     } else if (target === 'text') {
-      wpCanvas.classList.add('dragging');
+      if (targetCanvas) targetCanvas.classList.add('dragging');
       wpDragStartData = {
+        canvas: targetCanvas,
         offX: p.x - wpState.textNX * ratio.w,
         offY: p.y - wpState.textNY * ratio.h
       };
       setActiveLayer('text');
     } else {
-      wpCanvas.classList.add('dragging');
+      if (targetCanvas) targetCanvas.classList.add('dragging');
       wpDragStartData = {
+        canvas: targetCanvas,
         startP: p,
         startOffX: wpState.photoOffsetX,
         startOffY: wpState.photoOffsetY,
@@ -1675,159 +1670,11 @@
       setActiveLayer('photo');
     }
 
-    if (pointerId && wpCanvas.setPointerCapture) {
-      try { wpCanvas.setPointerCapture(pointerId); } catch (_) {}
+    if (pointerId && targetCanvas && targetCanvas.setPointerCapture) {
+      try { targetCanvas.setPointerCapture(pointerId); } catch (_) {}
     }
     renderWallpaper();
   }
-
-  wpCanvas.addEventListener('pointerdown', function (e) {
-    var isTouch = e.pointerType === 'touch' || isMobileTouchMode();
-
-    if (wpLongPressTimer) {
-      clearTimeout(wpLongPressTimer);
-      wpLongPressTimer = null;
-    }
-
-    wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    // Multi-touch pinch zoom
-    if (wpActivePointers.size === 2) {
-      var pts = Array.from(wpActivePointers.values());
-      var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      wpPinchStart = {
-        dist: dist || 1,
-        initSize: wpState.size,
-        initPhotoScale: wpState.photoScale,
-        layer: wpState.activeLayer
-      };
-      e.preventDefault();
-      return;
-    }
-
-    var p = wpCanvasPoint(e.clientX, e.clientY);
-    var hit = wpHitTest(p);
-
-    wpTouchDownData = {
-      startX: e.clientX,
-      startY: e.clientY,
-      pointerId: e.pointerId,
-      time: Date.now(),
-      target: hit.target,
-      handle: hit.handle || null,
-      moved: false,
-      isTouch: isTouch
-    };
-
-    // On mobile touch: detect Long-Press (长按 320ms) to select & start moving
-    if (isTouch) {
-      // Check for double tap as quick toggle
-      var now = Date.now();
-      var timeDiff = now - lastCanvasTapTime;
-      var tapDist = Math.hypot(e.clientX - lastCanvasTapPos.x, e.clientY - lastCanvasTapPos.y);
-
-      if (timeDiff > 0 && timeDiff < 380 && tapDist < 40) {
-        lastCanvasTapTime = 0;
-        setMobileWallpaperSelected(!wpState.isMobileSelected);
-        if (wpState.isMobileSelected) {
-          if (hit.target === 'text' || hit.target === 'text-handle') {
-            setActiveLayer('text');
-          } else {
-            setActiveLayer('photo');
-          }
-        }
-        if (navigator.vibrate) {
-          try { navigator.vibrate(30); } catch (_) {}
-        }
-        e.preventDefault();
-        return;
-      }
-      lastCanvasTapTime = now;
-      lastCanvasTapPos = { x: e.clientX, y: e.clientY };
-
-      // If not yet in selected edit mode: start Long Press timer
-      if (!wpState.isMobileSelected) {
-        wpLongPressTimer = setTimeout(function () {
-          wpLongPressTimer = null;
-          if (!wpTouchDownData || wpTouchDownData.moved) return;
-
-          // Long press success!
-          if (navigator.vibrate) {
-            try { navigator.vibrate(40); } catch (_) {}
-          }
-          setMobileWallpaperSelected(true);
-          initDragForPoint(wpTouchDownData.startX, wpTouchDownData.startY, wpTouchDownData.pointerId, wpTouchDownData.target);
-        }, 320);
-        return;
-      }
-    }
-
-    // If already in selected edit mode OR on desktop mouse:
-    initDragForPoint(e.clientX, e.clientY, e.pointerId, hit.target);
-    e.preventDefault();
-  });
-
-  wpCanvas.addEventListener('pointermove', function (e) {
-    if (!wpActivePointers.has(e.pointerId)) return;
-    wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    if (wpTouchDownData) {
-      var distMove = Math.hypot(e.clientX - wpTouchDownData.startX, e.clientY - wpTouchDownData.startY);
-      if (distMove > 8) {
-        wpTouchDownData.moved = true;
-        if (wpLongPressTimer) {
-          clearTimeout(wpLongPressTimer);
-          wpLongPressTimer = null;
-        }
-      }
-    }
-
-    // Handle 2-finger pinch
-    if (wpActivePointers.size === 2 && wpPinchStart) {
-      var pts = Array.from(wpActivePointers.values());
-      var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      var pinchFactor = dist / wpPinchStart.dist;
-
-      if (wpPinchStart.layer === 'photo' && wpState.photo) {
-        wpState.photoScale = Math.max(0.3, Math.min(3.5, wpPinchStart.initPhotoScale * pinchFactor));
-        updateWpPhotoControls();
-      } else {
-        wpState.size = Math.round(Math.max(20, Math.min(100, wpPinchStart.initSize * pinchFactor)));
-        updateWpSizeControls();
-      }
-      renderWallpaper();
-      return;
-    }
-
-    if (!wpState._dragging || !wpDragStartData) return;
-    e.preventDefault();
-
-    var p = wpCanvasPoint(e.clientX, e.clientY);
-    var ratio = WP_RATIOS[wpState.ratio];
-
-    if (wpState._dragTarget === 'text-handle') {
-      var currDist = Math.hypot(p.x - wpDragStartData.cx, p.y - wpDragStartData.cy);
-      var factor = currDist / wpDragStartData.initDist;
-      wpState.size = Math.round(Math.max(20, Math.min(100, wpDragStartData.initSize * factor)));
-      updateWpSizeControls();
-      renderWallpaper();
-    } else if (wpState._dragTarget === 'text') {
-      var nx = (p.x - wpDragStartData.offX) / ratio.w;
-      var ny = (p.y - wpDragStartData.offY) / ratio.h;
-      var sx = wpSnap(nx), sy = wpSnap(ny);
-      if (sx !== null) nx = sx;
-      if (sy !== null) ny = sy;
-      wpState.textNX = Math.max(0.04, Math.min(0.96, nx));
-      wpState.textNY = Math.max(0.04, Math.min(0.96, ny));
-      renderWallpaper();
-    } else if (wpState._dragTarget === 'photo') {
-      var dx = (p.x - wpDragStartData.startP.x) / wpDragStartData.rw;
-      var dy = (p.y - wpDragStartData.startP.y) / wpDragStartData.rh;
-      wpState.photoOffsetX = Math.max(-1.5, Math.min(1.5, wpDragStartData.startOffX + dx));
-      wpState.photoOffsetY = Math.max(-1.5, Math.min(1.5, wpDragStartData.startOffY + dy));
-      renderWallpaper();
-    }
-  });
 
   function wpEndPointer(e) {
     if (wpLongPressTimer) {
@@ -1843,40 +1690,230 @@
       wpState._activeHandle = null;
       wpDragStartData = null;
       wpPinchStart = null;
-      wpCanvas.classList.remove('dragging', 'resizing');
+      if (wpCanvas) wpCanvas.classList.remove('dragging', 'resizing');
+      if (wpFsCanvas) wpFsCanvas.classList.remove('dragging', 'resizing');
       renderWallpaper();
       saveWpSettings();
     }
   }
 
-  wpCanvas.addEventListener('pointerup', wpEndPointer);
-  wpCanvas.addEventListener('pointercancel', wpEndPointer);
-  wpCanvas.addEventListener('pointerleave', function (e) {
-    if (wpActivePointers.size === 0) wpEndPointer(e);
-  });
+  function bindCanvasGestures(targetCanvas, isFullscreen) {
+    if (!targetCanvas) return;
 
-  // Mouse wheel zoom on canvas (when Ctrl/Cmd/Alt modifier is held, otherwise smooth column scrolling)
-  wpCanvas.addEventListener('wheel', function (e) {
-    if (e.ctrlKey || e.metaKey || e.altKey) {
-      e.preventDefault();
-      var delta = e.deltaY < 0 ? 1 : -1;
-      var p = wpCanvasPoint(e.clientX, e.clientY);
+    // Hover cursor
+    targetCanvas.addEventListener('pointermove', function (e) {
+      if (!wpState._dragging && wpActivePointers.size === 0) {
+        var p = getCanvasPoint(e.clientX, e.clientY, targetCanvas);
+        var hit = wpHitTest(p);
+        if (hit.target === 'text-handle') {
+          targetCanvas.style.cursor = (hit.handle === 'tl' || hit.handle === 'br') ? 'nwse-resize' : 'nesw-resize';
+        } else if (hit.target === 'text') {
+          targetCanvas.style.cursor = 'move';
+        } else {
+          targetCanvas.style.cursor = 'grab';
+        }
+      }
+    });
+
+    targetCanvas.addEventListener('pointerdown', function (e) {
+      var isTouch = e.pointerType === 'touch' || isMobileTouchMode();
+
+      if (wpLongPressTimer) {
+        clearTimeout(wpLongPressTimer);
+        wpLongPressTimer = null;
+      }
+
+      wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // Multi-touch pinch zoom
+      if (wpActivePointers.size === 2) {
+        var pts = Array.from(wpActivePointers.values());
+        var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        wpPinchStart = {
+          dist: dist || 1,
+          initSize: wpState.size,
+          initPhotoScale: wpState.photoScale,
+          layer: wpState.activeLayer
+        };
+        e.preventDefault();
+        return;
+      }
+
+      var p = getCanvasPoint(e.clientX, e.clientY, targetCanvas);
       var hit = wpHitTest(p);
 
-      if (hit.target === 'photo' || wpState.activeLayer === 'photo') {
-        var factor = delta > 0 ? 1.08 : 0.92;
-        wpState.photoScale = Math.max(0.3, Math.min(3.5, wpState.photoScale * factor));
-        updateWpPhotoControls();
-        setActiveLayer('photo');
-      } else {
-        wpState.size = Math.max(20, Math.min(100, wpState.size + delta * 2));
-        updateWpSizeControls();
-        setActiveLayer('text');
+      wpTouchDownData = {
+        startX: e.clientX,
+        startY: e.clientY,
+        pointerId: e.pointerId,
+        time: Date.now(),
+        target: hit.target,
+        handle: hit.handle || null,
+        moved: false,
+        isTouch: isTouch,
+        canvas: targetCanvas
+      };
+
+      if (isFullscreen) {
+        // In Fullscreen mode: touch or mouse immediately moves text or background!
+        initDragForPoint(targetCanvas, e.clientX, e.clientY, e.pointerId, hit.target);
+        resetFsIdleTimer(2500);
+        e.preventDefault();
+        return;
       }
-      renderWallpaper();
-      saveWpSettings();
-    }
-  }, { passive: false });
+
+      // On in-page mobile touch: detect Long-Press (320ms) or Double-Tap to select & start moving
+      if (isTouch) {
+        var now = Date.now();
+        var timeDiff = now - lastCanvasTapTime;
+        var tapDist = Math.hypot(e.clientX - lastCanvasTapPos.x, e.clientY - lastCanvasTapPos.y);
+
+        if (timeDiff > 0 && timeDiff < 380 && tapDist < 40) {
+          lastCanvasTapTime = 0;
+          setMobileWallpaperSelected(!wpState.isMobileSelected);
+          if (wpState.isMobileSelected) {
+            if (hit.target === 'text' || hit.target === 'text-handle') {
+              setActiveLayer('text');
+            } else {
+              setActiveLayer('photo');
+            }
+          }
+          if (navigator.vibrate) {
+            try { navigator.vibrate(30); } catch (_) {}
+          }
+          e.preventDefault();
+          return;
+        }
+        lastCanvasTapTime = now;
+        lastCanvasTapPos = { x: e.clientX, y: e.clientY };
+
+        // If not yet in selected edit mode: start Long Press timer
+        if (!wpState.isMobileSelected) {
+          wpLongPressTimer = setTimeout(function () {
+            wpLongPressTimer = null;
+            if (!wpTouchDownData || wpTouchDownData.moved) return;
+
+            if (navigator.vibrate) {
+              try { navigator.vibrate(40); } catch (_) {}
+            }
+            setMobileWallpaperSelected(true);
+            initDragForPoint(targetCanvas, wpTouchDownData.startX, wpTouchDownData.startY, wpTouchDownData.pointerId, wpTouchDownData.target);
+          }, 320);
+          return;
+        }
+      }
+
+      // If already in selected edit mode OR on desktop mouse:
+      initDragForPoint(targetCanvas, e.clientX, e.clientY, e.pointerId, hit.target);
+      e.preventDefault();
+    });
+
+    targetCanvas.addEventListener('pointermove', function (e) {
+      if (!wpActivePointers.has(e.pointerId)) return;
+      wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (wpTouchDownData) {
+        var distMove = Math.hypot(e.clientX - wpTouchDownData.startX, e.clientY - wpTouchDownData.startY);
+        if (distMove > 8) {
+          wpTouchDownData.moved = true;
+          if (wpLongPressTimer) {
+            clearTimeout(wpLongPressTimer);
+            wpLongPressTimer = null;
+          }
+        }
+      }
+
+      // Handle 2-finger pinch zoom
+      if (wpActivePointers.size === 2 && wpPinchStart) {
+        var pts = Array.from(wpActivePointers.values());
+        var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        var pinchFactor = dist / wpPinchStart.dist;
+
+        if (wpPinchStart.layer === 'photo' && wpState.photo) {
+          wpState.photoScale = Math.max(0.3, Math.min(3.5, wpPinchStart.initPhotoScale * pinchFactor));
+          updateWpPhotoControls();
+        } else {
+          wpState.size = Math.round(Math.max(20, Math.min(100, wpPinchStart.initSize * pinchFactor)));
+          updateWpSizeControls();
+        }
+        renderWallpaper();
+        if (isFullscreen) resetFsIdleTimer(2500);
+        return;
+      }
+
+      if (!wpState._dragging || !wpDragStartData || wpDragStartData.canvas !== targetCanvas) return;
+      e.preventDefault();
+
+      var p = getCanvasPoint(e.clientX, e.clientY, targetCanvas);
+      var ratio = WP_RATIOS[wpState.ratio];
+
+      if (wpState._dragTarget === 'text-handle') {
+        var currDist = Math.hypot(p.x - wpDragStartData.cx, p.y - wpDragStartData.cy);
+        var factor = currDist / wpDragStartData.initDist;
+        wpState.size = Math.round(Math.max(20, Math.min(100, wpDragStartData.initSize * factor)));
+        updateWpSizeControls();
+        renderWallpaper();
+      } else if (wpState._dragTarget === 'text') {
+        var nx = (p.x - wpDragStartData.offX) / ratio.w;
+        var ny = (p.y - wpDragStartData.offY) / ratio.h;
+        var sx = wpSnap(nx), sy = wpSnap(ny);
+        if (sx !== null) nx = sx;
+        if (sy !== null) ny = sy;
+        wpState.textNX = Math.max(0.04, Math.min(0.96, nx));
+        wpState.textNY = Math.max(0.04, Math.min(0.96, ny));
+        renderWallpaper();
+      } else if (wpState._dragTarget === 'photo') {
+        var dx = (p.x - wpDragStartData.startP.x) / wpDragStartData.rw;
+        var dy = (p.y - wpDragStartData.startP.y) / wpDragStartData.rh;
+        wpState.photoOffsetX = Math.max(-1.5, Math.min(1.5, wpDragStartData.startOffX + dx));
+        wpState.photoOffsetY = Math.max(-1.5, Math.min(1.5, wpDragStartData.startOffY + dy));
+        renderWallpaper();
+      }
+
+      if (isFullscreen) {
+        wpState._hasMovedInFs = true;
+        resetFsIdleTimer(2500);
+      }
+    });
+
+    targetCanvas.addEventListener('pointerup', wpEndPointer);
+    targetCanvas.addEventListener('pointercancel', wpEndPointer);
+    targetCanvas.addEventListener('pointerleave', function (e) {
+      if (wpActivePointers.size === 0) wpEndPointer(e);
+    });
+
+    // Mouse wheel zoom on canvas
+    targetCanvas.addEventListener('wheel', function (e) {
+      if (isFullscreen || e.ctrlKey || e.metaKey || e.altKey) {
+        e.preventDefault();
+        var delta = e.deltaY < 0 ? 1 : -1;
+        var p = getCanvasPoint(e.clientX, e.clientY, targetCanvas);
+        var hit = wpHitTest(p);
+
+        if (hit.target === 'photo' || wpState.activeLayer === 'photo') {
+          var factor = delta > 0 ? 1.08 : 0.92;
+          wpState.photoScale = Math.max(0.3, Math.min(3.5, wpState.photoScale * factor));
+          updateWpPhotoControls();
+          setActiveLayer('photo');
+        } else {
+          wpState.size = Math.max(20, Math.min(100, wpState.size + delta * 2));
+          updateWpSizeControls();
+          setActiveLayer('text');
+        }
+        renderWallpaper();
+        saveWpSettings();
+        if (isFullscreen) resetFsIdleTimer(2500);
+      }
+    }, { passive: false });
+  }
+
+  // Bind gesture interactions to in-page canvas and fullscreen canvas
+  if (wpCanvas) {
+    bindCanvasGestures(wpCanvas, false);
+  }
+  if (wpFsCanvas) {
+    bindCanvasGestures(wpFsCanvas, true);
+  }
 
   $('#wpResetPos').addEventListener('click', function () {
     wpState.textNX = 0.5; wpState.textNY = 0.5;
@@ -1972,7 +2009,8 @@
 
     if (!forExport) {
       var isTouchMobile = isMobileTouchMode();
-      var isSelectedForEdit = !isTouchMobile || wpState.isMobileSelected;
+      var isFsOpen = (wpFullscreenModal && !wpFullscreenModal.classList.contains('hidden'));
+      var isSelectedForEdit = isFsOpen || !isTouchMobile || wpState.isMobileSelected;
 
       if (wpState._dragging) {
         wpDrawGuides(c, ratio);
@@ -2098,7 +2136,7 @@
     if (fsModal && !fsModal.classList.contains('hidden')) {
       var fsCnv = $('#wpFsCanvas');
       if (fsCnv) {
-        paintWallpaperToCanvas(fsCnv, true);
+        paintWallpaperToCanvas(fsCnv, forExport);
       }
     }
   }
@@ -2192,7 +2230,7 @@
     }
 
     if (wpFsCanvas) {
-      paintWallpaperToCanvas(wpFsCanvas, true);
+      paintWallpaperToCanvas(wpFsCanvas, false);
     }
   }
 
@@ -2264,6 +2302,10 @@
     }, { passive: true });
 
     wpFullscreenModal.addEventListener('click', function (e) {
+      if (wpState._hasMovedInFs) {
+        wpState._hasMovedInFs = false;
+        return;
+      }
       var isRecentTouch = (Date.now() - lastTouchTime) < 500;
       var isStageOrBackdrop = (
         e.target === wpFsCanvas ||

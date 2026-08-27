@@ -1463,6 +1463,16 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   height: 100% !important;
   object-fit: cover !important;
   display: block;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  cursor: grab;
+}
+.wp-fs-canvas.dragging {
+  cursor: grabbing !important;
+}
+.wp-fs-canvas.resizing {
+  cursor: nwse-resize !important;
 }
 
 /* Simulated Lock Screen Clock & Status Overlay */
