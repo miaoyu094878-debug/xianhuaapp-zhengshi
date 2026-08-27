@@ -1532,8 +1532,10 @@
     });
   }
 
-  /* ---- Mobile Double-Tap Selection & Edit Mode ---- */
+  /* ---- Long-Press & Selection Mode for Mobile & Desktop ---- */
   wpState.isMobileSelected = false;
+  var wpLongPressTimer = null;
+  var wpTouchDownData = null;
   var lastCanvasTapTime = 0;
   var lastCanvasTapPos = { x: 0, y: 0 };
 
@@ -1548,12 +1550,12 @@
     renderWallpaper();
   }
 
-  // Double-click / Double-tap support
+  // Double-click / Double-tap support as an additional quick toggle
   wpCanvas.addEventListener('dblclick', function (e) {
     setMobileWallpaperSelected(!wpState.isMobileSelected);
   });
 
-  // Tap outside canvas or scroll to deselect on mobile and return to normal
+  // Tap outside canvas or scroll outside to deselect on mobile and return to normal
   function handleOutsideCanvasDismiss(e) {
     if (wpState.isMobileSelected && isMobileTouchMode() && !wpState._dragging) {
       if (wpCanvas && !wpCanvas.contains(e.target) && !e.target.closest('.wp-studio-bar') && !e.target.closest('.wp-tab-panel') && !e.target.closest('.wp-live-dock')) {
@@ -1592,7 +1594,7 @@
   function wpHitTest(p) {
     if (wpState._box) {
       var b = wpState._box;
-      var handleHitR = Math.max(45, b.px * 0.65);
+      var handleHitR = Math.max(52, b.px * 0.8);
       var corners = [
         { id: 'tl', x: b.x, y: b.y },
         { id: 'tr', x: b.x + b.w, y: b.y },
@@ -1605,7 +1607,9 @@
           return { target: 'text-handle', handle: c.id, box: b };
         }
       }
-      if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+      var padX = Math.max(35, b.px * 0.45);
+      var padY = Math.max(35, b.px * 0.45);
+      if (p.x >= b.x - padX && p.x <= b.x + b.w + padX && p.y >= b.y - padY && p.y <= b.y + b.h + padY) {
         return { target: 'text', box: b };
       }
     }
@@ -1631,99 +1635,64 @@
   var wpActivePointers = new Map();
   var wpDragStartData = null;
   var wpPinchStart = null;
-  var wpPointerDownMeta = null;
+
+  function initDragForPoint(clientX, clientY, pointerId, explicitTarget) {
+    var p = wpCanvasPoint(clientX, clientY);
+    var ratio = WP_RATIOS[wpState.ratio];
+    var hit = wpHitTest(p);
+    var target = explicitTarget || hit.target;
+
+    wpState._dragging = true;
+    wpState._dragTarget = target;
+    wpState._activeHandle = hit.handle || null;
+
+    if (target === 'text-handle') {
+      wpCanvas.classList.add('resizing');
+      wpDragStartData = {
+        initP: p,
+        initSize: wpState.size,
+        cx: hit.box ? hit.box.cx : wpState.textNX * ratio.w,
+        cy: hit.box ? hit.box.cy : wpState.textNY * ratio.h,
+        initDist: hit.box ? Math.hypot(p.x - hit.box.cx, p.y - hit.box.cy) || 1 : 1
+      };
+      setActiveLayer('text');
+    } else if (target === 'text') {
+      wpCanvas.classList.add('dragging');
+      wpDragStartData = {
+        offX: p.x - wpState.textNX * ratio.w,
+        offY: p.y - wpState.textNY * ratio.h
+      };
+      setActiveLayer('text');
+    } else {
+      wpCanvas.classList.add('dragging');
+      wpDragStartData = {
+        startP: p,
+        startOffX: wpState.photoOffsetX,
+        startOffY: wpState.photoOffsetY,
+        rw: ratio.w,
+        rh: ratio.h
+      };
+      setActiveLayer('photo');
+    }
+
+    if (pointerId && wpCanvas.setPointerCapture) {
+      try { wpCanvas.setPointerCapture(pointerId); } catch (_) {}
+    }
+    renderWallpaper();
+  }
 
   wpCanvas.addEventListener('pointerdown', function (e) {
     var isTouch = e.pointerType === 'touch' || isMobileTouchMode();
 
-    if (isTouch) {
-      var now = Date.now();
-      var timeDiff = now - lastCanvasTapTime;
-      var dist = Math.hypot(e.clientX - lastCanvasTapPos.x, e.clientY - lastCanvasTapPos.y);
-
-      if (timeDiff > 0 && timeDiff < 400 && dist < 45) {
-        // Double tap recognized!
-        lastCanvasTapTime = 0;
-        var willSelect = !wpState.isMobileSelected;
-        setMobileWallpaperSelected(willSelect);
-        if (willSelect) {
-          var pDouble = wpCanvasPoint(e.clientX, e.clientY);
-          var hitDouble = wpHitTest(pDouble);
-          if (hitDouble.target === 'text' || hitDouble.target === 'text-handle') {
-            setActiveLayer('text');
-          }
-        }
-        if (navigator.vibrate) {
-          try { navigator.vibrate(30); } catch (_) {}
-        }
-        e.preventDefault();
-        return;
-      }
-
-      lastCanvasTapTime = now;
-      lastCanvasTapPos = { x: e.clientX, y: e.clientY };
-
-      if (!wpState.isMobileSelected) {
-        // On mobile, if not selected, do NOT prevent default or capture pointer -> allow smooth page scroll!
-        return;
-      }
+    if (wpLongPressTimer) {
+      clearTimeout(wpLongPressTimer);
+      wpLongPressTimer = null;
     }
 
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    if (wpActivePointers.size === 1) {
-      var p = wpCanvasPoint(e.clientX, e.clientY);
-      var ratio = WP_RATIOS[wpState.ratio];
-      var hit = wpHitTest(p);
-
-      wpPointerDownMeta = {
-        startX: e.clientX,
-        startY: e.clientY,
-        time: Date.now(),
-        target: hit.target,
-        handle: hit.handle || null,
-        box: hit.box || null,
-        moved: false
-      };
-
-      wpState._dragging = true;
-      wpState._dragTarget = hit.target;
-      wpState._activeHandle = hit.handle || null;
-
-      if (hit.target === 'text-handle') {
-        wpCanvas.classList.add('resizing');
-        wpDragStartData = {
-          initP: p,
-          initSize: wpState.size,
-          cx: hit.box.cx,
-          cy: hit.box.cy,
-          initDist: Math.hypot(p.x - hit.box.cx, p.y - hit.box.cy) || 1
-        };
-        setActiveLayer('text');
-      } else if (hit.target === 'text') {
-        wpCanvas.classList.add('dragging');
-        wpDragStartData = {
-          offX: p.x - wpState.textNX * ratio.w,
-          offY: p.y - wpState.textNY * ratio.h
-        };
-        setActiveLayer('text');
-      } else if (hit.target === 'photo') {
-        wpCanvas.classList.add('dragging');
-        wpDragStartData = {
-          startP: p,
-          startOffX: wpState.photoOffsetX,
-          startOffY: wpState.photoOffsetY,
-          rw: ratio.w,
-          rh: ratio.h
-        };
-        setActiveLayer('photo');
-      }
-
-      if (wpCanvas.setPointerCapture) {
-        try { wpCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-      }
-    } else if (wpActivePointers.size === 2) {
-      // 2-finger Pinch to zoom
+    // Multi-touch pinch zoom
+    if (wpActivePointers.size === 2) {
       var pts = Array.from(wpActivePointers.values());
       var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       wpPinchStart = {
@@ -1732,20 +1701,84 @@
         initPhotoScale: wpState.photoScale,
         layer: wpState.activeLayer
       };
+      e.preventDefault();
+      return;
     }
 
+    var p = wpCanvasPoint(e.clientX, e.clientY);
+    var hit = wpHitTest(p);
+
+    wpTouchDownData = {
+      startX: e.clientX,
+      startY: e.clientY,
+      pointerId: e.pointerId,
+      time: Date.now(),
+      target: hit.target,
+      handle: hit.handle || null,
+      moved: false,
+      isTouch: isTouch
+    };
+
+    // On mobile touch: detect Long-Press (长按 320ms) to select & start moving
+    if (isTouch) {
+      // Check for double tap as quick toggle
+      var now = Date.now();
+      var timeDiff = now - lastCanvasTapTime;
+      var tapDist = Math.hypot(e.clientX - lastCanvasTapPos.x, e.clientY - lastCanvasTapPos.y);
+
+      if (timeDiff > 0 && timeDiff < 380 && tapDist < 40) {
+        lastCanvasTapTime = 0;
+        setMobileWallpaperSelected(!wpState.isMobileSelected);
+        if (wpState.isMobileSelected) {
+          if (hit.target === 'text' || hit.target === 'text-handle') {
+            setActiveLayer('text');
+          } else {
+            setActiveLayer('photo');
+          }
+        }
+        if (navigator.vibrate) {
+          try { navigator.vibrate(30); } catch (_) {}
+        }
+        e.preventDefault();
+        return;
+      }
+      lastCanvasTapTime = now;
+      lastCanvasTapPos = { x: e.clientX, y: e.clientY };
+
+      // If not yet in selected edit mode: start Long Press timer
+      if (!wpState.isMobileSelected) {
+        wpLongPressTimer = setTimeout(function () {
+          wpLongPressTimer = null;
+          if (!wpTouchDownData || wpTouchDownData.moved) return;
+
+          // Long press success!
+          if (navigator.vibrate) {
+            try { navigator.vibrate(40); } catch (_) {}
+          }
+          setMobileWallpaperSelected(true);
+          initDragForPoint(wpTouchDownData.startX, wpTouchDownData.startY, wpTouchDownData.pointerId, wpTouchDownData.target);
+        }, 320);
+        return;
+      }
+    }
+
+    // If already in selected edit mode OR on desktop mouse:
+    initDragForPoint(e.clientX, e.clientY, e.pointerId, hit.target);
     e.preventDefault();
-    renderWallpaper();
   });
 
   wpCanvas.addEventListener('pointermove', function (e) {
     if (!wpActivePointers.has(e.pointerId)) return;
     wpActivePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    if (wpPointerDownMeta) {
-      var distMove = Math.hypot(e.clientX - wpPointerDownMeta.startX, e.clientY - wpPointerDownMeta.startY);
-      if (distMove > 6) {
-        wpPointerDownMeta.moved = true;
+    if (wpTouchDownData) {
+      var distMove = Math.hypot(e.clientX - wpTouchDownData.startX, e.clientY - wpTouchDownData.startY);
+      if (distMove > 8) {
+        wpTouchDownData.moved = true;
+        if (wpLongPressTimer) {
+          clearTimeout(wpLongPressTimer);
+          wpLongPressTimer = null;
+        }
       }
     }
 
@@ -1767,6 +1800,8 @@
     }
 
     if (!wpState._dragging || !wpDragStartData) return;
+    e.preventDefault();
+
     var p = wpCanvasPoint(e.clientX, e.clientY);
     var ratio = WP_RATIOS[wpState.ratio];
 
@@ -1795,16 +1830,11 @@
   });
 
   function wpEndPointer(e) {
-    var wasClick = false;
-    if (wpPointerDownMeta && !wpPointerDownMeta.moved && (Date.now() - wpPointerDownMeta.time < 500)) {
-      wasClick = true;
-      if (wpPointerDownMeta.target === 'text') {
-        setTimeout(function () {
-          openQuoteEditor();
-        }, 10);
-      }
+    if (wpLongPressTimer) {
+      clearTimeout(wpLongPressTimer);
+      wpLongPressTimer = null;
     }
-    wpPointerDownMeta = null;
+    wpTouchDownData = null;
 
     wpActivePointers.delete(e.pointerId);
     if (wpActivePointers.size === 0) {
