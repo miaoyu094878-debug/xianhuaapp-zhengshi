@@ -666,7 +666,181 @@
     });
   }
 
-  // Play narration using Web Speech synthesis with gentle cadence
+  // ══════════════════════════════════════════════════════════
+  // Unified API Gateway Client
+  // Dispatches API requests to Supabase Edge Function (/functions/v1/xianhuaapp) or local /api
+  // ══════════════════════════════════════════════════════════
+  async function callUnifiedApi(action, payload) {
+    var supabaseUrl = window.SUPABASE_URL || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_URL) || localStorage.getItem('luminara_supabase_url') || 'https://bnxjwnvsmiqofbjiknwf.supabase.co';
+    var anonKey = window.SUPABASE_ANON_KEY || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_ANON_KEY) || localStorage.getItem('luminara_supabase_anon_key');
+
+    var endpoint = supabaseUrl 
+      ? (supabaseUrl.replace(/\/+$/, '') + '/functions/v1/xianhuaapp')
+      : '/api';
+
+    var headers = { 'Content-Type': 'application/json' };
+    if (anonKey) {
+      headers['apikey'] = anonKey;
+      headers['Authorization'] = 'Bearer ' + anonKey;
+    }
+
+    try {
+      var res = await fetch(endpoint, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+      });
+
+      // Fallback for older server endpoints if 404
+      if (res.status === 404 && endpoint === '/api') {
+        var legacyUrl = action === 'voice' ? '/api/manifest-voice' : '/api/manifest-story';
+        return await fetch(legacyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+      return res;
+    } catch (err) {
+      // If external call failed, fallback to local /api
+      if (endpoint !== '/api') {
+        return await fetch('/api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+        });
+      }
+      throw err;
+    }
+  }
+
+  // Play narration using Gemini Neural Voice API (/api or Supabase Edge Function)
+  var pcmAudioCache = {}; // cache audio buffer per paragraph text + voice
+
+  async function fetchParagraphAudio(text, voiceName, mood) {
+    var key = voiceName + ':' + (mood || 'calm') + ':' + text;
+    if (pcmAudioCache[key]) return pcmAudioCache[key];
+
+    try {
+      var res = await callUnifiedApi('voice', { text: text, voiceName: voiceName, voiceId: voiceName, mood: mood });
+      if (!res.ok) return null;
+      var data = await res.json();
+      if (!data || !data.audio) return null;
+
+      if (!fsState.audioCtx) {
+        fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+      }
+
+      var audioBuf = null;
+      if (data.format === 'mp3' || data.provider === 'elevenlabs') {
+        var binary = atob(data.audio);
+        var len = binary.length;
+        var bytes = new Uint8Array(len);
+        for (var i = 0; i < len; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        audioBuf = await fsState.audioCtx.decodeAudioData(bytes.buffer.slice(0));
+      } else {
+        audioBuf = pcmToAudioBuffer(data.audio, data.sampleRate || 24000, fsState.audioCtx);
+      }
+
+      if (audioBuf) {
+        pcmAudioCache[key] = audioBuf;
+        return audioBuf;
+      }
+    } catch (e) {
+      console.warn('AI Neural TTS fetch failed, will fallback:', e);
+    }
+    return null;
+  }
+
+  async function playWithGeminiTTS(startIdx) {
+    var idx = startIdx || 0;
+    var paragraphs = fsState.paragraphs;
+    if (!paragraphs || !paragraphs.length) return;
+
+    var voiceSelect = $('#fsVoice');
+    var selectedVoice = voiceSelect ? voiceSelect.value : 'Kore';
+    
+    // If user explicitly chose local system voice, bypass Neural TTS
+    if (selectedVoice === 'local') {
+      playWithWebSpeech(startIdx);
+      return;
+    }
+
+    updateFsPlaybackUI(true);
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    startFsAmbient(freq);
+
+    var badge = $('#fsVoiceStatusBadge');
+    if (badge) {
+      badge.textContent = '✨ Gemini AI 神经网络真人声音中...';
+      badge.style.opacity = '1';
+    }
+
+    async function speakParagraph(pIdx) {
+      if (pIdx >= paragraphs.length || !fsState.isPlaying) {
+        updateFsPlaybackUI(false);
+        stopFsAmbient();
+        if (badge) badge.textContent = '✨ 真人级神经网络画外音';
+        return;
+      }
+
+      highlightParagraph(pIdx);
+      var text = paragraphs[pIdx];
+      var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
+
+      // Prefetch next paragraph in background
+      if (pIdx + 1 < paragraphs.length) {
+        fetchParagraphAudio(paragraphs[pIdx + 1], selectedVoice, mood);
+      }
+
+      var audioBuf = await fetchParagraphAudio(text, selectedVoice, mood);
+
+      if (!audioBuf) {
+        // Fallback to Web Speech if network fails or model busy
+        if (badge) badge.textContent = '📱 已转为离线系统声音';
+        playWithWebSpeech(pIdx);
+        return;
+      }
+
+      if (!fsState.isPlaying) return;
+
+      if (!fsState.audioCtx) {
+        fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+      }
+      if (fsState.audioCtx.state === 'suspended') {
+        await fsState.audioCtx.resume();
+      }
+
+      var source = fsState.audioCtx.createBufferSource();
+      source.buffer = audioBuf;
+
+      // Master Voice Gain
+      var voiceGain = fsState.audioCtx.createGain();
+      var speedVal = parseFloat($('#fsSpeed') ? $('#fsSpeed').value : 0.95);
+      source.playbackRate.value = speedVal;
+
+      source.connect(voiceGain);
+      voiceGain.connect(fsState.audioCtx.destination);
+
+      fsState.currentAudioSource = source;
+
+      source.onended = function () {
+        if (!fsState.isPlaying) return;
+        fsState.activeParagraphIdx = pIdx + 1;
+        setTimeout(function () {
+          if (fsState.isPlaying) speakParagraph(pIdx + 1);
+        }, 600); // Natural breathing pause between paragraphs
+      };
+
+      source.start(0);
+    }
+
+    speakParagraph(idx);
+  }
+
+  // Play narration using Web Speech synthesis with gentle cadence (Fallback)
   function playWithWebSpeech(startIdx) {
     if (!('speechSynthesis' in window)) {
       alert('您的浏览器暂不支持语音合成，但您可以静心阅读上方的显化故事。');
@@ -730,16 +904,24 @@
       fsState.activeParagraphIdx = 0;
     }
 
+    if (fsState.audioCtx && fsState.audioCtx.state === 'suspended') {
+      fsState.audioCtx.resume();
+    }
+
     if (window.speechSynthesis && window.speechSynthesis.paused && !fromBeginning) {
       window.speechSynthesis.resume();
       updateFsPlaybackUI(true);
       return;
     }
 
-    playWithWebSpeech(fsState.activeParagraphIdx);
+    playWithGeminiTTS(fsState.activeParagraphIdx);
   }
 
   function pauseFsManifestation() {
+    if (fsState.currentAudioSource) {
+      try { fsState.currentAudioSource.stop(); } catch (e) {}
+      fsState.currentAudioSource = null;
+    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.pause();
     }
@@ -748,6 +930,10 @@
   }
 
   function stopFutureAudio() {
+    if (fsState.currentAudioSource) {
+      try { fsState.currentAudioSource.stop(); } catch (e) {}
+      fsState.currentAudioSource = null;
+    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -813,14 +999,10 @@
       var name = (db.profile && db.profile.name) || '';
 
       try {
-        var res = await fetch('/api/manifest-story', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            desire: desire,
-            name: name,
-            mood: mood
-          })
+        var res = await callUnifiedApi('story', {
+          desire: desire,
+          name: name,
+          mood: mood
         });
 
         if (!res.ok) {
@@ -906,6 +1088,69 @@
       $('#fsPlayer').classList.add('hidden');
       $('#fsDesire').focus();
       $('#fsForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // Voice Audition Laboratory (调试选拔实验室)
+  var auditionAudioSource = null;
+  if ($('#fsAuditionPlayBtn')) {
+    $('#fsAuditionPlayBtn').addEventListener('click', async function () {
+      var btn = $('#fsAuditionPlayBtn');
+      var statusEl = $('#fsAuditionStatus');
+      var inputEl = $('#fsTestVoiceId');
+      var voiceId = (inputEl ? inputEl.value.trim() : '') || 'QJksobp1edMNvmwcG5lm';
+      var sampleText = '深吸一口气... 感受这一刻，你渴望的一切已经在当下自然显现。';
+
+      if (btn.dataset.playing === 'true') {
+        if (auditionAudioSource) {
+          try { auditionAudioSource.stop(); } catch (e) {}
+        }
+        btn.dataset.playing = 'false';
+        btn.innerHTML = '▶️ 试听此声音';
+        if (statusEl) statusEl.textContent = '已停止';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '⏳ 正在合成中...';
+      if (statusEl) statusEl.textContent = 'ElevenLabs 拟真合成中...';
+
+      try {
+        var audioBuf = await fetchParagraphAudio(sampleText, voiceId, 'calm');
+        if (!audioBuf) {
+          throw new Error('未获取到音频');
+        }
+
+        if (!fsState.audioCtx) {
+          fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+        }
+        if (fsState.audioCtx.state === 'suspended') {
+          await fsState.audioCtx.resume();
+        }
+
+        var src = fsState.audioCtx.createBufferSource();
+        src.buffer = audioBuf;
+        src.connect(fsState.audioCtx.destination);
+        src.onended = function () {
+          btn.dataset.playing = 'false';
+          btn.innerHTML = '▶️ 试听此声音';
+          if (statusEl) statusEl.textContent = '播放完毕';
+          btn.disabled = false;
+        };
+        auditionAudioSource = src;
+        src.start(0);
+
+        btn.dataset.playing = 'true';
+        btn.innerHTML = '⏹️ 停止试听';
+        btn.disabled = false;
+        if (statusEl) statusEl.textContent = '正在播放 🎵';
+      } catch (err) {
+        console.error('Audition error:', err);
+        btn.disabled = false;
+        btn.dataset.playing = 'false';
+        btn.innerHTML = '▶️ 试听此声音';
+        if (statusEl) statusEl.textContent = '合成失败，请检查 Edge Function 密钥';
+      }
     });
   }
 

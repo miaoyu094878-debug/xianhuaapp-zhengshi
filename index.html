@@ -2406,13 +2406,15 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               </select>
             </div>
             <div class="fs-opt-group">
-              <label for="fsVoice">AI 导引声线 / Guide Voice</label>
+              <label for="fsVoice">🎙️ 导引声线 / Guide Voice</label>
               <select id="fsVoice" class="fs-select">
-                <option value="Kore">温柔知性女声 (Kore)</option>
-                <option value="Zephyr">空灵冥想女声 (Zephyr)</option>
-                <option value="Puck">温暖沉稳男声 (Puck)</option>
-                <option value="Charon">深邃磁性男声 (Charon)</option>
-                <option value="local">系统原声 (Natural Device Voice)</option>
+                <option value="QJksobp1edMNvmwcG5lm" selected>🌟 专属定制音色 (ID: QJksobp1ed...)</option>
+                <option value="Kore">🌸 Kore · 温柔治愈女声 (AI 神经网络)</option>
+                <option value="Zephyr">✨ Zephyr · 空灵清澈女声 (AI 神经网络)</option>
+                <option value="Puck">🌿 Puck · 温暖从容男声 (AI 神经网络)</option>
+                <option value="Charon">🌌 Charon · 深邃沉静男声 (AI 神经网络)</option>
+                <option value="Fenrir">⚡ Fenrir · 自信笃定男声 (AI 神经网络)</option>
+                <option value="local">📱 本地系统声线 (离线兼容)</option>
               </select>
             </div>
             <div class="fs-opt-group">
@@ -2422,6 +2424,25 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <option value="0.95" selected>自然舒缓 (0.95x)</option>
                 <option value="1.05">轻快笃定 (1.05x)</option>
               </select>
+            </div>
+          </div>
+
+          <!-- 调试选拔专用: 音色即时试听与实验室 -->
+          <div class="fs-voice-audition-card" style="margin-top: 14px; padding: 12px 16px; background: rgba(255,255,255,0.04); border: 1px dashed rgba(212,175,55,0.3); border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 13px; font-weight: 600; color: #d4af37; display: flex; align-items: center; gap: 6px;">
+                🎧 音色试听与选拔调试台 <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">(调试完毕后可随时一键移除)</span>
+              </span>
+              <span id="fsAuditionStatus" style="font-size: 12px; color: #9bb0c1;">就绪</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="fsTestVoiceId" value="QJksobp1edMNvmwcG5lm" placeholder="输入或粘贴 ElevenLabs Voice ID" style="flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13px; font-family: monospace; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: #fff;">
+              <button type="button" id="fsAuditionPlayBtn" class="btn-secondary" style="padding: 8px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                ▶️ 试听此声音
+              </button>
+            </div>
+            <div style="margin-top: 6px; font-size: 11px; color: rgba(255,255,255,0.45); display: flex; justify-content: space-between;">
+              <span>试听样句：“深吸一口气... 感受这一刻，你渴望的一切已经在当下自然显现。”</span>
             </div>
           </div>
 
@@ -2460,6 +2481,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
           <!-- Reality Scene Title & Affirmation -->
           <h3 class="fs-scene-title" id="fsSceneTitle">晨曦海风中的自由书房</h3>
+          <div class="fs-voice-status-badge" id="fsVoiceStatusBadge">✨ AI 神经网络高保真真人声线</div>
           <div class="fs-affirm-badge" id="fsAffirmBadge">我已经安住在丰盛与宁静之中</div>
 
           <!-- Story Text (Karaoke / Highlighted Paragraphs) -->

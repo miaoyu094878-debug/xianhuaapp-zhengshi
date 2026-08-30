@@ -47,8 +47,8 @@ app.use((req, res, next) => {
 
 /* ═══════════════ AI Manifestation Voice & Story APIs ═══════════════ */
 
-// 1. Generate Present-Tense Immersive Manifestation Story
-app.post('/api/manifest-story', async (req, res) => {
+// 1. Core Logic: Generate Present-Tense Immersive Manifestation Story
+async function executeStoryGeneration(req, res) {
   try {
     const { desire, name, mood, language } = req.body || {};
     if (!desire || typeof desire !== 'string' || !desire.trim()) {
@@ -132,28 +132,44 @@ You MUST return a strictly valid JSON object with the following fields:
     console.error('Error generating manifestation story:', err);
     return res.status(500).json({ error: err.message || 'Failed to generate story' });
   }
-});
+}
 
-// 2. High Quality Voice Synthesis (TTS) via Gemini TTS
-app.post('/api/manifest-voice', async (req, res) => {
+// 2. Core Logic: High Quality Voice Synthesis (TTS) via Gemini Neural TTS
+const voiceCache = new Map();
+
+async function executeVoiceSynthesis(req, res) {
   try {
-    const { text, voiceName } = req.body || {};
-    if (!text || typeof text !== 'string') {
+    const { text, voiceName, mood } = req.body || {};
+    if (!text || typeof text !== 'string' || !text.trim()) {
       return res.status(400).json({ error: 'Text is required for TTS' });
     }
 
+    const cleanText = text.replace(/[\n\r]+/g, ' ').trim().slice(0, 1000);
+    const validVoices = ['Kore', 'Zephyr', 'Puck', 'Charon', 'Fenrir'];
+    const chosenVoice = validVoices.includes(voiceName) ? voiceName : 'Kore';
+    
+    // Check in-memory cache
+    const cacheKey = `${chosenVoice}:${mood || 'calm'}:${cleanText}`;
+    if (voiceCache.has(cacheKey)) {
+      return res.json(voiceCache.get(cacheKey));
+    }
+
     const ai = getAI();
-    const cleanText = text.replace(/[\n\r]+/g, ' ').slice(0, 800);
+    
+    // Expressive natural human narration prompt
+    const isZh = /[\u4e00-\u9fa5]/.test(cleanText);
+    const expressivePrompt = isZh
+      ? `请以极其自然温润、充满临场沉浸感、带有轻柔呼吸起伏与舒缓治愈语调的真人声音诵读：${cleanText}`
+      : `Please read in a deeply soothing, natural, intimate human voice with gentle pauses and warm emotional presence: ${cleanText}`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.1-flash-tts-preview',
-      contents: [{ parts: [{ text: cleanText }] }],
+      contents: [{ parts: [{ text: expressivePrompt }] }],
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            // 'Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'
-            prebuiltVoiceConfig: { voiceName: voiceName || 'Kore' }
+            prebuiltVoiceConfig: { voiceName: chosenVoice }
           }
         }
       }
@@ -161,14 +177,77 @@ app.post('/api/manifest-voice', async (req, res) => {
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
-      res.json({ audio: base64Audio, format: 'pcm', sampleRate: 24000 });
+      const result = {
+        audio: base64Audio,
+        format: 'pcm',
+        sampleRate: 24000,
+        voice: chosenVoice,
+        provider: 'gemini-neural-tts'
+      };
+      
+      // Cache up to 100 entries
+      if (voiceCache.size > 100) {
+        const firstKey = voiceCache.keys().next().value;
+        voiceCache.delete(firstKey);
+      }
+      voiceCache.set(cacheKey, result);
+
+      res.json(result);
     } else {
       res.status(500).json({ error: 'No audio returned from model' });
     }
   } catch (err) {
-    console.warn('Server TTS not available or error:', err.message);
-    res.status(500).json({ error: err.message || 'TTS unavailable, client will use Web Speech' });
+    console.warn('Server Neural TTS not available or error:', err.message);
+    res.status(500).json({ error: err.message || 'TTS unavailable, client will fallback' });
   }
+}
+
+// ═══════════════ Unified API Gateway (POST /api) ═══════════════
+// Handles all actions via a single endpoint matching the Supabase Edge Function pattern
+app.all('/api', async (req, res) => {
+  if (req.method === 'GET') {
+    return res.json({
+      status: 'online',
+      service: 'Luminara Unified API Gateway (Local Server)',
+      configured: {
+        gemini: !!process.env.GEMINI_API_KEY,
+        supabase: !!process.env.SUPABASE_URL
+      },
+      supportedActions: ['story', 'voice', 'health']
+    });
+  }
+
+  const action = req.body?.action || req.query?.action;
+  if (action === 'story' || action === 'manifest-story') {
+    return await executeStoryGeneration(req, res);
+  }
+  if (action === 'voice' || action === 'manifest-voice') {
+    return await executeVoiceSynthesis(req, res);
+  }
+  if (action === 'health' || action === 'ping') {
+    return res.json({ status: 'ok', time: new Date().toISOString() });
+  }
+
+  return res.status(400).json({
+    error: `Unknown action: "${action}". Supported actions: "story", "voice", "health"`
+  });
+});
+
+// Config Endpoint: Exposes client-safe environment variables (e.g. Supabase URL)
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
+  });
+});
+
+// Legacy backward-compatible endpoints
+app.post('/api/manifest-story', async (req, res) => {
+  return await executeStoryGeneration(req, res);
+});
+
+app.post('/api/manifest-voice', async (req, res) => {
+  return await executeVoiceSynthesis(req, res);
 });
 
 app.use(express.static(path.join(__dirname, 'public'), {
