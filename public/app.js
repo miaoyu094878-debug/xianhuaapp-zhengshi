@@ -384,21 +384,30 @@
     if (fileInput.files && fileInput.files[0]) compressImage(fileInput.files[0], finish);
     else finish(null);
   });
-  function compressImage(file, cb) {
+  function compressImage(file, cb, customMax) {
     var reader = new FileReader();
     reader.onload = function (ev) {
       var img = new Image();
       img.onload = function () {
-        var maxW = 600, scale = Math.min(1, maxW / img.width);
+        var maxDim = customMax || 1280;
+        var scale = Math.min(1, Math.min(maxDim / img.width, maxDim / img.height));
         var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
         var c = document.createElement('canvas'); c.width = w; c.height = h;
         c.getContext('2d').drawImage(img, 0, 0, w, h);
-        try { cb(c.toDataURL('image/jpeg', 0.7)); } catch (err) { cb(null); }
+
+        var ratio = img.width / img.height;
+        var detectedAspect = '1:1';
+        if (ratio >= 1.45) detectedAspect = '16:9';
+        else if (ratio >= 1.15) detectedAspect = '4:3';
+        else if (ratio <= 0.65) detectedAspect = '9:16';
+        else if (ratio <= 0.85) detectedAspect = '3:4';
+
+        try { cb(c.toDataURL('image/jpeg', 0.88), detectedAspect); } catch (err) { cb(null, '1:1'); }
       };
-      img.onerror = function () { cb(null); };
+      img.onerror = function () { cb(null, '1:1'); };
       img.src = ev.target.result;
     };
-    reader.onerror = function () { cb(null); };
+    reader.onerror = function () { cb(null, '1:1'); };
     reader.readAsDataURL(file);
   }
   function renderVision() {
@@ -422,82 +431,1107 @@
     });
   }
 
-  /* ═══════ Future Self (audio manifestation) ═══════ */
-  function buildFutureScript(name, desire) {
-    var n = name ? name : 'friend';
-    var d = desire || (db.profile && db.profile.area ? 'your ' + db.profile.area.toLowerCase() + ' dream' : 'your deepest desire');
-    return 'Hello ' + n + '. I am you — from a future where ' + d + ' is already completely real.\n\n' +
-      'I want you to know: it happened. Gently, surely, exactly as it was meant to. Every small step you took mattered. The doubt you felt was only the old you loosening its grip.\n\n' +
-      'In my reality now, ' + d + ' fills my days with ease and quiet joy. You are already on the way. Keep going — I am already here, waiting for you with open arms.\n\n' +
-      'Breathe. You have got this. ✧';
+  /* ═══════ Stella Flow — Living Reality AI Voice Manifestation ═══════ */
+  var fsState = {
+    storyData: null,
+    isPlaying: false,
+    isPaused: false,
+    audioCtx: null,
+    sourceNode: null,
+    audioBuffer: null,
+    voiceGainNode: null,
+    ambGainNode: null,
+    ambNodes: null,
+    currentUtterance: null,
+    activeParagraphIdx: 0,
+    paragraphs: [],
+    highlightTimer: null
+  };
+
+  function getFsAudioContext() {
+    if (!fsState.audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) fsState.audioCtx = new AC();
+    }
+    if (fsState.audioCtx && fsState.audioCtx.state === 'suspended') {
+      fsState.audioCtx.resume();
+    }
+    return fsState.audioCtx;
   }
-  var fsPlaying = false;
-  function pickVoice() {
+
+  var currentAmbFreq = null;
+
+  // Solfeggio & Atmospheric Frequency Synthesizer
+  function startFsAmbient(freqType, fadeInSec) {
+    if (!freqType || freqType === 'off') {
+      stopFsAmbient(true);
+      currentAmbFreq = null;
+      return;
+    }
+
+    try {
+      var ctx = getFsAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(function () {});
+      }
+
+      // If already playing smoothly at this frequency, keep running
+      if (fsState.ambNodes && fsState.ambGainNode && currentAmbFreq === freqType) {
+        return;
+      }
+
+      // Stop previous ambient without destroying the new ones
+      stopFsAmbient(true);
+      currentAmbFreq = freqType;
+
+      var masterAmbGain = ctx.createGain();
+      var ambVolInput = $('#fsAmbVol');
+      var ambVolVal = parseFloat(ambVolInput ? ambVolInput.value : 0.6);
+      if (isNaN(ambVolVal) || ambVolVal < 0) ambVolVal = 0.6;
+
+      var fadeDuration = typeof fadeInSec === 'number' ? fadeInSec : 0.4;
+      var targetGain = 0.22 * ambVolVal; // Audible and soothing ambient level
+
+      masterAmbGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      masterAmbGain.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + fadeDuration);
+      masterAmbGain.connect(ctx.destination);
+      fsState.ambGainNode = masterAmbGain;
+
+      var oscList = [];
+
+      if (freqType === '528') {
+        // 528Hz Miracle & Transformation (Solfeggio MI) with Theta Binaural 6Hz (528 & 534) + 264 Sub
+        var f1 = 528, f2 = 534, sub = 264;
+        var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator();
+        var g1 = ctx.createGain(), g2 = ctx.createGain(), g3 = ctx.createGain();
+        o1.type = 'sine'; o1.frequency.value = f1; g1.gain.value = 0.45;
+        o2.type = 'sine'; o2.frequency.value = f2; g2.gain.value = 0.40;
+        o3.type = 'sine'; o3.frequency.value = sub; g3.gain.value = 0.25;
+
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 1200;
+
+        o1.connect(g1); g1.connect(filter);
+        o2.connect(g2); g2.connect(filter);
+        o3.connect(g3); g3.connect(filter);
+        filter.connect(masterAmbGain);
+        o1.start(); o2.start(); o3.start();
+        oscList = [o1, o2, o3];
+      } else if (freqType === '432') {
+        // 432Hz Natural Healing & Deep Resonance with Alpha 8Hz (432 & 440) + 216 Sub
+        var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator();
+        var g1 = ctx.createGain(), g2 = ctx.createGain(), g3 = ctx.createGain();
+        o1.type = 'sine'; o1.frequency.value = 432; g1.gain.value = 0.50;
+        o2.type = 'sine'; o2.frequency.value = 440; g2.gain.value = 0.45;
+        o3.type = 'sine'; o3.frequency.value = 216; g3.gain.value = 0.30;
+
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 1000;
+
+        o1.connect(g1); g1.connect(filter);
+        o2.connect(g2); g2.connect(filter);
+        o3.connect(g3); g3.connect(filter);
+        filter.connect(masterAmbGain);
+        o1.start(); o2.start(); o3.start();
+        oscList = [o1, o2, o3];
+      } else if (freqType === '639') {
+        // 639Hz Heart Chakra Connection & Harmonious Relationship
+        var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator();
+        var g1 = ctx.createGain(), g2 = ctx.createGain(), g3 = ctx.createGain();
+        o1.type = 'sine'; o1.frequency.value = 639; g1.gain.value = 0.45;
+        o2.type = 'sine'; o2.frequency.value = 645; g2.gain.value = 0.40;
+        o3.type = 'sine'; o3.frequency.value = 319.5; g3.gain.value = 0.25;
+
+        var filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 1400;
+
+        o1.connect(g1); g1.connect(filter);
+        o2.connect(g2); g2.connect(filter);
+        o3.connect(g3); g3.connect(filter);
+        filter.connect(masterAmbGain);
+        o1.start(); o2.start(); o3.start();
+        oscList = [o1, o2, o3];
+      } else if (freqType === 'bowl') {
+        // Zen Tibetan Singing Bowl (Harmonic Overtones + Gentle Tremolo)
+        var freqs = [174, 348, 522, 696];
+        var lfo = ctx.createOscillator();
+        var lfoGain = ctx.createGain();
+        lfo.frequency.value = 0.2; // Slow 5-second breath wave
+        lfoGain.gain.value = 0.04;
+        lfo.connect(lfoGain.gain);
+
+        freqs.forEach(function (f, idx) {
+          var osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = f;
+          var g = ctx.createGain();
+          g.gain.value = 0.3 / (idx + 1);
+          osc.connect(g);
+          g.connect(masterAmbGain);
+          osc.start();
+          oscList.push(osc);
+        });
+        lfo.start();
+        oscList.push(lfo);
+      }
+
+      fsState.ambNodes = oscList;
+    } catch (e) {
+      console.warn('AudioContext ambient start error:', e);
+    }
+  }
+
+  function stopFsAmbient(immediate) {
+    currentAmbFreq = null;
+    var oldNodes = fsState.ambNodes;
+    var oldGain = fsState.ambGainNode;
+    fsState.ambNodes = null;
+    fsState.ambGainNode = null;
+
+    if (oldGain && fsState.audioCtx) {
+      try {
+        var fadeSec = immediate ? 0.04 : 0.45;
+        oldGain.gain.cancelScheduledValues(fsState.audioCtx.currentTime);
+        oldGain.gain.setValueAtTime(oldGain.gain.value, fsState.audioCtx.currentTime);
+        oldGain.gain.linearRampToValueAtTime(0.0001, fsState.audioCtx.currentTime + fadeSec);
+      } catch (e) {}
+    }
+
+    if (oldNodes && oldNodes.length) {
+      if (immediate) {
+        oldNodes.forEach(function (node) {
+          try { node.stop(); node.disconnect(); } catch (e) {}
+        });
+        if (oldGain) {
+          try { oldGain.disconnect(); } catch (e) {}
+        }
+      } else {
+        setTimeout(function () {
+          oldNodes.forEach(function (node) {
+            try { node.stop(); node.disconnect(); } catch (e) {}
+          });
+          if (oldGain) {
+            try { oldGain.disconnect(); } catch (e) {}
+          }
+        }, 500);
+      }
+    }
+  }
+
+  // Update Ambient & Voice Volume dynamically
+  if ($('#fsAmbVol')) {
+    $('#fsAmbVol').addEventListener('input', function () {
+      var val = parseFloat(this.value);
+      if (isNaN(val)) val = 0.5;
+      if (fsState.ambGainNode && fsState.audioCtx) {
+        fsState.ambGainNode.gain.cancelScheduledValues(fsState.audioCtx.currentTime);
+        fsState.ambGainNode.gain.setValueAtTime(0.22 * val, fsState.audioCtx.currentTime);
+      }
+    });
+  }
+
+  if ($('#fsVoiceVol')) {
+    $('#fsVoiceVol').addEventListener('input', function () {
+      var val = parseFloat(this.value);
+      if (isNaN(val)) val = 1.0;
+      if (fsState.voiceGainNode && fsState.audioCtx) {
+        fsState.voiceGainNode.gain.cancelScheduledValues(fsState.audioCtx.currentTime);
+        fsState.voiceGainNode.gain.setValueAtTime(val, fsState.audioCtx.currentTime);
+      }
+    });
+  }
+
+  // Frequency selector live switch
+  if ($('#fsFreq')) {
+    $('#fsFreq').addEventListener('change', function () {
+      if (fsState.isPlaying) {
+        startFsAmbient(this.value);
+      }
+      var label = $('#fsAmbLabel');
+      if (label) {
+        var txt = this.options[this.selectedIndex].text.split('·')[0].trim();
+        label.textContent = '🎵 ' + txt + ' 音量';
+      }
+    });
+  }
+
+  // Quick Preset Buttons
+  $$('.fs-preset-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var goal = btn.dataset.goal;
+      var textarea = $('#fsDesire');
+      if (textarea && goal) {
+        textarea.value = goal;
+        textarea.focus();
+        btn.style.transform = 'scale(0.96)';
+        setTimeout(function () { btn.style.transform = ''; }, 150);
+      }
+    });
+  });
+
+  // Decode raw 24kHz PCM from Gemini TTS
+  function pcmToAudioBuffer(base64Data, sampleRate, ctx) {
+    try {
+      var binary = atob(base64Data);
+      var len = binary.length;
+      var bytes = new Uint8Array(len);
+      for (var i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      var int16 = new Int16Array(bytes.buffer);
+      var float32 = new Float32Array(int16.length);
+      for (var j = 0; j < int16.length; j++) {
+        float32[j] = int16[j] / 32768.0;
+      }
+      var audioBuf = ctx.createBuffer(1, float32.length, sampleRate || 24000);
+      audioBuf.copyToChannel(float32, 0, 0);
+      return audioBuf;
+    } catch (e) {
+      console.error('Failed to decode PCM audio:', e);
+      return null;
+    }
+  }
+
+  function pickNaturalVoice(isZh) {
     if (!('speechSynthesis' in window)) return null;
     var vs = window.speechSynthesis.getVoices();
     if (!vs.length) return null;
-    return vs.filter(function (v) { return /en/i.test(v.lang) && /female|samantha|victoria|zira|karen|moira|google US|woman|girl/i.test(v.name); })[0] ||
-           vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
-           vs.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+    if (isZh) {
+      return vs.filter(function (v) { return /zh|cmn|chinese/i.test(v.lang) && /ting|xiaoxiao|meijia|sinji|google|natural/i.test(v.name); })[0] ||
+             vs.filter(function (v) { return /zh[-_](cn|hk|tw)/i.test(v.lang); })[0] ||
+             vs.filter(function (v) { return /^zh/i.test(v.lang); })[0] || null;
+    } else {
+      return vs.filter(function (v) { return /en/i.test(v.lang) && /samantha|victoria|karen|zira|natural|google US/i.test(v.name); })[0] ||
+             vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] ||
+             vs.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+    }
   }
-  function fsSpeak(text) {
-    if (!('speechSynthesis' in window)) { alert('Text-to-speech is not supported on this device.'); return; }
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.9; u.pitch = 1.0;
-    var v = pickVoice(); if (v) u.voice = v;
-    u.onend = function () { fsPlaying = false; $('#fsPlay').textContent = '▶ Play'; };
-    u.onerror = function () { fsPlaying = false; $('#fsPlay').textContent = '▶ Play'; };
-    window.speechSynthesis.speak(u);
-    fsPlaying = true; $('#fsPlay').textContent = '⏸ Pause';
+
+  function updateFsPlaybackUI(playing) {
+    fsState.isPlaying = playing;
+    var orbIcon = $('#fsOrbIcon');
+    var playBtn = $('#fsPlayBtn');
+    var orbPlay = $('#fsOrbPlay');
+    var stage = $('#fsPlayer');
+
+    if (playing) {
+      if (orbIcon) orbIcon.textContent = '⏸';
+      if (playBtn) playBtn.textContent = '⏸ 暂停诵读';
+      if (orbPlay) orbPlay.classList.add('playing');
+      if (stage) stage.classList.add('is-playing');
+    } else {
+      if (orbIcon) orbIcon.textContent = '▶';
+      if (playBtn) playBtn.textContent = '▶ 播放诵读';
+      if (orbPlay) orbPlay.classList.remove('playing');
+      if (stage) stage.classList.remove('is-playing');
+    }
   }
-  $('#fsForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var raw = $('#fsDesire').value.trim();
-    var desire = raw || (db.profile && db.profile.desire) || '';
-    if (!desire) return;
-    var script = buildFutureScript(db.profile && db.profile.name, desire);
-    $('#fsScript').textContent = script;
-    $('#fsScript').setAttribute('contenteditable', 'true');
-    $('#fsPlayer').classList.remove('hidden');
-    fsSpeak(script);
-  });
-  $('#fsPlay').addEventListener('click', function () {
-    var txt = $('#fsScript').textContent;
-    if (fsPlaying) { window.speechSynthesis.pause(); fsPlaying = false; $('#fsPlay').textContent = '▶ Resume'; }
-    else if (window.speechSynthesis && window.speechSynthesis.paused && window.speechSynthesis.speaking) {
-      window.speechSynthesis.resume(); fsPlaying = true; $('#fsPlay').textContent = '⏸ Pause';
-    } else { if (!txt) return; fsSpeak(txt); }
-  });
-  /* Ambient pad via Web Audio */
-  var ambCtx = null, ambNodes = null, ambOn = false;
-  function startAmbient() {
+
+  function highlightParagraph(idx) {
+    fsState.activeParagraphIdx = idx;
+    var pEls = $$('.fs-story-p');
+    pEls.forEach(function (p, i) {
+      var active = (i === idx);
+      p.classList.toggle('current-reading', active);
+      if (active) {
+        p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // Unified API Gateway Client
+  // Dispatches API requests to Supabase Edge Function (/functions/v1/xianhuaapp) or local /api
+  // ══════════════════════════════════════════════════════════
+  async function callUnifiedApi(action, payload) {
+    var supabaseUrl = window.SUPABASE_URL || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_URL) || localStorage.getItem('luminara_supabase_url') || 'https://bnxjwnvsmiqofbjiknwf.supabase.co';
+    var anonKey = window.SUPABASE_ANON_KEY || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_ANON_KEY) || localStorage.getItem('luminara_supabase_anon_key');
+
+    var endpoint = supabaseUrl 
+      ? (supabaseUrl.replace(/\/+$/, '') + '/functions/v1/xianhuaapp')
+      : '/api';
+
+    var headers = { 'Content-Type': 'application/json' };
+    if (anonKey) {
+      headers['apikey'] = anonKey;
+      headers['Authorization'] = 'Bearer ' + anonKey;
+    }
+    var storedOrKey = localStorage.getItem('luminara_openrouter_key');
+    if (storedOrKey) {
+      headers['x-openrouter-key'] = storedOrKey;
+    }
+
+    var fullPayload = Object.assign({ action: action }, payload || {});
+    if (storedOrKey && !fullPayload.openrouterKey) {
+      fullPayload.openrouterKey = storedOrKey;
+    }
+
     try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      ambCtx = new AC();
-      var o1 = ambCtx.createOscillator(); o1.type = 'sine'; o1.frequency.value = 110;
-      var o2 = ambCtx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 164.81;
-      var filter = ambCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 600;
-      var gain = ambCtx.createGain(); gain.gain.value = 0.045;
-      o1.connect(filter); o2.connect(filter); filter.connect(gain); gain.connect(ambCtx.destination);
-      o1.start(); o2.start();
-      ambNodes = { o1: o1, o2: o2 };
-      ambOn = true;
-      $('#fsAmbient').textContent = 'Ambient: On'; $('#fsAmbient').setAttribute('aria-pressed', 'true');
-    } catch (e) { /* ignore */ }
+      var res = await fetch(endpoint, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(fullPayload)
+      });
+
+      if (!res.ok && endpoint !== '/api') {
+        try {
+          var localHeaders = { 'Content-Type': 'application/json' };
+          if (storedOrKey) localHeaders['x-openrouter-key'] = storedOrKey;
+          var localRes = await fetch('/api', {
+            method: 'POST',
+            headers: localHeaders,
+            body: JSON.stringify(fullPayload)
+          });
+          if (localRes.ok) return localRes;
+        } catch (e) {}
+      }
+
+      // Fallback for older server endpoints if 404
+      if (res.status === 404 && endpoint === '/api') {
+        var legacyUrl = action === 'voice' ? '/api/manifest-voice' : '/api/manifest-story';
+        return await fetch(legacyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+      return res;
+    } catch (err) {
+      // If external call failed, fallback to local /api
+      if (endpoint !== '/api') {
+        return await fetch('/api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+        });
+      }
+      throw err;
+    }
   }
-  function stopAmbient() {
-    if (ambNodes) { try { ambNodes.o1.stop(); ambNodes.o2.stop(); } catch (e) {} ambNodes = null; }
-    if (ambCtx) { try { ambCtx.close(); } catch (e) {} ambCtx = null; }
-    ambOn = false;
-    var b = $('#fsAmbient'); if (b) { b.textContent = 'Ambient: Off'; b.setAttribute('aria-pressed', 'false'); }
+
+  // Play narration using Gemini Neural Voice API (/api or Supabase Edge Function)
+  var pcmAudioCache = {}; // cache audio buffer per paragraph text + voice
+  var pcmAudioInFlight = {}; // In-flight request deduplication lock: prevents concurrent duplicate TTS calls
+
+  async function fetchParagraphAudio(text, voiceName, mood) {
+    if (!text || typeof text !== 'string') return null;
+    var trimmed = text.trim();
+    if (!trimmed) return null;
+
+    var key = voiceName + ':' + (mood || 'calm') + ':' + trimmed;
+    if (pcmAudioCache[key]) return pcmAudioCache[key];
+    if (pcmAudioInFlight[key]) {
+      return await pcmAudioInFlight[key];
+    }
+
+    var fetchPromise = (async function () {
+      try {
+        var res = await callUnifiedApi('voice', { text: trimmed, voiceName: voiceName, voiceId: voiceName, mood: mood });
+        if (!res.ok) {
+          return null;
+        }
+        var data = await res.json();
+        if (!data || !data.audio) return null;
+
+        if (!fsState.audioCtx) {
+          fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+        }
+        if (fsState.audioCtx.state === 'suspended') {
+          await fsState.audioCtx.resume();
+        }
+
+        var audioBuf = null;
+        if (data.format === 'mp3' || data.format === 'wav' || data.provider === 'openrouter-qwen-tts' || data.provider === 'openrouter-gemini-tts' || data.provider === 'elevenlabs' || data.provider === 'openrouter-fish-audio' || data.provider === 'openrouter-kokoro') {
+          var binary = atob(data.audio);
+          var len = binary.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          audioBuf = await fsState.audioCtx.decodeAudioData(bytes.buffer.slice(0));
+        } else {
+          audioBuf = pcmToAudioBuffer(data.audio, data.sampleRate || 24000, fsState.audioCtx);
+        }
+
+        if (audioBuf) {
+          pcmAudioCache[key] = audioBuf;
+          return audioBuf;
+        }
+      } catch (e) {
+        console.warn('Voice API fetch failed, client fallback ready:', e);
+      } finally {
+        delete pcmAudioInFlight[key];
+      }
+      return null;
+    })();
+
+    pcmAudioInFlight[key] = fetchPromise;
+    return await fetchPromise;
   }
-  $('#fsAmbient').addEventListener('click', function () { if (ambOn) stopAmbient(); else startAmbient(); });
+
+  async function playWithGeminiTTS(startIdx) {
+    var paragraphs = fsState.paragraphs;
+    if (!paragraphs || !paragraphs.length) return;
+
+    var idx = (typeof startIdx === 'number' && !isNaN(startIdx)) ? startIdx : 0;
+    // Ensure idx doesn't exceed paragraph range; if completed, loop back to beginning
+    if (idx >= paragraphs.length || idx < 0) {
+      idx = 0;
+      fsState.activeParagraphIdx = 0;
+    }
+
+    var voiceSelect = $('#fsVoice');
+    var selectedVoice = voiceSelect ? voiceSelect.value : 'Zephyr';
+    
+    // If user explicitly chose local system voice, bypass Neural TTS
+    if (selectedVoice === 'local') {
+      playWithWebSpeech(startIdx);
+      return;
+    }
+
+    fsState.isPlaying = true;
+    updateFsPlaybackUI(true);
+
+    if (fsState.preludeTimer) {
+      clearTimeout(fsState.preludeTimer);
+      fsState.preludeTimer = null;
+    }
+    if (fsState.outroTimer) {
+      clearTimeout(fsState.outroTimer);
+      fsState.outroTimer = null;
+    }
+
+    // Start ambient healing frequency immediately
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    startFsAmbient(freq, 1.0);
+
+    var badge = $('#fsVoiceStatusBadge');
+    if (badge) {
+      if (idx === 0) {
+        badge.textContent = fsState.hasEverPlayedStory ? '🎵 疗愈频率与天籁导引就绪中...' : '🎵 疗愈频率先行沉浸中 (即将开启人声导引)...';
+      } else {
+        badge.textContent = '⏳ 正在准备天籁导引声线...';
+      }
+      badge.style.opacity = '1';
+    }
+
+    function updateBadgeActive() {
+      if (!badge) return;
+      if (selectedVoice.startsWith('qwen:')) {
+        var qVoice = selectedVoice.replace('qwen:', '');
+        var qVoiceMap = {
+          'longanlingxin': '灵心 (温润共情·细腻治愈女声)',
+          'longanyuanfei': '远妃 (端庄温婉·从容知性女声)',
+          'longanlingxi': '灵犀 (灵动甜美·可爱亲切女声)',
+          'longanxiaoxin': '小欣 (亲切轻柔·自然元气女声)',
+          'longanfengyue': '风月 (自然舒缓·明媚治愈女声)',
+          'longanhuan_v3.6': '欢欢 (轻柔自然·清澈伴读女声)',
+          'longjielidou_v3.6': '杰利豆 (萌动元气·可爱甜美女声)',
+          'loongeva_v3.6': 'Eva (典雅知性·从容温婉女声)'
+        };
+        var qName = qVoiceMap[qVoice] || qVoice;
+        badge.textContent = '💫 Qwen 3.0 TTS · ' + qName + ' 诵读中...';
+      } else if (selectedVoice.startsWith('openrouter:')) {
+        var orVoiceName = selectedVoice.replace('openrouter:', '');
+        badge.textContent = '🌸 OpenRouter Gemini 3.1 TTS · ' + orVoiceName + ' 诵读中...';
+      } else if (selectedVoice === 'Zephyr') {
+        badge.textContent = '✨ Zephyr · 空灵清澈天籁女声 (AI 顶级神经网络原声) 诵读中...';
+      } else if (selectedVoice === 'Kore') {
+        badge.textContent = '🌸 Kore · 温柔治愈抚慰女声 (AI 顶级神经网络原声) 诵读中...';
+      } else if (selectedVoice === 'Aoede') {
+        badge.textContent = '🎵 Aoede · 灵动婉转抒情女声 (AI 顶级神经网络原声) 诵读中...';
+      } else if (selectedVoice === 'Puck') {
+        badge.textContent = '🌿 Puck · 温暖从容和煦男声 (AI 顶级神经网络原声) 诵读中...';
+      } else if (selectedVoice === 'Charon') {
+        badge.textContent = '🌌 Charon · 深邃沉静磁性男声 (AI 顶级神经网络原声) 诵读中...';
+      } else if (selectedVoice === 'Fenrir') {
+        badge.textContent = '⚡ Fenrir · 笃定自信赋能男声 (AI 顶级神经网络原声) 诵读中...';
+      } else if (selectedVoice.startsWith('af_') || selectedVoice.startsWith('bf_')) {
+        badge.textContent = '🌸 纯正母语女声诵读中...';
+      } else if (selectedVoice.startsWith('zf_') || selectedVoice.indexOf('kokoro') !== -1) {
+        badge.textContent = '🎀 柔和中文女声 (Kokoro 82M) 诵读中...';
+      } else if (selectedVoice === 'fish-audio/s2.1-pro-free:free' || selectedVoice.indexOf('fish-audio') !== -1) {
+        badge.textContent = '🐟 Fish Audio 拟真声音诵读中...';
+      } else if (selectedVoice.length >= 15) {
+        badge.textContent = '🌟 专属定制拟真声音诵读中...';
+      } else {
+        badge.textContent = '✨ AI 顶级多模态神经网络诵读中...';
+      }
+      badge.style.opacity = '1';
+    }
+
+    async function speakParagraph(pIdx) {
+      if (pIdx >= paragraphs.length || !fsState.isPlaying) {
+        // Voice ended: keep ambient playing for 3 more seconds before stopping
+        if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+        fsState.outroTimer = setTimeout(function () {
+          if (!fsState.isPlaying) return;
+          stopFsAmbient(false);
+          updateFsPlaybackUI(false);
+          if (badge) badge.textContent = '✨ 显化诵读已圆满完成';
+        }, 3000);
+        return;
+      }
+
+      highlightParagraph(pIdx);
+      var text = paragraphs[pIdx];
+      var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
+
+      // Pipeline strictly the single next paragraph while current one is speaking
+      if (pIdx + 1 < paragraphs.length) {
+        fetchParagraphAudio(paragraphs[pIdx + 1], selectedVoice, mood).catch(function () {});
+      }
+
+      var audioBuf = null;
+      try {
+        audioBuf = await fetchParagraphAudio(text, selectedVoice, mood);
+      } catch (err) {
+        console.warn('Paragraph audio fetch caught error:', err);
+      }
+
+      if (!fsState.isPlaying) return;
+
+      if (!audioBuf) {
+        // Fallback to Web Speech if network fails or model busy
+        if (badge) badge.textContent = '📱 已转为智能自然声音';
+        playWithWebSpeech(pIdx);
+        return;
+      }
+
+      if (!fsState.audioCtx) {
+        fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+      }
+      if (fsState.audioCtx.state === 'suspended') {
+        await fsState.audioCtx.resume();
+      }
+
+      var source = fsState.audioCtx.createBufferSource();
+      source.buffer = audioBuf;
+
+      // Master Voice Gain
+      var voiceGain = fsState.audioCtx.createGain();
+      var voiceVolVal = parseFloat($('#fsVoiceVol') ? $('#fsVoiceVol').value : 1.0);
+      if (isNaN(voiceVolVal) || voiceVolVal < 0) voiceVolVal = 1.0;
+      voiceGain.gain.setValueAtTime(voiceVolVal, fsState.audioCtx.currentTime);
+      fsState.voiceGainNode = voiceGain;
+
+      var speedVal = parseFloat($('#fsSpeed') ? $('#fsSpeed').value : 0.95);
+      source.playbackRate.value = speedVal;
+
+      source.connect(voiceGain);
+      voiceGain.connect(fsState.audioCtx.destination);
+
+      fsState.currentAudioSource = source;
+
+      // Ensure ambient is running
+      startFsAmbient(freq, 0.4);
+      updateBadgeActive();
+
+      source.onended = function () {
+        if (!fsState.isPlaying) return;
+
+        // 如果已经是最后一段，人声结束，背景音再延续播放 3 秒后优雅归寂
+        if (pIdx + 1 >= paragraphs.length) {
+          fsState.activeParagraphIdx = 0; // 【核心修复】立刻重置回第0段，保证再次点击播放时必定从头诵读人声
+          if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+          fsState.outroTimer = setTimeout(function () {
+            if (!fsState.isPlaying) return;
+            stopFsAmbient(false);
+            updateFsPlaybackUI(false);
+            fsState.activeParagraphIdx = 0;
+            if (badge) badge.textContent = '✨ 显化诵读已圆满完成 (点击可再次播放)';
+          }, 3000);
+          return;
+        }
+
+        fsState.activeParagraphIdx = pIdx + 1;
+
+        // 段落之间呼吸式自然衔接
+        setTimeout(function () {
+          if (fsState.isPlaying) speakParagraph(pIdx + 1);
+        }, 500);
+      };
+
+      source.start(0);
+    }
+
+    // Prefetch paragraph 0 immediately
+    var moodInit = $('#fsMood') ? $('#fsMood').value : 'calm';
+    fetchParagraphAudio(paragraphs[idx], selectedVoice, moodInit).catch(function () {});
+
+    if (idx === 0) {
+      // 首次播报略留静心前奏(1.5秒)，若为重播则快速衔接(0.6秒)
+      var preludeDelay = fsState.hasEverPlayedStory ? 600 : 1500;
+      fsState.hasEverPlayedStory = true;
+      fsState.preludeTimer = setTimeout(function () {
+        if (fsState.isPlaying) {
+          speakParagraph(0);
+        }
+      }, preludeDelay);
+    } else {
+      speakParagraph(idx);
+    }
+  }
+
+  // Play narration using Web Speech synthesis with gentle cadence (Fallback)
+  function playWithWebSpeech(startIdx) {
+    if (!('speechSynthesis' in window)) {
+      alert('您的浏览器暂不支持语音合成，但您可以静心阅读上方的显化故事。');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    var idx = startIdx || 0;
+    var paragraphs = fsState.paragraphs;
+    if (!paragraphs || !paragraphs.length) return;
+
+    if (fsState.preludeTimer) {
+      clearTimeout(fsState.preludeTimer);
+      fsState.preludeTimer = null;
+    }
+    if (fsState.outroTimer) {
+      clearTimeout(fsState.outroTimer);
+      fsState.outroTimer = null;
+    }
+
+    fsState.isPlaying = true;
+    updateFsPlaybackUI(true);
+
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    startFsAmbient(freq, 1.0);
+
+    var badge = $('#fsVoiceStatusBadge');
+    if (badge) {
+      if (idx === 0) {
+        badge.textContent = '🎵 疗愈频率先行沉浸中 (2秒后开启人声导引)...';
+      } else {
+        badge.textContent = '📱 自然语音导引中...';
+      }
+      badge.style.opacity = '1';
+    }
+
+    var speed = parseFloat($('#fsSpeed') ? $('#fsSpeed').value : 0.95);
+    var isZh = /[\u4e00-\u9fa5]/.test(paragraphs.join(' '));
+    var voice = pickNaturalVoice(isZh);
+
+    function speakNext() {
+      if (idx >= paragraphs.length || !fsState.isPlaying) {
+        if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+        fsState.outroTimer = setTimeout(function () {
+          if (!fsState.isPlaying) return;
+          stopFsAmbient(false);
+          updateFsPlaybackUI(false);
+          if (badge) badge.textContent = '✨ 显化诵读已圆满完成';
+        }, 3000);
+        return;
+      }
+
+      highlightParagraph(idx);
+      var text = paragraphs[idx];
+      var u = new SpeechSynthesisUtterance(text);
+      u.rate = speed;
+      u.pitch = 0.96; // Warm & grounded pitch
+      if (voice) u.voice = voice;
+
+      u.onstart = function () {
+        if (badge) badge.textContent = '📱 自然语音诵读中...';
+      };
+
+      u.onend = function () {
+        idx++;
+        if (idx >= paragraphs.length) {
+          fsState.activeParagraphIdx = 0; // 重置归零
+          if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+          fsState.outroTimer = setTimeout(function () {
+            if (!fsState.isPlaying) return;
+            stopFsAmbient(false);
+            updateFsPlaybackUI(false);
+            fsState.activeParagraphIdx = 0;
+            if (badge) badge.textContent = '✨ 显化诵读已圆满完成 (点击可再次播放)';
+          }, 3000);
+          return;
+        }
+        fsState.activeParagraphIdx = idx;
+        // Gentle breath pause between paragraphs
+        setTimeout(function () {
+          if (fsState.isPlaying) speakNext();
+        }, 600);
+      };
+
+      u.onerror = function () {
+        idx++;
+        if (fsState.isPlaying) speakNext();
+      };
+
+      fsState.currentUtterance = u;
+      window.speechSynthesis.speak(u);
+    }
+
+    if (idx === 0) {
+      var delayMs = fsState.hasEverPlayedStory ? 600 : 1500;
+      fsState.hasEverPlayedStory = true;
+      fsState.preludeTimer = setTimeout(function () {
+        if (fsState.isPlaying) {
+          speakNext();
+        }
+      }, delayMs);
+    } else {
+      speakNext();
+    }
+  }
+
+  // Start / Resume Playback
+  function playFsManifestation(fromBeginning) {
+    if (!fsState.storyData) return;
+
+    var totalParagraphs = (fsState.paragraphs && fsState.paragraphs.length) || 1;
+    // 如果显式要求从头开始，或者已播完所有段落，必定归零重头开始
+    if (fromBeginning || fsState.activeParagraphIdx >= totalParagraphs || fsState.activeParagraphIdx < 0) {
+      fsState.activeParagraphIdx = 0;
+    }
+
+    if (fsState.audioCtx && fsState.audioCtx.state === 'suspended') {
+      fsState.audioCtx.resume();
+    }
+
+    if (window.speechSynthesis && window.speechSynthesis.paused && !fromBeginning) {
+      window.speechSynthesis.resume();
+      var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+      startFsAmbient(freq, 0.35);
+      updateFsPlaybackUI(true);
+      return;
+    }
+
+    playWithGeminiTTS(fsState.activeParagraphIdx);
+  }
+
+  function pauseFsManifestation() {
+    fsState.isPlaying = false;
+    if (fsState.preludeTimer) {
+      clearTimeout(fsState.preludeTimer);
+      fsState.preludeTimer = null;
+    }
+    if (fsState.outroTimer) {
+      clearTimeout(fsState.outroTimer);
+      fsState.outroTimer = null;
+    }
+    if (fsState.currentAudioSource) {
+      try { fsState.currentAudioSource.stop(); } catch (e) {}
+      fsState.currentAudioSource = null;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.pause();
+    }
+    stopFsAmbient(true);
+    updateFsPlaybackUI(false);
+  }
+
   function stopFutureAudio() {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    if (fsPlaying) { fsPlaying = false; var p = $('#fsPlay'); if (p) p.textContent = '▶ Play'; }
-    if (ambOn) stopAmbient();
+    fsState.isPlaying = false;
+    fsState.activeParagraphIdx = 0;
+    if (fsState.preludeTimer) {
+      clearTimeout(fsState.preludeTimer);
+      fsState.preludeTimer = null;
+    }
+    if (fsState.outroTimer) {
+      clearTimeout(fsState.outroTimer);
+      fsState.outroTimer = null;
+    }
+    if (fsState.currentAudioSource) {
+      try { fsState.currentAudioSource.stop(); } catch (e) {}
+      fsState.currentAudioSource = null;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    stopFsAmbient(true);
+    updateFsPlaybackUI(false);
   }
+
+  // Render Story into UI
+  function renderFsStoryUI(data) {
+    fsState.storyData = data;
+    $('#fsSceneTitle').textContent = data.title || '✨ 现时显化之境';
+    $('#fsAffirmBadge').textContent = data.affirmation || '我已完全安住在丰盛与宁静之中';
+    $('#fsAnchorDesc').textContent = data.sensoryAnchor || '轻轻将手放在心口，感受温热平稳的心跳，对自己微笑。';
+
+    var rawStory = data.story || '';
+    var paragraphs = rawStory.split(/\n+/).map(function (p) { return p.trim(); }).filter(Boolean);
+    if (!paragraphs.length) paragraphs = [rawStory];
+    fsState.paragraphs = paragraphs;
+
+    var storyBody = $('#fsStoryBody');
+    storyBody.innerHTML = '';
+    paragraphs.forEach(function (pText, i) {
+      var pEl = document.createElement('p');
+      pEl.className = 'fs-story-p';
+      pEl.textContent = pText;
+      pEl.addEventListener('click', function () {
+        // Click to jump to this paragraph
+        fsState.activeParagraphIdx = i;
+        playFsManifestation(false);
+      });
+      storyBody.appendChild(pEl);
+    });
+
+    $('#fsLoading').classList.add('hidden');
+    $('#fsPlayer').classList.remove('hidden');
+
+    // Auto-scroll into view smoothly
+    $('#fsPlayer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Begin immersive playback
+    playFsManifestation(true);
+  }
+
+  // Form Submit: Call Gemini API /api/manifest-story
+  if ($('#fsForm')) {
+    $('#fsForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var raw = $('#fsDesire').value.trim();
+      var desire = raw || (db.profile && db.profile.desire) || '';
+      if (!desire) {
+        alert('请输入你想要显化实现的心愿或目标 ✨');
+        $('#fsDesire').focus();
+        return;
+      }
+
+      stopFutureAudio();
+
+      $('#fsPlayer').classList.add('hidden');
+      $('#fsLoading').classList.remove('hidden');
+      $('#fsLoading').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
+      var name = (db.profile && db.profile.name) || '';
+      var hasChinese = /[\u4e00-\u9fa5]/.test(desire);
+      var detectedLanguage = hasChinese ? 'Chinese (中文)' : 'English';
+
+      try {
+        var res = await callUnifiedApi('story', {
+          desire: desire,
+          name: name,
+          mood: mood,
+          language: detectedLanguage
+        });
+
+        if (!res.ok) {
+          throw new Error('Server returned ' + res.status);
+        }
+
+        var data = await res.json();
+        renderFsStoryUI(data);
+      } catch (err) {
+        console.warn('API error, using client fallback:', err);
+        // Instant graceful client-side fallback
+        var isZh = /[\u4e00-\u9fa5]/.test(desire);
+        var fallbackData = isZh ? {
+          title: '心愿已成 · ' + desire.slice(0, 12),
+          affirmation: '此时此刻，我已然沉浸在【' + desire + '】的真实之中，内心笃定而丰盈。',
+          story: '深深吸气，感受温暖清透的气息充盈胸膛，肩膀自然沉落，身心归于宁静。\n\n抬起眼眸，“' + desire + '”已在眼前真实展开，空气中流动着从容与丰盛的质感。\n\n轻轻将手覆在心口，感受温热有力的心跳与深深的感恩——你已如愿以偿。',
+          sensoryAnchor: '轻轻把右手放在心口，感受平稳温热的心跳，对自己微笑。',
+          frequency: '528Hz',
+          mood: mood
+        } : {
+          title: 'Reality Realized · ' + desire.slice(0, 15),
+          affirmation: 'I am fully living in the reality of ' + desire + ', with peace and ease.',
+          story: 'Take a gentle, slow breath in. Feel calm warmth filling your chest as all tension melts away into quiet stillness.\n\nLook around you. "' + desire + '" is already here, unfolding in your everyday reality with natural grace and abundance.\n\nPlace your hand gently over your heart. Feel its steady, grateful pulse and know that you have arrived.',
+          sensoryAnchor: 'Place your hand over your heart, feel its steady warmth, and smile.',
+          frequency: '528Hz',
+          mood: mood
+        };
+        renderFsStoryUI(fallbackData);
+      }
+    });
+  }
+
+  // Play / Pause Click Handlers
+  if ($('#fsPlayBtn')) {
+    $('#fsPlayBtn').addEventListener('click', function () {
+      if (fsState.isPlaying) pauseFsManifestation();
+      else playFsManifestation(false);
+    });
+  }
+
+  if ($('#fsOrbPlay')) {
+    $('#fsOrbPlay').addEventListener('click', function () {
+      if (fsState.isPlaying) pauseFsManifestation();
+      else playFsManifestation(false);
+    });
+  }
+
+  // Transfer to Wallpaper Studio
+  if ($('#fsSendToWallpaper')) {
+    $('#fsSendToWallpaper').addEventListener('click', function () {
+      if (!fsState.storyData) return;
+      var textToSet = fsState.storyData.affirmation || fsState.storyData.title || '';
+      if (typeof syncAffirmationText === 'function') {
+        syncAffirmationText(textToSet, 'fs');
+      }
+      goTab('tab-wallpaper');
+      window.scrollTo(0, 0);
+    });
+  }
+
+  // Copy Story to Clipboard
+  if ($('#fsCopyText')) {
+    $('#fsCopyText').addEventListener('click', function () {
+      if (!fsState.storyData) return;
+      var text = '✨ ' + (fsState.storyData.title || '') + '\n\n' +
+                 '✦ 肯定语：' + (fsState.storyData.affirmation || '') + '\n\n' +
+                 (fsState.storyData.story || '') + '\n\n' +
+                 '⚓ 身体锚点：' + (fsState.storyData.sensoryAnchor || '');
+      navigator.clipboard.writeText(text).then(function () {
+        var orig = $('#fsCopyText').textContent;
+        $('#fsCopyText').textContent = '✓ 已复制到剪贴板';
+        setTimeout(function () { $('#fsCopyText').textContent = orig; }, 2000);
+      }).catch(function () {
+        alert('文本已选定，可长按复制。');
+      });
+    });
+  }
+
+  // Return to Form
+  if ($('#fsNewDesire')) {
+    $('#fsNewDesire').addEventListener('click', function () {
+      stopFutureAudio();
+      $('#fsPlayer').classList.add('hidden');
+      $('#fsDesire').focus();
+      $('#fsForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // Instant Preset Manifestation Experience (无需等待直接聆听)
+  if ($('#fsInstantPresetPlayBtn')) {
+    $('#fsInstantPresetPlayBtn').addEventListener('click', function () {
+      var presetData = {
+        title: '心愿已成 · 宁静与丰盛',
+        affirmation: '我已安住在当下的从容与丰盛之中。',
+        story: '此时此刻，你渴望的一切已经在当下真实显现，身心沉浸在宁静与丰盛之中。',
+        sensoryAnchor: '轻轻把右手放在心口，感受平稳温热的心跳，对自己微笑。',
+        frequency: '528Hz',
+        mood: 'calm'
+      };
+      renderFsStoryUI(presetData);
+      setTimeout(function () {
+        playFsManifestation(false);
+      }, 300);
+    });
+  }
+
+  // Voice Audition Laboratory (调试选拔实验室)
+  var auditionAudioSource = null;
+  if ($('#fsVoice')) {
+    $('#fsVoice').addEventListener('change', function () {
+      var val = $('#fsVoice').value;
+      if (val && val !== 'local' && $('#fsTestVoiceId')) {
+        $('#fsTestVoiceId').value = val;
+      }
+      fsState.activeParagraphIdx = 0;
+      // If currently playing, smoothly transition to new voice from beginning
+      if (fsState.isPlaying) {
+        pauseFsManifestation();
+        setTimeout(function () {
+          playFsManifestation(true);
+        }, 150);
+      }
+    });
+  }
+
+  if ($('#fsAuditionPlayBtn')) {
+    $('#fsAuditionPlayBtn').addEventListener('click', async function () {
+      var btn = $('#fsAuditionPlayBtn');
+      var statusEl = $('#fsAuditionStatus');
+      var inputEl = $('#fsTestVoiceId');
+      var voiceId = (inputEl ? inputEl.value.trim() : '') || 'QJksobp1edMNvmwcG5lm';
+      var sampleText = '深吸一口气... 感受这一刻，你渴望的一切已经在当下自然显现。';
+
+      if (btn.dataset.playing === 'true') {
+        if (auditionAudioSource) {
+          try { auditionAudioSource.stop(); } catch (e) {}
+        }
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        btn.dataset.playing = 'false';
+        btn.innerHTML = '▶️ 试听此声音';
+        if (statusEl) statusEl.textContent = '已停止';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '⏳ 正在调取声音...';
+      if (statusEl) statusEl.textContent = '正在合成拟真音频...';
+
+      try {
+        var audioBuf = await fetchParagraphAudio(sampleText, voiceId, 'calm');
+
+        if (audioBuf) {
+          if (!fsState.audioCtx) {
+            fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+          }
+          if (fsState.audioCtx.state === 'suspended') {
+            await fsState.audioCtx.resume();
+          }
+
+          var src = fsState.audioCtx.createBufferSource();
+          src.buffer = audioBuf;
+          src.connect(fsState.audioCtx.destination);
+          src.onended = function () {
+            btn.dataset.playing = 'false';
+            btn.innerHTML = '▶️ 试听此声音';
+            if (statusEl) statusEl.textContent = '播放完毕';
+            btn.disabled = false;
+          };
+          auditionAudioSource = src;
+          src.start(0);
+
+          btn.dataset.playing = 'true';
+          btn.innerHTML = '⏹️ 停止试听';
+          btn.disabled = false;
+          if (statusEl) statusEl.textContent = '正在播放 🎵';
+        } else {
+          // Graceful high quality browser voice + ambient tone fallback
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            var utt = new SpeechSynthesisUtterance(sampleText);
+            utt.rate = 0.92;
+            utt.pitch = 1.0;
+            var isZh = /[\u4e00-\u9fa5]/.test(sampleText);
+            var v = pickNaturalVoice(isZh);
+            if (v) utt.voice = v;
+            utt.onend = function () {
+              btn.dataset.playing = 'false';
+              btn.innerHTML = '▶️ 试听此声音';
+              if (statusEl) statusEl.textContent = '播放完毕';
+              btn.disabled = false;
+            };
+            utt.onerror = function () {
+              btn.dataset.playing = 'false';
+              btn.innerHTML = '▶️ 试听此声音';
+              if (statusEl) statusEl.textContent = '就绪';
+              btn.disabled = false;
+            };
+            window.speechSynthesis.speak(utt);
+
+            btn.dataset.playing = 'true';
+            btn.innerHTML = '⏹️ 停止试听';
+            btn.disabled = false;
+            if (statusEl) statusEl.textContent = '正在播放 🎵';
+          } else {
+            throw new Error('未获取到音频');
+          }
+        }
+      } catch (err) {
+        console.error('Audition error:', err);
+        btn.disabled = false;
+        btn.dataset.playing = 'false';
+        btn.innerHTML = '▶️ 试听此声音';
+        if (statusEl) statusEl.textContent = '播放完毕';
+      }
+    });
+  }
+
+
 
   /* ═══════ Cosmic Meditation ═══════ */
   var medState = { min: 5, left: 300, timer: null, breathTimer: null, running: false };
@@ -618,185 +1652,864 @@
     o.addEventListener('click', function () { applyTheme(o.dataset.theme); });
   });
 
-  /* ═══════ AI Vision (Kling AI) ═══════ */
-  var AI_BASE = 'https://api.klingai.com';
+  /* ═══════ AI Vision (OpenRouter: GPT Image 2 & MiniMax H3 Max) ═══════ */
   var aiKeys = db.aiKeys || {};
-  var aiPhotoB64 = null, aiB64Raw = null;
+  var aiPhotoB64 = null, aiB64Raw = null, aiPhotoAspect = '1:1';
 
-  function b64url(buf) {
-    var bin = '';
-    var bytes = new Uint8Array(buf);
-    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  function aiHasKeys() {
+    return !!(aiKeys.openrouterKey || aiKeys.key);
   }
-  function makeJwt(ak, sk) {
-    var enc = new TextEncoder();
-    var header = b64url(enc.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
-    var now = Math.floor(Date.now() / 1000);
-    var payload = b64url(enc.encode(JSON.stringify({ iss: ak, exp: now + 1800, nbf: now - 5 })));
-    var data = enc.encode(header + '.' + payload);
-    return crypto.subtle.importKey('raw', enc.encode(sk), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-      .then(function (key) { return crypto.subtle.sign('HMAC', key, data); })
-      .then(function (sig) { return header + '.' + payload + '.' + b64url(sig); });
+  function aiStatus(msg, type) {
+    var el = $('#aiStatus');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.className = 'ai-status-banner' + (type ? ' ' + type : '');
   }
-  function aiAuthHeaders() {
-    if (aiKeys.key) return Promise.resolve({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + aiKeys.key });
-    return makeJwt(aiKeys.ak, aiKeys.sk).then(function (t) { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t }; });
+  function aiKeyStateTxt() {
+    return aiHasKeys() ? 'Custom Key' : 'Supabase Cloud Key (Active)';
   }
-  function klingReq(path, method, body) {
-    return aiAuthHeaders().then(function (headers) {
-      return fetch(AI_BASE + path, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
-    }).then(function (res) { return res.json(); }).then(function (j) {
-      if (j.code !== 0) throw new Error(j.message || ('API error ' + j.code));
-      return j.data;
+
+  // Character counter and prompt inspiration pills
+  var aiPromptEl = $('#aiPrompt');
+  if (aiPromptEl) {
+    aiPromptEl.addEventListener('input', function () {
+      var len = (this.value || '').length;
+      var counter = $('#aiCharCount');
+      if (counter) counter.textContent = len + ' / 400';
     });
   }
-  function pollTask(path, taskId, statusEl, done) {
-    var tries = 0, start = Date.now();
-    var timer = setInterval(function () {
-      tries++;
-      var secs = Math.round((Date.now() - start) / 1000);
-      klingReq(path + '/' + taskId, 'GET').then(function (d) {
-        var st = d.task_status;
-        if (st === 'succeed') { clearInterval(timer); done(null, d); }
-        else if (st === 'failed') { clearInterval(timer); done(d.task_status_msg || 'Task failed', null); }
-        else {
-          statusEl.textContent = 'Creating… ' + fmtSec(secs) + ' (status: ' + st + ')';
-          if (tries >= 90) { clearInterval(timer); done('Timed out after ~15 min', null); }
-        }
-      }).catch(function (e) { clearInterval(timer); done(e.message, null); });
-    }, 10000);
-  }
-  function fmtSec(s) { var m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; }
-  function aiHasKeys() { return !!(aiKeys.key || (aiKeys.ak && aiKeys.sk)); }
-  function aiStatus(msg) { $('#aiStatus').textContent = msg; }
-  function aiKeyStateTxt() { return aiHasKeys() ? (aiKeys.key ? 'API key ✓' : 'AK/SK ✓') : 'not set'; }
 
-  $('#aiDrop').addEventListener('click', function () { $('#aiPhoto').click(); });
-  $('#aiPhoto').addEventListener('change', function () {
-    var f = this.files && this.files[0];
-    if (!f) return;
-    compressImage(f, function (data) {
-      if (!data) { aiStatus('Could not read that image.'); return; }
-      aiPhotoB64 = data; aiB64Raw = data.split(',')[1];
+  var inspirePills = document.querySelectorAll('.ai-inspire-pill');
+  if (inspirePills && inspirePills.length) {
+    inspirePills.forEach(function (pill) {
+      pill.addEventListener('click', function () {
+        var text = this.getAttribute('data-prompt') || '';
+        if (aiPromptEl) {
+          aiPromptEl.value = text;
+          aiPromptEl.dispatchEvent(new Event('input'));
+          aiPromptEl.focus();
+        }
+      });
+    });
+  }
+
+  // Dropzone click & drag-and-drop
+  var dropEl = $('#aiDrop');
+  if (dropEl) {
+    dropEl.addEventListener('click', function () { $('#aiPhoto').click(); });
+    dropEl.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      dropEl.style.borderColor = 'var(--accent)';
+    });
+    dropEl.addEventListener('dragleave', function () {
+      dropEl.style.borderColor = '';
+    });
+    dropEl.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropEl.style.borderColor = '';
+      var dt = e.dataTransfer;
+      var f = dt && dt.files && dt.files[0];
+      if (f && f.type.indexOf('image/') === 0) {
+        processAiPhoto(f);
+      }
+    });
+  }
+
+  function processAiPhoto(f) {
+    compressImage(f, function (data, detectedAspect) {
+      if (!data) {
+        aiStatus('Unable to read this photo file. Please try another image.', 'error');
+        return;
+      }
+      aiPhotoB64 = data;
+      aiPhotoAspect = detectedAspect || '1:1';
+      aiB64Raw = data.split(',')[1];
       $('#aiPrevImg').src = data;
       $('#aiPrevBox').classList.remove('hidden');
-      aiStatus('Photo ready ✓');
+      aiStatus('Photo attached (' + aiPhotoAspect + '). Preserving original person and scene.', 'success');
     });
+  }
+
+  $('#aiPhoto').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (f) processAiPhoto(f);
   });
+
   $('#aiPrevClear').addEventListener('click', function () {
-    aiPhotoB64 = null; aiB64Raw = null;
+    aiPhotoB64 = null;
+    aiB64Raw = null;
+    aiPhotoAspect = '1:1';
     $('#aiPrevBox').classList.add('hidden');
     $('#aiPhoto').value = '';
     aiStatus('');
   });
-  $('#aiKeyToggle').addEventListener('click', function () { $('#aiKeyBox').classList.toggle('hidden'); });
+
+  $('#aiKeyToggle').addEventListener('click', function () {
+    var box = $('#aiKeyBox');
+    box.classList.toggle('hidden');
+    if (!box.classList.contains('hidden')) {
+      $('#aiKey').value = aiKeys.openrouterKey || aiKeys.key || '';
+    }
+  });
+
   $('#aiKeySave').addEventListener('click', function () {
-    aiKeys.ak = $('#aiAk').value.trim(); aiKeys.sk = $('#aiSk').value.trim();
-    aiKeys.key = $('#aiKey').value.trim();
-    if (!aiKeys.ak && !aiKeys.key) aiKeys.sk = '';
-    db.aiKeys = aiKeys; save();
+    var val = $('#aiKey').value.trim();
+    aiKeys.openrouterKey = val;
+    aiKeys.key = val;
+    db.aiKeys = aiKeys;
+    save();
     $('#aiKeyState').textContent = aiKeyStateTxt();
-    aiStatus(aiHasKeys() ? 'Keys saved ✓' : 'Keys cleared.');
+    aiStatus(val ? 'OpenRouter API Key saved successfully.' : 'Custom key cleared. Default system key will be used.', 'success');
     $('#aiKeyBox').classList.add('hidden');
   });
 
-  function aiGenerate(kind) {
-    var prompt = $('#aiPrompt').value.trim();
-    if (!prompt) { aiStatus('Describe the self you are becoming first ✍️'); return; }
-    if (!aiHasKeys()) { aiStatus('Set your AI service key first ⚙ — tap the key section above'); return; }
-    var srcInput = aiB64Raw;
-    if (!srcInput) {
-      var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
-      if (lastPhoto && lastPhoto.url) srcInput = lastPhoto.url;
-    }
-    if (!srcInput) { aiStatus(kind === 'video' ? 'Add a photo to animate 📷' : 'Add your photo first 📷'); return; }
-    $('#aiBtnPhoto').disabled = true; $('#aiBtnVideo').disabled = true;
+  // ═══════════════ Camera Aesthetic & Quality Selector (iPhone Textures) ═══════════════
+  var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphonex'; // Default to iPhone X as requested
 
-    var body, path, pollPath;
-    if (kind === 'photo') {
-      body = { model_name: 'kling-v1', prompt: prompt, image: srcInput, aspect_ratio: '1:1', mode: 'std' };
-      path = '/v1/images/generations'; pollPath = path;
-      aiStatus('Sending to Kling AI…');
+  var IPHONE_TEXTURE_PROMPTS = {
+    iphonex: {
+      key: 'iphonex',
+      label: 'iPhone X 纪实影调',
+      badge: 'iPhone X',
+      qualityParam: 'low',
+      hint: '苹果X真实纪实 (原相机质感 · ~$0.006)',
+      modifier: ', shot on Apple iPhone X camera, 28mm f/1.8 lens, authentic everyday smartphone snapshot, candid casual photography, natural true-to-life Apple color science, warm flattering skin tones, authentic skin micro-textures, zero artificial beauty smoothing, realistic dynamic range, subtle organic sensor grain in shadows, gentle natural lens flare, candid raw camera roll photo',
+      videoModifier: 'Shot on Apple iPhone X rear camera, 4K 30fps handheld smartphone video, authentic iPhone X video recording aesthetic, 28mm f/1.8 lens with optical image stabilization, natural handheld micro-camera movement and subtle breathing, authentic smartphone auto-exposure adjustment, realistic motion blur, true-to-life Apple color science, warm natural skin tones without plastic AI smoothing, authentic skin pores and texture, candid smartphone vlog footage, unedited camera roll realism, natural ambient lighting, zero CGI or cartoonish gloss'
+    },
+    iphone16pro: {
+      key: 'iphone16pro',
+      label: 'iPhone 16 Pro 影调',
+      badge: 'iPhone 16 Pro',
+      qualityParam: 'low',
+      hint: '旗舰影调高清晰 (Low ~$0.006)',
+      modifier: ', shot on iPhone 16 Pro Max 48MP camera, 24mm f/1.78 lens, Apple Photonic Engine processing, Smart HDR 5, ultra-clean sharp focus, crisp optical clarity, natural skin micro-textures, true-to-life modern Apple color science, balanced highlights, clean shadows, premium commercial smartphone photography, high resolution candid portrait',
+      videoModifier: 'Shot on iPhone 16 Pro Max 4K 60fps HDR video, Apple Action Mode stabilization, crisp optical clarity, Photonic Engine true-to-life color rendering, subtle handheld movement, natural skin detail, premium smartphone footage'
+    },
+    iphone7: {
+      key: 'iphone7',
+      label: 'iPhone 7 胶片随手拍',
+      badge: 'iPhone 7',
+      qualityParam: 'low',
+      hint: '复古微颗粒随手拍 (Low ~$0.006)',
+      modifier: ', shot on Apple iPhone 7 back camera, 28mm f/1.8 lens, authentic everyday snapshot, candid casual photography, subtle sensor noise, soft digital grain, natural slightly warm Apple color science, realistic raw dynamic range, unedited camera roll photo, slight motion blur, casual authentic lighting, no oversaturation, no artificial HDR halo, nostalgic mobile photography aesthetic',
+      videoModifier: 'Shot on Apple iPhone 7 1080p video, 28mm lens, authentic early smartphone video look, subtle digital grain, warm nostalgic Apple color tones, casual handheld movement, raw snapshot video'
+    }
+  };
+
+  function buildAdaptivePrompt(userPrompt, styleKey, hasImage) {
+    var raw = (userPrompt || '').trim();
+    var pLower = raw.toLowerCase();
+    var isIphone7 = styleKey === 'iphone7';
+    var isIphoneX = styleKey === 'iphonex';
+
+    // 1. Conflict Check: Focal Length & Lens (焦段与景别)
+    var hasCustomFocal = /(\b\d+mm\b|\btelephoto\b|\bmacro\b|\bclose-up\b|\bultra-wide\b|\bfisheye\b|\bwide-angle\b|\bzoom\b|长焦|微距|特写|大特写|超广角|鱼眼|\d+毫米|\d+mm)/i.test(pLower);
+
+    // 2. Conflict Check: Color Temperature / Style (色温与色彩风格)
+    var hasCoolTone = /(\b(cool|cold|blue|ice|frost|cyan|neon|cyberpunk)\b|冷调|冷色|偏冷|蓝调|赛博朋克|霓虹)/i.test(pLower);
+    var hasMonochrome = /(\b(black and white|b&w|monochrome|grayscale|noir)\b|黑白|单色|灰度)/i.test(pLower);
+    var hasWarmTone = /(\b(warm|golden hour|sunset|amber)\b|暖色|暖调|黄昏|金黄|夕阳)/i.test(pLower);
+
+    // 3. Conflict Check: Texture / Grain (颗粒感与清晰度)
+    var hasExplicitClean = /(\b(crystal clear|clean|no noise|no grain|sharp|ultra sharp)\b|高清|高画质|无噪点|无颗粒|极致清晰)/i.test(pLower);
+    var hasExplicitGrain = /(\b(film grain|vintage|retro|grainy|lo-fi|polaroid)\b|胶片|噪点|颗粒|复古|老照片|拍立得)/i.test(pLower);
+
+    // 4. Conflict Check: Camera Gear override (相机品牌)
+    var hasCustomCamera = /(\b(sony|canon|nikon|fuji|fujifilm|leica|hasselblad|dslr)\b|佳能|索尼|尼康|富士|徕卡|哈苏|单反)/i.test(pLower);
+
+    var parts = [];
+
+    // Camera Body
+    if (!hasCustomCamera) {
+      if (isIphoneX) {
+        parts.push('shot on Apple iPhone X camera');
+      } else if (isIphone7) {
+        parts.push('shot on Apple iPhone 7 back camera');
+      } else {
+        parts.push('shot on iPhone 16 Pro Max 48MP camera');
+      }
+    }
+
+    // Focal length / Lens (only if user hasn't specified custom focal/lens)
+    if (!hasCustomFocal) {
+      parts.push((isIphoneX || isIphone7) ? '28mm f/1.8 lens' : '24mm f/1.78 lens');
+    }
+
+    // Color Science & Lighting
+    if (hasMonochrome) {
+      parts.push('fine-art monochrome black-and-white tonal depth, rich deep blacks, refined contrast');
+    } else if (hasCoolTone) {
+      parts.push('accurate Apple true-tone white balance rendering cool highlights, natural color fidelity');
+    } else if (hasWarmTone) {
+      parts.push('natural warm Apple color science, warm ambient illumination, no oversaturation');
     } else {
-      body = { model_name: 'kling-v1-6', image: srcInput, prompt: prompt, duration: '5', aspect_ratio: '9:16' };
-      path = '/v1/videos/image2video'; pollPath = path;
-      aiStatus('Sending photo to Kling AI…');
+      if (isIphoneX) {
+        parts.push('authentic Apple iPhone X color science, warm natural flattering skin tones, no plastic AI smoothing, subtle organic sensor grain, candid everyday smartphone photo');
+      } else if (isIphone7) {
+        parts.push('natural slightly warm Apple color science, casual authentic lighting, no oversaturation');
+      } else {
+        parts.push('Apple Photonic Engine processing, Smart HDR 5, true-to-life modern Apple color science, balanced highlights, clean shadows');
+      }
     }
 
-    klingReq(path, 'POST', body).then(function (d) {
-      aiStatus(kind === 'photo' ? 'Generating photo… (≈30 s)' : 'Generating video… (5–15 min, you can leave)');
-      pollTask(pollPath, d.task_id, $('#aiStatus'), function (err, res) {
-        $('#aiBtnPhoto').disabled = false; $('#aiBtnVideo').disabled = false;
-        if (err) { aiStatus('❌ ' + err); return; }
-        var url = kind === 'photo' ? res.task_result.images[0].url : res.task_result.videos[0].url;
-        db.aiVision = db.aiVision || [];
-        db.aiVision.unshift({ id: uid(), kind: kind, ts: Date.now(), prompt: prompt, url: url });
-        save();
-        aiStatus('Done ✓ — links expire in a few hours, download now ↓');
-        renderAiResults();
-      });
-    }).catch(function (e) {
-      $('#aiBtnPhoto').disabled = false; $('#aiBtnVideo').disabled = false;
-      aiStatus('❌ ' + e.message);
+    // Texture, grain & sharpness
+    if (isIphoneX) {
+      parts.push('warm natural skin tones, authentic skin micro-textures, zero artificial beauty smoothing, candid real camera roll photo');
+    } else if (isIphone7) {
+      if (hasExplicitClean) {
+        parts.push('authentic casual snapshot, unedited camera roll photo');
+      } else {
+        parts.push('authentic everyday snapshot, candid casual photography, subtle sensor noise, soft digital grain, realistic raw dynamic range, unedited camera roll photo, slight natural motion blur');
+      }
+    } else {
+      if (hasExplicitGrain) {
+        parts.push('natural skin micro-textures, true-to-life depth');
+      } else {
+        parts.push('ultra-clean sharp focus, crisp optical clarity, natural skin micro-textures');
+      }
+    }
+
+    if (hasImage) {
+      // Image-to-Image editing mode:
+      // Focus strictly on the user request, preserving the original scene, identity, pose, and context.
+      // DO NOT inject camera hardware, lens mm, or selfie keywords which hijack the scene.
+      return 'In the reference image, make this modification: ' + raw + '. Keep the exact same person, face, facial features, hair, body, pose, and background environment intact, only modifying what is requested.';
+    }
+
+    // If no reference photo, add standard portrait closing
+    if (isIphoneX) {
+      parts.push('natural handheld mobile photography, authentic camera roll snapshot');
+    } else if (isIphone7) {
+      parts.push('nostalgic mobile photography aesthetic');
+    } else {
+      parts.push('premium commercial smartphone photography, high resolution candid portrait');
+    }
+
+    return raw + ', ' + parts.join(', ');
+  }
+
+  function buildAdaptiveVideoPrompt(userPrompt, styleKey, hasImage) {
+    var raw = (userPrompt || '').trim();
+    var style = IPHONE_TEXTURE_PROMPTS[styleKey] || IPHONE_TEXTURE_PROMPTS.iphonex;
+    var videoMod = style.videoModifier || IPHONE_TEXTURE_PROMPTS.iphonex.videoModifier;
+
+    if (hasImage) {
+      // Image-to-Video: With reference portrait anchored to the first frame
+      return 'Starting seamlessly from the reference portrait in the first frame, the exact same person naturally: ' + raw + '. ' + videoMod + '. Seamless character consistency with reference image, natural mouth movement and speaking cadence, natural facial expressions and eye blinks, smooth organic motion.';
+    } else {
+      // Text-to-Video:
+      return raw + '. ' + videoMod + ', natural realistic character motion and lifelike presence.';
+    }
+  }
+
+  function setCameraQuality(key) {
+    if (!IPHONE_TEXTURE_PROMPTS[key]) return;
+    currentCameraQuality = key;
+    if (db) {
+      db.cameraQuality = key;
+      save();
+    }
+    var info = IPHONE_TEXTURE_PROMPTS[key];
+    var btnX = $('#aiQualIphoneX');
+    var btn16 = $('#aiQualIphone16');
+    var btn7 = $('#aiQualIphone7');
+    var hint = $('#aiQualitySelectedHint');
+
+    if (btnX) {
+      btnX.classList.toggle('active', key === 'iphonex');
+      btnX.setAttribute('aria-checked', key === 'iphonex' ? 'true' : 'false');
+    }
+    if (btn16) {
+      btn16.classList.toggle('active', key === 'iphone16pro');
+      btn16.setAttribute('aria-checked', key === 'iphone16pro' ? 'true' : 'false');
+    }
+    if (btn7) {
+      btn7.classList.toggle('active', key === 'iphone7');
+      btn7.setAttribute('aria-checked', key === 'iphone7' ? 'true' : 'false');
+    }
+    if (hint) {
+      hint.textContent = info.hint;
+    }
+  }
+
+  if ($('#aiQualIphoneX')) {
+    $('#aiQualIphoneX').addEventListener('click', function () { setCameraQuality('iphonex'); });
+  }
+  if ($('#aiQualIphone16')) {
+    $('#aiQualIphone16').addEventListener('click', function () { setCameraQuality('iphone16pro'); });
+  }
+  if ($('#aiQualIphone7')) {
+    $('#aiQualIphone7').addEventListener('click', function () { setCameraQuality('iphone7'); });
+  }
+  setCameraQuality(currentCameraQuality);
+
+  // Helper to translate raw technical errors/safety blocks into human-readable guidance
+  function formatFriendlyAiError(rawErr, kind) {
+    var str = String(rawErr || '');
+    var lower = str.toLowerCase();
+
+    // 1. Sensitive/Safety/Moderation Policy Violations
+    if (lower.indexOf('sensitive') !== -1 || lower.indexOf('safety') !== -1 || lower.indexOf('moderation') !== -1 || lower.indexOf('nsfw') !== -1 || lower.indexOf('content policy') !== -1 || lower.indexOf('blocked') !== -1) {
+      if (kind === 'video') {
+        return '安全审核提示：视频内容或输入照片触发了模型安全合规策略（如知名公众人物肖像保护、敏感/低俗画面等）。请尝试更换一张自然的生活自拍照，或简化调整描述词。';
+      }
+      return '安全审核提示：提示词或参考图触发了安全合规策略（请避免涉及知名公众人物肖像、暴力或过于暴露的画面）。请适当微调描述词后重试。';
+    }
+
+    // 2. Face / Portrait detection or aspect ratio issues
+    if (lower.indexOf('face') !== -1 || lower.indexOf('portrait') !== -1 || lower.indexOf('detect') !== -1) {
+      return '肖像解析提示：未能在上传的图片中清晰识别到人物面部，或五官遮挡较多。建议上传正面光线充足、五官清晰的生活自拍。';
+    }
+
+    // 3. Balance or Quota exhaustion
+    if (lower.indexOf('credits') !== -1 || lower.indexOf('quota') !== -1 || lower.indexOf('balance') !== -1 || lower.indexOf('402') !== -1 || lower.indexOf('insufficient') !== -1) {
+      return '账户额度提示：OpenRouter API 账户余额不足，请在 OpenRouter 充值或在上方展开“密钥设置”输入自备可用 Key。';
+    }
+
+    // 4. Rate limits or Concurrent jobs
+    if (lower.indexOf('rate limit') !== -1 || lower.indexOf('429') !== -1 || lower.indexOf('too many requests') !== -1 || lower.indexOf('concurrency') !== -1) {
+      return '排队拥挤提示：当前生成任务较多或触发了并发频率限制，请稍候 30 秒至 1 分钟后再次点击生成。';
+    }
+
+    // 5. Invalid duration/resolution parameters
+    if (lower.indexOf('duration') !== -1 || lower.indexOf('resolution') !== -1 || lower.indexOf('invalid parameter') !== -1) {
+      return '规格参数提示：当前模型支持 5s、6s、10s 时长及 480p/768p 分辨率档位，系统已为您自动校准。';
+    }
+
+    // 6. Network or timeout
+    if (lower.indexOf('timeout') !== -1 || lower.indexOf('longer than expected') !== -1) {
+      return '渲染耗时提示：云端 GPU 正在高峰期排队渲染视频（通常需要 1~2 分钟），请稍等片刻后刷新查看结果。';
+    }
+
+    return (kind === 'video' ? '视频生成提示：' : '肖像生成提示：') + str;
+  }
+
+  // Toggle Guidance Card
+  var guidanceToggle = $('#aiGuidanceToggle');
+  var guidanceBody = $('#aiGuidanceBody');
+  var guidanceBtn = $('#aiGuidanceToggleBtn');
+  if (guidanceToggle && guidanceBody) {
+    guidanceToggle.addEventListener('click', function () {
+      var isHidden = guidanceBody.classList.toggle('hidden');
+      if (guidanceBtn) guidanceBtn.textContent = isHidden ? '查看须知 ▾' : '收起须知 ▴';
     });
   }
+
+  /* Video Quality & Duration Selector (MiniMax H3 Max) */
+  var currentVideoDuration = (db && db.videoDuration && [5, 6, 10].indexOf(db.videoDuration) !== -1) ? db.videoDuration : 5;
+  var currentVideoResolution = (db && db.videoResolution && ['480p', '768p'].indexOf(db.videoResolution) !== -1) ? db.videoResolution : '480p';
+
+  var VIDEO_PRICING = {
+    '480p': {
+      rate: 0.05,
+      label: '480p 节能流畅档',
+      hintPrefix: '480p 流畅档',
+      costs: { 5: '$0.25', 6: '$0.30', 10: '$0.50' },
+      cny: { 5: '约1.80元', 6: '约2.16元', 10: '约3.60元' }
+    },
+    '768p': {
+      rate: 0.08,
+      label: '768p 高清影视档',
+      hintPrefix: '768p 高清档',
+      costs: { 5: '$0.40', 6: '$0.48', 10: '$0.80' },
+      cny: { 5: '约2.88元', 6: '约3.46元', 10: '约5.76元' }
+    }
+  };
+
+  function updateVideoPricingUI() {
+    var p = VIDEO_PRICING[currentVideoResolution] || VIDEO_PRICING['480p'];
+
+    var btn480 = $('#aiRes480p'), btn768 = $('#aiRes768p') || $('#aiRes720p');
+    if (btn480 && btn768) {
+      var is480 = currentVideoResolution === '480p';
+      btn480.classList.toggle('active', is480);
+      btn480.style.borderColor = is480 ? '#10b981' : 'var(--border)';
+      btn480.style.background = is480 ? 'rgba(16,185,129,0.12)' : 'var(--surface-2)';
+      btn480.style.color = is480 ? '#10b981' : 'var(--text-muted)';
+
+      btn768.classList.toggle('active', !is480);
+      btn768.style.borderColor = !is480 ? '#8b5cf6' : 'var(--border)';
+      btn768.style.background = !is480 ? 'rgba(139,92,246,0.12)' : 'var(--surface-2)';
+      btn768.style.color = !is480 ? '#8b5cf6' : 'var(--text-muted)';
+    }
+
+    [5, 6, 10].forEach(function (d) {
+      var costEl = $('#aiCost' + d + 's');
+      var descEl = $('#aiDesc' + d + 's');
+      if (costEl) costEl.textContent = '~' + p.costs[d];
+      if (descEl) {
+        if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? '首选推荐 · ' : '高清通透 · ') + p.cny[5] + ' · 支持真人肖像与立体声';
+        if (d === 6) descEl.textContent = '优雅运镜 · ' + p.cny[6] + ' · 动态过渡更平滑约1.5分钟';
+        if (d === 10) descEl.textContent = '长镜头故事 · ' + p.cny[10] + ' · 剧情充沛细节拉满约2-3分钟';
+      }
+    });
+
+    var hint = $('#aiVideoDurationHint');
+    if (hint) {
+      hint.textContent = p.hintPrefix + ' (' + currentVideoDuration + 's · ~' + p.costs[currentVideoDuration] + ' · ' + p.cny[currentVideoDuration] + ')';
+    }
+
+    var btnVideoSub = $('#aiBtnVideo .ai-btn-sub');
+    if (btnVideoSub) {
+      btnVideoSub.textContent = 'MiniMax H3 Max (' + currentVideoDuration + 's · ' + currentVideoResolution + ') · ~' + p.costs[currentVideoDuration];
+    }
+  }
+
+  function setVideoResolution(res) {
+    if (res === '720p') res = '768p';
+    if (res !== '480p' && res !== '768p') res = '480p';
+    currentVideoResolution = res;
+    if (db) {
+      db.videoResolution = res;
+      save();
+    }
+    updateVideoPricingUI();
+  }
+
+  function setVideoDuration(sec) {
+    sec = parseInt(sec, 10) || 5;
+    if ([5, 6, 10].indexOf(sec) === -1) sec = 5;
+    currentVideoDuration = sec;
+    if (db) {
+      db.videoDuration = sec;
+      save();
+    }
+
+    [5, 6, 10].forEach(function (d) {
+      var card = $('#aiDur' + d + 's');
+      if (card) {
+        var isActive = d === sec;
+        card.classList.toggle('active', isActive);
+        card.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      }
+    });
+
+    updateVideoPricingUI();
+  }
+
+  if ($('#aiRes480p')) {
+    $('#aiRes480p').addEventListener('click', function () { setVideoResolution('480p'); });
+  }
+  if ($('#aiRes768p')) {
+    $('#aiRes768p').addEventListener('click', function () { setVideoResolution('768p'); });
+  } else if ($('#aiRes720p')) {
+    $('#aiRes720p').addEventListener('click', function () { setVideoResolution('768p'); });
+  }
+
+  [5, 6, 10].forEach(function (d) {
+    var card = $('#aiDur' + d + 's');
+    if (card) {
+      card.addEventListener('click', function () { setVideoDuration(d); });
+    }
+  });
+
+  setVideoResolution(currentVideoResolution);
+  setVideoDuration(currentVideoDuration);
+
+  function fmtSec(s) {
+    var m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function pollVideoJob(jobId, customKey, statusEl, done) {
+    var tries = 0;
+    var start = Date.now();
+    var timer = setInterval(function () {
+      tries++;
+      var secs = Math.round((Date.now() - start) / 1000);
+
+      callUnifiedApi('vision-video-status', {
+        jobId: jobId,
+        openrouterKey: customKey || undefined
+      })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.error && !data.status) {
+          clearInterval(timer);
+          done(data.error, null);
+          return;
+        }
+        var st = data.status || 'processing';
+        if (st === 'completed' || st === 'succeed') {
+          clearInterval(timer);
+          var finalUrl = data.url;
+          if (!finalUrl || finalUrl.startsWith('https://openrouter.ai/')) {
+            var query = customKey ? ('?key=' + encodeURIComponent(customKey)) : '';
+            finalUrl = '/api/ai/vision/video/content/' + encodeURIComponent(jobId) + query;
+          }
+          done(null, finalUrl);
+        } else if (st === 'failed') {
+          clearInterval(timer);
+          done(data.error || 'MiniMax H3 Max video generation encountered an error. Please try again.', null);
+        } else {
+          aiStatus('Rendering MiniMax H3 Max video… ' + fmtSec(secs) + ' (' + st + ')', 'running');
+          if (tries >= 120) { // 10 minutes timeout
+            clearInterval(timer);
+            done('Video rendering is taking longer than expected. Please check back shortly.', null);
+          }
+        }
+      })
+      .catch(function (err) {
+        if (tries >= 120) {
+          clearInterval(timer);
+          done(err.message || 'Network connection issue', null);
+        }
+      });
+    }, 5000);
+  }
+
+  function aiGenerate(kind) {
+    var prompt = $('#aiPrompt').value.trim();
+    if (!prompt) {
+      aiStatus('Please describe the manifestation scene you want to create.', 'error');
+      $('#aiPrompt').focus();
+      return;
+    }
+
+    var userKey = aiKeys.openrouterKey || aiKeys.key || '';
+    $('#aiBtnPhoto').disabled = true;
+    $('#aiBtnVideo').disabled = true;
+    if ($('#aiBtnFree')) $('#aiBtnFree').disabled = true;
+
+    if (kind === 'photo') {
+      var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
+      var hasRefImage = Boolean(aiPhotoB64);
+      var enhancedPrompt = buildAdaptivePrompt(prompt, currentCameraQuality, hasRefImage);
+
+      aiStatus('✦ Rendering portrait (' + cameraInfo.label + ') with OpenAI GPT Image 2… (~15s)', 'running');
+      var photoPayload = {
+        prompt: enhancedPrompt,
+        raw_prompt: prompt,
+        quality: cameraInfo.qualityParam,
+        quality_mode: currentCameraQuality,
+        image: aiPhotoB64 || undefined,
+        aspect_ratio: hasRefImage ? (aiPhotoAspect || '1:1') : '1:1'
+      };
+      if (userKey) photoPayload.openrouterKey = userKey;
+
+      callUnifiedApi('vision-photo', photoPayload)
+      .then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok || data.error) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+          return data;
+        });
+      })
+      .then(function (data) {
+        $('#aiBtnPhoto').disabled = false;
+        $('#aiBtnVideo').disabled = false;
+        if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+
+        if (!data.url) throw new Error('No image URL returned from generator');
+
+        db.aiVision = db.aiVision || [];
+        db.aiVision.unshift({
+          id: uid(),
+          kind: 'photo',
+          model: 'openai/gpt-image-2',
+          ts: Date.now(),
+          prompt: prompt,
+          cameraQuality: cameraInfo.badge,
+          qualityMode: currentCameraQuality,
+          url: data.url
+        });
+        save();
+        aiStatus('✦ Portrait generated with ' + cameraInfo.label + '! View and download below.', 'success');
+        renderAiResults();
+      })
+      .catch(function (err) {
+        $('#aiBtnPhoto').disabled = false;
+        $('#aiBtnVideo').disabled = false;
+        if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+
+        var errMsg = err.message || '';
+        aiStatus(formatFriendlyAiError(errMsg, 'photo'), 'error');
+      });
+    } else {
+      // kind === 'video'
+      var dur = currentVideoDuration || 5;
+      var res = currentVideoResolution || '480p';
+      var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphonex;
+      var srcInput = aiPhotoB64;
+      if (!srcInput) {
+        var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
+        if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
+          srcInput = lastPhoto.url;
+        }
+      }
+      var hasRefImage = Boolean(srcInput);
+      var enhancedVideoPrompt = buildAdaptiveVideoPrompt(prompt, currentCameraQuality, hasRefImage);
+
+      aiStatus('▶ Submitting ' + dur + 's (' + res + ' · ' + cameraInfo.badge + ') video task to MiniMax H3 Max…', 'running');
+
+      var videoPayload = {
+        prompt: enhancedVideoPrompt,
+        raw_prompt: prompt,
+        quality_mode: currentCameraQuality,
+        camera_quality: cameraInfo.badge,
+        image: srcInput || undefined,
+        duration: dur,
+        resolution: res,
+        aspect_ratio: (aiPhotoAspect === '16:9' || aiPhotoAspect === '4:3') ? '16:9' : '9:16'
+      };
+      if (userKey) videoPayload.openrouterKey = userKey;
+
+      callUnifiedApi('vision-video', videoPayload)
+      .then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok || data.error) throw new Error(data.error || ('Submission failed (' + res.status + ')'));
+          return data;
+        });
+      })
+      .then(function (data) {
+        var jobId = data.jobId;
+        if (!jobId) throw new Error('No video job ID returned from service');
+
+        aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + ')… Initializing frames (~1-2m)', 'running');
+        pollVideoJob(jobId, userKey, $('#aiStatus'), function (pollErr, videoUrl) {
+          $('#aiBtnPhoto').disabled = false;
+          $('#aiBtnVideo').disabled = false;
+          if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+
+          if (pollErr) {
+            aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
+            return;
+          }
+
+          db.aiVision = db.aiVision || [];
+          db.aiVision.unshift({
+            id: uid(),
+            kind: 'video',
+            model: 'minimax/hailuo-3-max',
+            duration: dur,
+            jobId: jobId,
+            cameraQuality: cameraInfo.badge,
+            qualityMode: currentCameraQuality,
+            ts: Date.now(),
+            prompt: prompt,
+            url: videoUrl
+          });
+          save();
+          aiStatus('▶ MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + ') ready! Stream or download below.', 'success');
+          renderAiResults();
+        });
+      })
+      .catch(function (err) {
+        $('#aiBtnPhoto').disabled = false;
+        $('#aiBtnVideo').disabled = false;
+        if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+
+        var errMsg = err.message || '';
+        aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');
+      });
+    }
+  }
+
   $('#aiBtnFree').addEventListener('click', function () {
     var prompt = $('#aiPrompt').value.trim();
-    if (!prompt) { aiStatus('Describe the self you are becoming first ✍️'); return; }
-    $('#aiBtnPhoto').disabled = true; $('#aiBtnFree').disabled = true; $('#aiBtnVideo').disabled = true;
-    aiStatus('Generating with free AI (Pollinations)… ~10 s');
-    var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt + ', photorealistic portrait, elegant, soft cinematic light') + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6);
+    if (!prompt) {
+      aiStatus('Please describe the manifestation scene you want to create.', 'error');
+      $('#aiPrompt').focus();
+      return;
+    }
+    $('#aiBtnPhoto').disabled = true;
+    $('#aiBtnFree').disabled = true;
+    $('#aiBtnVideo').disabled = true;
+    aiStatus('◈ Generating instant draft preview… (~10s)', 'running');
+    var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt + ', photorealistic, master quality, high resolution, 8k, cinematic lighting') + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6);
     var img = new Image();
     img.onload = function () {
       db.aiVision = db.aiVision || [];
-      db.aiVision.unshift({ id: uid(), kind: 'photo', ts: Date.now(), prompt: prompt, url: url, source: 'free' });
+      db.aiVision.unshift({
+        id: uid(),
+        kind: 'photo',
+        source: 'free',
+        model: 'pollinations',
+        ts: Date.now(),
+        prompt: prompt,
+        url: url
+      });
       save();
-      $('#aiBtnPhoto').disabled = false; $('#aiBtnFree').disabled = false; $('#aiBtnVideo').disabled = false;
-      aiStatus('Done ✓ — free photo below ↓');
+      $('#aiBtnPhoto').disabled = false;
+      $('#aiBtnFree').disabled = false;
+      $('#aiBtnVideo').disabled = false;
+      aiStatus('◈ Instant draft preview ready! View and download below.', 'success');
       renderAiResults();
     };
     img.onerror = function () {
-      $('#aiBtnPhoto').disabled = false; $('#aiBtnFree').disabled = false; $('#aiBtnVideo').disabled = false;
-      aiStatus('❌ Free AI is busy right now — retry, or use ✦ Generate Photo (Kling key).');
+      $('#aiBtnPhoto').disabled = false;
+      $('#aiBtnFree').disabled = false;
+      $('#aiBtnVideo').disabled = false;
+      aiStatus('Draft preview server busy. Please try Generate Portrait with GPT Image 2.', 'error');
     };
     img.src = url;
   });
+
   $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
   $('#aiBtnVideo').addEventListener('click', function () { aiGenerate('video'); });
 
   function renderAiResults() {
     var wrap = $('#aiResults');
+    if (!wrap) return;
     wrap.innerHTML = '';
-    if (!db.aiVision || !db.aiVision.length) { wrap.appendChild(el('div', 'empty', 'Your future self will appear here 🪞')); return; }
-    db.aiVision.forEach(function (v) {
-      var card = el('div', 'card glass ai-result');
-      var badgeTxt = v.kind === 'video' ? 'Video' : (v.source === 'free' ? 'Free Photo' : 'Photo');
-      card.appendChild(el('span', 'ai-badge ' + (v.source === 'free' ? 'video' : v.kind), badgeTxt));
-      if (v.kind === 'photo') {
-        var img = document.createElement('img'); img.src = v.url; card.appendChild(img);
+
+    var items = db.aiVision || [];
+    var countEl = $('#aiGalleryCount');
+    if (countEl) {
+      countEl.textContent = items.length === 1 ? '1 vision' : items.length + ' visions';
+    }
+
+    if (!items.length) {
+      var emptyBox = el('div', 'ai-empty-box');
+      var glyph = el('div', 'ai-empty-glyph', '🪞');
+      var title = el('div', 'ai-empty-title', 'No Visions Manifested Yet');
+      var desc = el('div', 'ai-empty-desc', 'Describe your future aspirations on the left to render photorealistic imagery and cinematic video.');
+      emptyBox.appendChild(glyph);
+      emptyBox.appendChild(title);
+      emptyBox.appendChild(desc);
+      wrap.appendChild(emptyBox);
+      return;
+    }
+
+    items.forEach(function (v) {
+      var card = el('div', 'ai-card');
+
+      var badgeTxt = '';
+      var badgeClass = '';
+      if (v.kind === 'video') {
+        var cameraTag = v.cameraQuality ? (' · ' + v.cameraQuality) : '';
+        var videoModelLabel = (v.model && v.model.indexOf('seedance') !== -1) ? '▶ Seedance 2.0' : '▶ MiniMax H3 Max';
+        badgeTxt = videoModelLabel + cameraTag + (v.duration ? (' (' + v.duration + 's)') : '');
+        badgeClass = 'video';
+      } else if (v.source === 'free') {
+        badgeTxt = '◈ Instant Draft';
+        badgeClass = 'free';
       } else {
-        var vid = document.createElement('video'); vid.src = v.url; vid.controls = true; vid.playsInline = true; card.appendChild(vid);
+        badgeTxt = v.cameraQuality ? ('✦ ' + v.cameraQuality) : '✦ GPT Image 2';
+        badgeClass = 'photo';
       }
-      var when = new Date(v.ts).toLocaleString();
-      card.appendChild(el('p', 'ai-rl', '“' + v.prompt + '” · ' + when));
-      var dl = el('a', 'ai-rl', 'Download ' + (v.kind === 'photo' ? 'photo' : 'video') + ' ↓');
-      dl.href = v.url;
-      dl.setAttribute('download', 'luminara-future-self-' + v.id + (v.kind === 'photo' ? '.jpg' : '.mp4'));
-      dl.addEventListener('click', function (e) {
-        e.preventDefault();
-        fetch(v.url).then(function (r) { return r.blob(); }).then(function (b) {
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(b);
-          a.download = 'luminara-future-self-' + v.id + (v.kind === 'photo' ? '.jpg' : '.mp4');
-          document.body.appendChild(a); a.click();
-          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
-        }).catch(function () { window.open(v.url, '_blank'); });
+
+      var mediaContainer = el('div', 'ai-card-media');
+      var badge = el('span', 'ai-type-pill ' + badgeClass, badgeTxt);
+      mediaContainer.appendChild(badge);
+
+      if (v.kind === 'photo') {
+        var img = document.createElement('img');
+        img.src = v.url;
+        img.alt = v.prompt || 'Manifested vision';
+        img.loading = 'lazy';
+        img.addEventListener('click', function () {
+          window.open(v.url, '_blank');
+        });
+        mediaContainer.appendChild(img);
+      } else {
+        var vid = document.createElement('video');
+        vid.src = v.url;
+        vid.controls = true;
+        vid.playsInline = true;
+        vid.preload = 'metadata';
+
+        // Auto-recovery if video fails to load
+        vid.addEventListener('error', function () {
+          console.warn('[Video Player] Video failed to load:', v.url);
+          if (v.jobId && !vid.dataset.recovering) {
+            vid.dataset.recovering = 'true';
+            var userKey = aiKeys.openrouterKey || aiKeys.key || '';
+            callUnifiedApi('vision-video-status', { jobId: v.jobId, openrouterKey: userKey || undefined })
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                if (d.url && d.url !== v.url) {
+                  v.url = d.url;
+                  save();
+                  vid.src = d.url;
+                  vid.load();
+                }
+              }).catch(function () {});
+          }
+        });
+
+        mediaContainer.appendChild(vid);
+      }
+      card.appendChild(mediaContainer);
+
+      var body = el('div', 'ai-card-body');
+      var p = el('p', 'ai-card-prompt', '“' + v.prompt + '”');
+      body.appendChild(p);
+
+      var when = new Date(v.ts).toLocaleString([], {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       });
-      card.appendChild(dl);
+      var meta = el('div', 'ai-card-meta', when);
+      body.appendChild(meta);
+
+      var actions = el('div', 'ai-card-actions');
+
+      if (v.kind === 'video' && v.jobId) {
+        var syncBtn = el('button', 'ai-action-dl', '🔄 Re-sync');
+        syncBtn.type = 'button';
+        syncBtn.title = 'Re-fetch video from server or OpenRouter';
+        syncBtn.addEventListener('click', function () {
+          syncBtn.disabled = true;
+          syncBtn.textContent = 'Syncing…';
+          var userKey = aiKeys.openrouterKey || aiKeys.key || '';
+          callUnifiedApi('vision-video-status', { jobId: v.jobId, openrouterKey: userKey || undefined })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (d.url) {
+                v.url = d.url;
+                save();
+                renderAiResults();
+              } else {
+                alert('Video sync status: ' + (d.status || d.error || 'Still processing or link expired'));
+                syncBtn.disabled = false;
+                syncBtn.textContent = '🔄 Re-sync';
+              }
+            })
+            .catch(function (err) {
+              alert('Sync error: ' + err.message);
+              syncBtn.disabled = false;
+              syncBtn.textContent = '🔄 Re-sync';
+            });
+        });
+        actions.appendChild(syncBtn);
+      }
+
+      var dl = el('a', 'ai-action-dl', '📥 Download ' + (v.kind === 'photo' ? 'Photo' : 'Video'));
+      dl.href = v.url;
+      dl.setAttribute('download', 'vision-' + v.id + (v.kind === 'photo' ? '.jpg' : '.mp4'));
+      dl.addEventListener('click', function (e) {
+        if (v.url.startsWith('data:')) return;
+        e.preventDefault();
+        fetch(v.url)
+          .then(function (r) { return r.blob(); })
+          .then(function (b) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = 'vision-' + v.id + (v.kind === 'photo' ? '.jpg' : '.mp4');
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+          })
+          .catch(function () {
+            window.open(v.url, '_blank');
+          });
+      });
+      actions.appendChild(dl);
+
+      var delBtn = el('button', 'ai-action-del', '🗑️ Delete');
+      delBtn.type = 'button';
+      delBtn.addEventListener('click', function () {
+        db.aiVision = (db.aiVision || []).filter(function (item) { return item.id !== v.id; });
+        save();
+        renderAiResults();
+      });
+      actions.appendChild(delBtn);
+
+      body.appendChild(actions);
+      card.appendChild(body);
       wrap.appendChild(card);
     });
   }
+
   renderAiResults();
   $('#aiKeyState').textContent = aiKeyStateTxt();
 

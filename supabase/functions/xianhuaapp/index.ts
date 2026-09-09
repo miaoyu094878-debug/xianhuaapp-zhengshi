@@ -79,7 +79,29 @@ Deno.serve(async (req: Request) => {
         return await handleVoice(body);
 
       // ══════════════════════════════════════════════════════════
-      // 模块 3: 网关连通性与密钥诊断
+      // 模块 3: AI 目标愿景写真 (OpenRouter: openai/gpt-image-2)
+      // ══════════════════════════════════════════════════════════
+      case 'vision-photo':
+      case 'photo':
+        return await handleVisionPhoto(body);
+
+      // ══════════════════════════════════════════════════════════
+      // 模块 4: AI 目标动态视频 (OpenRouter: minimax/hailuo-3-max)
+      // ══════════════════════════════════════════════════════════
+      case 'vision-video':
+      case 'video':
+        return await handleVisionVideo(body);
+
+      case 'vision-video-status':
+      case 'video-status':
+        return await handleVisionVideoStatus(body);
+
+      case 'vision-video-content':
+      case 'video-content':
+        return await handleVisionVideoContent(body);
+
+      // ══════════════════════════════════════════════════════════
+      // 模块 5: 网关连通性与密钥诊断
       // ══════════════════════════════════════════════════════════
       case 'health':
       case 'ping':
@@ -91,6 +113,10 @@ Deno.serve(async (req: Request) => {
               openrouter: !!Deno.env.get('OPENROUTER_API_KEY'),
               elevenlabs: !!Deno.env.get('ELEVENLABS_API_KEY'),
               gemini: !!Deno.env.get('GEMINI_API_KEY')
+            },
+            models: {
+              visionPhoto: 'openai/gpt-image-2',
+              visionVideo: 'minimax/hailuo-3-max'
             }
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -99,7 +125,7 @@ Deno.serve(async (req: Request) => {
       default:
         return new Response(
           JSON.stringify({
-            error: `Unknown action: "${action}". Supported actions: "story", "voice", "health".`
+            error: `Unknown action: "${action}". Supported actions: "story", "voice", "vision-photo", "vision-video", "vision-video-status", "health".`
           }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -138,28 +164,32 @@ async function handleStory(body: any): Promise<Response> {
     );
   }
 
+  const isInputZh = /[\u4e00-\u9fa5]/.test(desire);
+  const targetLang = language || (isInputZh ? 'Chinese (中文)' : 'English');
+
   const prompt = `User's Manifestation Goal / Dream: "${desire.trim()}"
 User's Name: "${name ? name.trim() : 'Explorer'}"
 Preferred Atmosphere / Mood: "${mood || 'peaceful'}"
-Preferred Language: ${language || 'Auto-detect (Match the language of user input)'}
+Target Output Language: ${targetLang}
 
 System Directive:
 You are the master voice and immersive reality architect of Luminara & Stella.
 Your goal is to guide the listener into a profound, hypnotic, sensory-rich, PRESENT-TENSE ("现在进行时") lived reality where their goal is ALREADY 100% manifested and being experienced RIGHT NOW.
 
 STRICT WRITING RULES:
-1. STRICTLY PRESENT TENSE: Never say "you will", "one day", "in the future". ALWAYS write in the immediate present ("此时此刻...", "你正...", "你感受到...", "Right now you are feeling...", "The warmth is resting on your shoulders...").
-2. MULTI-SENSORY DETAIL: Evoke sights, soft ambient sounds, textures, scents (e.g. fresh breeze, warm tea, sunlit pages), and the calm physical certainty of being in this reality.
-3. EMOTIONAL DEPTH: Evoke profound gratitude, relief, inner quietness, and deep fulfillment.
-4. PACING: Write 3 to 4 poetic, gentle paragraphs (around 220-350 Chinese characters or 140-220 English words). Include natural breathing pauses (ellipses "...", dashes).
-5. LANGUAGE: Match the user's language (if user inputted Chinese, output fluent, lyrical Chinese; if English, output English).
+1. STRICT LANGUAGE MATCH: You MUST write the entire output in ${targetLang}. If the user's input is English, ALL titles, affirmations, stories, and anchors MUST be 100% in natural, fluent, evocative English (NO Chinese characters). If Chinese, output 100% in poetic Chinese.
+2. STRICTLY PRESENT TENSE: Never say "you will", "one day", "in the future". ALWAYS write in the immediate present ("Right now you are...", "You feel...", "此时此刻...", "你正...").
+3. MULTI-SENSORY DETAIL: Evoke sights, soft ambient sounds, textures, scents, and the calm physical certainty of being in this reality.
+4. EMOTIONAL DEPTH: Evoke profound gratitude, relief, inner quietness, and deep fulfillment.
+5. STRICT SINGLE PARAGRAPH (VOICE AUDITION MODE): The "story" MUST contain ONLY 1 single short paragraph. Absolutely NO extra paragraphs, NO line breaks (\n).
+6. ULTRA-SHORT & MINIMAL WORDS: Keep the story extremely brief — strictly 20 to 35 Chinese characters (or 15 to 25 English words). Exactly 1 or 2 short, evocative sentences so the user can test and audition voices with ultra-low latency and minimal token cost.
 
 You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrapping text outside JSON):
 {
-  "title": "A poetic 4-8 word title for this manifested scene",
-  "affirmation": "One definitive present-tense I AM / 我已经... affirmation summarizing this reality",
-  "story": "The complete present-tense sensory immersion story with paragraphs separated by newlines",
-  "sensoryAnchor": "A physical sensory anchor trigger (e.g. 轻轻将手放在心口，感受温热心跳与深长呼吸)",
+  "title": "A poetic 4-8 word title for this manifested scene (in ${targetLang})",
+  "affirmation": "One definitive present-tense affirmation summarizing this reality (in ${targetLang})",
+  "story": "The single short paragraph strictly between 20-35 characters for fast voice testing (in ${targetLang})",
+  "sensoryAnchor": "A physical sensory anchor trigger (e.g. Place your hand gently over your heart...) (in ${targetLang})",
   "frequency": "528Hz",
   "mood": "calm"
 }`;
@@ -245,16 +275,19 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
 
 // ─────────────────────────────────────────────────────────────
 // 子业务逻辑 2: 拟真真人 TTS 语音合成处理函数
-// 优先使用 ElevenLabs (eleven_multilingual_v2)，次选 Gemini Neural Voice
+// 优先使用 OpenRouter (google/gemini-3.1-flash-tts-preview)，次选 ElevenLabs / Gemini Neural Voice
 // ─────────────────────────────────────────────────────────────
 async function handleVoice(body: any): Promise<Response> {
   const elevenLabsKey = Deno.env.get('ELEVENLABS_API_KEY');
+  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY');
   const geminiKey = Deno.env.get('GEMINI_API_KEY');
+  // 用户将 OpenRouter API 密钥存储到了 GEMINI_API_KEY 或 OPENROUTER_API_KEY
+  const effectiveOpenRouterKey = openrouterKey || geminiKey;
 
-  if (!elevenLabsKey && !geminiKey) {
+  if (!elevenLabsKey && !openrouterKey && !geminiKey) {
     return new Response(
       JSON.stringify({
-        error: 'Please configure ELEVENLABS_API_KEY or GEMINI_API_KEY in Supabase Secrets'
+        error: 'Please configure OPENROUTER_API_KEY, ELEVENLABS_API_KEY or GEMINI_API_KEY in Supabase Secrets'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -270,21 +303,344 @@ async function handleVoice(body: any): Promise<Response> {
 
   const cleanText = text.replace(/[\n\r]+/g, ' ').trim().slice(0, 1000);
 
-  // 方案 A: 优先使用 ElevenLabs 顶级拟真 TTS
-  if (elevenLabsKey) {
+  // 方案 A-Qwen: 检查是否请求 Qwen Audio 3.0 TTS Plus / Flash (阿里通义实验室)
+  const isQwenTTS = (typeof voiceName === 'string' && (voiceName.startsWith('qwen:') || voiceName.startsWith('qwen_tts:') || voiceName.includes('qwen-audio') || voiceName.startsWith('longan') || voiceName.startsWith('loong'))) ||
+    (typeof voiceId === 'string' && (voiceId.startsWith('qwen:') || voiceId.startsWith('qwen_tts:') || voiceId.includes('qwen-audio') || voiceId.startsWith('longan') || voiceId.startsWith('loong')));
+
+  if (isQwenTTS && effectiveOpenRouterKey) {
     try {
-      // ElevenLabs 经典音色库映射 (支持中文多语言模型 eleven_multilingual_v2)
-      const voiceMap: Record<string, string> = {
-        'QJksobp1edMNvmwcG5lm': 'QJksobp1edMNvmwcG5lm',
-        'Custom1': 'QJksobp1edMNvmwcG5lm',
-        'Kore': '21m00Tcm4TlvDq8ikWAM',   // Rachel (温润治愈女声)
-        'Zephyr': 'EXAVITQu4vr4xnSDxMaL', // Bella (空灵清澈女声)
-        'Puck': 'pNInz6obpgDQGcFmaJgB',   // Adam (温暖从容男声)
-        'Charon': 'ErXwobaYiN019PkySvjV', // Antoni (深邃沉静男声)
-        'Fenrir': 'VR6AewLTigWG4xSOukaG'  // Arnold (笃定自信男声)
+      const rawVoice = voiceName || voiceId || 'longanlingxin';
+      let cleanVoice = rawVoice.replace(/^qwen(_tts)?:/, '').trim();
+
+      // Suffix or alias mapping
+      if (cleanVoice === 'lingxin' || cleanVoice === 'Lingxin') cleanVoice = 'longanlingxin';
+      if (cleanVoice === 'yuanfei' || cleanVoice === 'Yuanfei') cleanVoice = 'longanyuanfei';
+      if (cleanVoice === 'lingxi' || cleanVoice === 'Lingxi') cleanVoice = 'longanlingxi';
+      if (cleanVoice === 'xiaoxin' || cleanVoice === 'Xiaoxin') cleanVoice = 'longanxiaoxin';
+      if (cleanVoice === 'fengyue' || cleanVoice === 'Fengyue') cleanVoice = 'longanfengyue';
+      if (cleanVoice === 'huan' || cleanVoice === 'huanhuan') cleanVoice = 'longanhuan_v3.6';
+      if (cleanVoice === 'jielidou' || cleanVoice === 'Jielidou') cleanVoice = 'longjielidou_v3.6';
+      if (cleanVoice === 'eva' || cleanVoice === 'Eva') cleanVoice = 'loongeva_v3.6';
+      if (cleanVoice === 'lufeng' || cleanVoice === 'Lufeng') cleanVoice = 'longanlufeng';
+      if (cleanVoice === 'john' || cleanVoice === 'John') cleanVoice = 'loongjohn';
+
+      let targetModel = 'qwen/qwen-audio-3.0-tts-plus';
+      if (cleanVoice === 'longanhuan_v3.6' || cleanVoice === 'longjielidou_v3.6' || cleanVoice === 'loongeva_v3.6' || cleanVoice === 'longanfengyue' || (typeof voiceName === 'string' && voiceName.includes('flash'))) {
+        targetModel = 'qwen/qwen-audio-3.0-tts-flash';
+      }
+
+      let orRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.app',
+          'X-Title': 'Luminara'
+        },
+        body: JSON.stringify({
+          model: targetModel,
+          input: cleanText,
+          voice: cleanVoice,
+          response_format: 'mp3'
+        })
+      });
+
+      if (!orRes.ok) {
+        const altModel = targetModel === 'qwen/qwen-audio-3.0-tts-plus' ? 'qwen/qwen-audio-3.0-tts-flash' : 'qwen/qwen-audio-3.0-tts-plus';
+        const retryRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://luminara.app',
+            'X-Title': 'Luminara'
+          },
+          body: JSON.stringify({
+            model: altModel,
+            input: cleanText,
+            voice: cleanVoice,
+            response_format: 'mp3'
+          })
+        });
+        if (retryRes.ok) {
+          orRes = retryRes;
+          targetModel = altModel;
+        }
+      }
+
+      if (orRes.ok) {
+        const arrayBuf = await orRes.arrayBuffer();
+        const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
+        return new Response(
+          JSON.stringify({
+            audio: base64Audio,
+            format: 'mp3',
+            provider: 'openrouter-qwen-tts',
+            model: targetModel,
+            voice: cleanVoice
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const errText = await orRes.text();
+        console.warn('OpenRouter Qwen Audio 3.0 TTS returned non-200 in Edge Function:', orRes.status, errText);
+      }
+    } catch (e) {
+      console.warn('OpenRouter Qwen Audio 3.0 TTS error in edge function:', e);
+    }
+  }
+
+  // 方案 A0: 检查是否显式请求 OpenRouter Gemini 3.1 Flash TTS (带 openrouter: 前缀)
+  const isOpenRouterGeminiTTS = (typeof voiceName === 'string' && (voiceName.startsWith('openrouter:') || voiceName.startsWith('openrouter_tts:'))) ||
+    (typeof voiceId === 'string' && (voiceId.startsWith('openrouter:') || voiceId.startsWith('openrouter_tts:')));
+
+  if (isOpenRouterGeminiTTS && effectiveOpenRouterKey) {
+    try {
+      const rawVoice = voiceName || voiceId || 'Zephyr';
+      const cleanVoice = rawVoice.replace(/^openrouter(_tts)?:/, '');
+      const orRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.app',
+          'X-Title': 'Luminara'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3.1-flash-tts-preview',
+          input: cleanText,
+          voice: cleanVoice,
+          response_format: 'pcm'
+        })
+      });
+
+      if (orRes.ok) {
+        const arrayBuf = await orRes.arrayBuffer();
+        const pcmBytes = new Uint8Array(arrayBuf);
+        const wavBytes = pcmToWavUint8Array(pcmBytes, 24000, 1, 16);
+        const base64Audio = bufferToBase64(wavBytes);
+        return new Response(
+          JSON.stringify({
+            audio: base64Audio,
+            format: 'wav',
+            provider: 'openrouter-gemini-tts',
+            model: 'google/gemini-3.1-flash-tts-preview',
+            voice: cleanVoice
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const errText = await orRes.text();
+        console.warn('OpenRouter Gemini 3.1 TTS returned status:', orRes.status, errText);
+      }
+    } catch (e) {
+      console.warn('OpenRouter Gemini 3.1 TTS fetch error:', e);
+    }
+  }
+
+  // 方案 A1: 检查是否指定 OpenRouter Kokoro 82M
+  const isKokoro = (typeof voiceName === 'string' && voiceName.includes('kokoro')) ||
+    (typeof voiceId === 'string' && voiceId.includes('kokoro')) ||
+    (typeof voiceName === 'string' && (voiceName.startsWith('af_') || voiceName.startsWith('bf_') || voiceName.startsWith('zf_') || voiceName.startsWith('am_') || voiceName.startsWith('bm_'))) ||
+    (typeof voiceId === 'string' && (voiceId.startsWith('af_') || voiceId.startsWith('bf_') || voiceId.startsWith('zf_') || voiceId.startsWith('am_') || voiceId.startsWith('bm_')));
+
+  if (isKokoro && effectiveOpenRouterKey) {
+    try {
+      let kokoroVoice = 'af_aoede'; // 默认精选灵动婉转清脆女声
+      if (voiceName && (voiceName.startsWith('af_') || voiceName.startsWith('bf_') || voiceName.startsWith('zf_') || voiceName.startsWith('am_') || voiceName.startsWith('bm_'))) {
+        kokoroVoice = voiceName;
+      } else if (voiceId && (voiceId.startsWith('af_') || voiceId.startsWith('bf_') || voiceId.startsWith('zf_') || voiceId.startsWith('am_') || voiceId.startsWith('bm_'))) {
+        kokoroVoice = voiceId;
+      }
+
+      const orRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.app',
+          'X-Title': 'Luminara'
+        },
+        body: JSON.stringify({
+          model: 'hexgrad/kokoro-82m',
+          input: cleanText,
+          voice: kokoroVoice,
+          response_format: 'mp3'
+        })
+      });
+
+      if (orRes.ok) {
+        const arrayBuf = await orRes.arrayBuffer();
+        const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
+        return new Response(
+          JSON.stringify({
+            audio: base64Audio,
+            format: 'mp3',
+            provider: 'openrouter-kokoro',
+            model: 'hexgrad/kokoro-82m',
+            voice: kokoroVoice
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const errText = await orRes.text();
+        console.warn('OpenRouter Kokoro TTS returned non-200 in Edge Function:', orRes.status, errText);
+      }
+    } catch (e) {
+      console.warn('OpenRouter Kokoro TTS error in edge function:', e);
+    }
+  }
+
+  // 方案 A2: 检查是否指定 OpenRouter Fish Audio (支持无状态声音克隆)
+  const isFishAudio = voiceName === 'fish-audio/s2.1-pro-free:free' ||
+    (typeof voiceName === 'string' && voiceName.toLowerCase().includes('fish-audio')) ||
+    (typeof voiceId === 'string' && voiceId.toLowerCase().includes('fish-audio'));
+
+  if (isFishAudio && effectiveOpenRouterKey) {
+    try {
+      const payload: any = {
+        model: 'fish-audio/s2.1-pro-free:free',
+        input: cleanText,
+        response_format: 'mp3'
       };
 
-      const targetVoiceId = voiceId || voiceMap[voiceName] || (voiceName && voiceName.length >= 15 ? voiceName : 'QJksobp1edMNvmwcG5lm');
+      const orRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.app',
+          'X-Title': 'Luminara'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (orRes.ok) {
+        const arrayBuf = await orRes.arrayBuffer();
+        const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
+        return new Response(
+          JSON.stringify({
+            audio: base64Audio,
+            format: 'mp3',
+            provider: 'openrouter-fish-audio',
+            model: 'fish-audio/s2.1-pro-free:free',
+            voice: 'fish-audio/s2.1-pro-free:free'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (e) {
+      console.warn('OpenRouter Fish Audio error in edge function:', e);
+    }
+  }
+
+  // 方案 B: 原版配置使用 ElevenLabs 顶级拟真 TTS
+  const voiceMap: Record<string, string> = {
+    'QJksobp1edMNvmwcG5lm': 'QJksobp1edMNvmwcG5lm',
+    'Custom1': 'QJksobp1edMNvmwcG5lm',
+    'Kore': '21m00Tcm4TlvDq8ikWAM',   // Rachel (温润治愈女声)
+    'Zephyr': 'EXAVITQu4vr4xnSDxMaL', // Bella (空灵清澈女声)
+    'Aoede': 'EXAVITQu4vr4xnSDxMaL',  // Bella (灵动抒情女声)
+    'Puck': 'pNInz6obpgDQGcFmaJgB',   // Adam (温暖从容男声)
+    'Charon': 'ErXwobaYiN019PkySvjV', // Antoni (深邃沉静男声)
+    'Fenrir': 'VR6AewLTigWG4xSOukaG'  // Arnold (笃定自信男声)
+  };
+
+  const targetVoiceId = (!isOpenRouterGeminiTTS && !isKokoro && !isFishAudio)
+    ? (voiceId || voiceMap[voiceName] || (voiceName && !voiceName.startsWith('openrouter:') && voiceName.length >= 15 ? voiceName : null))
+    : null;
+
+  if (elevenLabsKey && targetVoiceId) {
+    try {
+      const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': elevenLabsKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg'
+        },
+        body: JSON.stringify({
+          text: cleanText,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.55,
+            similarity_boost: 0.85,
+            style: 0.15,
+            use_speaker_boost: true
+          }
+        })
+      });
+
+      if (elRes.ok) {
+        const arrayBuf = await elRes.arrayBuffer();
+        const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
+        return new Response(
+          JSON.stringify({
+            audio: base64Audio,
+            format: 'mp3',
+            provider: 'elevenlabs',
+            model: 'eleven_multilingual_v2',
+            voiceId: targetVoiceId
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const elErr = await elRes.text();
+        console.warn('ElevenLabs API error, falling back to Gemini TTS:', elRes.status, elErr);
+      }
+    } catch (e) {
+      console.warn('ElevenLabs request failed:', e);
+    }
+  }
+
+  // 方案 C: 原版配置使用 Google 官方 Gemini Neural Voice TTS
+  const validGeminiVoices = ['Zephyr', 'Kore', 'Aoede', 'Puck', 'Charon', 'Fenrir'];
+  const chosenVoice = validGeminiVoices.includes(voiceName) ? voiceName : (validGeminiVoices.includes(voiceId) ? voiceId : 'Zephyr');
+
+  if (effectiveOpenRouterKey) {
+    try {
+      const orRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.app',
+          'X-Title': 'Luminara'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3.1-flash-tts-preview',
+          input: cleanText,
+          voice: chosenVoice,
+          response_format: 'mp3'
+        })
+      });
+
+      if (orRes.ok) {
+        const arrayBuf = await orRes.arrayBuffer();
+        const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
+        return new Response(
+          JSON.stringify({
+            audio: base64Audio,
+            format: 'mp3',
+            provider: 'openrouter-gemini-tts',
+            model: 'google/gemini-3.1-flash-tts-preview',
+            voice: chosenVoice
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const errText = await orRes.text();
+        console.warn('OpenRouter Gemini 3.1 TTS returned status:', orRes.status, errText);
+      }
+    } catch (e) {
+      console.warn('OpenRouter Gemini 3.1 TTS fetch error:', e);
+    }
+  }
+
+  // 方案 B: 备用使用 ElevenLabs 顶级拟真 TTS
+  if (elevenLabsKey && !isFishAudio && !isKokoro && voiceId && voiceId.length >= 15) {
+    try {
+      const targetVoiceId = voiceId;
       const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`, {
         method: 'POST',
         headers: {
@@ -326,14 +682,12 @@ async function handleVoice(body: any): Promise<Response> {
     }
   }
 
-  // 方案 B: 备用使用 Gemini Neural Voice TTS
-  if (geminiKey) {
-    const validVoices = ['Kore', 'Zephyr', 'Puck', 'Charon', 'Fenrir'];
-    const chosenVoice = validVoices.includes(voiceName) ? voiceName : 'Kore';
+  // 方案 C: 备用使用 Google 官方 Gemini Neural Voice TTS
+  if (geminiKey && !geminiKey.startsWith('sk-')) {
     const isZh = /[\u4e00-\u9fa5]/.test(cleanText);
     const expressivePrompt = isZh
-      ? `请以极其自然温润、充满临场沉浸感、带有轻柔呼吸起伏与舒缓治愈语调的真人声音诵读：${cleanText}`
-      : `Please read in a deeply soothing, natural, intimate human voice with gentle pauses and warm emotional presence: ${cleanText}`;
+      ? `请以极其空灵清澈、温润轻柔、带有自然呼吸起伏与舒缓疗愈语调的真人声音诵读：${cleanText}`
+      : `Please read in an ethereal, crystal-clear, deeply soothing and intimate human voice with gentle natural breathing: ${cleanText}`;
 
     const ttsModelUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${geminiKey}`;
     const geminiRes = await fetch(ttsModelUrl, {
@@ -400,4 +754,375 @@ function bufferToBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
+}
+
+function pcmToWavUint8Array(pcm: Uint8Array, sampleRate = 24000, numChannels = 1, bitDepth = 16): Uint8Array {
+  const header = new Uint8Array(44);
+  const dataSize = pcm.length;
+  const byteRate = (sampleRate * numChannels * bitDepth) / 8;
+  const blockAlign = (numChannels * bitDepth) / 8;
+  const view = new DataView(header.buffer);
+
+  // "RIFF"
+  header[0] = 0x52; header[1] = 0x49; header[2] = 0x46; header[3] = 0x46;
+  view.setUint32(4, 36 + dataSize, true);
+  // "WAVE"
+  header[8] = 0x57; header[9] = 0x41; header[10] = 0x56; header[11] = 0x45;
+  // "fmt "
+  header[12] = 0x66; header[13] = 0x6d; header[14] = 0x74; header[15] = 0x20;
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM = 1
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  // "data"
+  header[36] = 0x64; header[37] = 0x61; header[38] = 0x74; header[39] = 0x61;
+  view.setUint32(40, dataSize, true);
+
+  const wav = new Uint8Array(44 + dataSize);
+  wav.set(header, 0);
+  wav.set(pcm, 44);
+  return wav;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 子业务逻辑 3: AI Vision 照片生成 (OpenRouter: openai/gpt-image-2)
+// ─────────────────────────────────────────────────────────────
+async function handleVisionPhoto(body: any): Promise<Response> {
+  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  if (!openrouterKey) {
+    return new Response(
+      JSON.stringify({ error: 'Please configure OPENROUTER_API_KEY in Supabase secrets or provide it in the request.' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const prompt = (body?.prompt || '').trim();
+  if (!prompt) {
+    return new Response(
+      JSON.stringify({ error: 'Please provide a vision prompt.' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const rawQuality = (body?.quality || '').toLowerCase();
+  let normalizedQuality = 'medium';
+  if (rawQuality === 'high' || rawQuality === 'hd' || rawQuality === 'pro') {
+    normalizedQuality = 'high';
+  } else if (rawQuality === 'low' || rawQuality === 'standard' || rawQuality === 'iphone7') {
+    normalizedQuality = 'low';
+  } else if (rawQuality === 'medium' || rawQuality === 'auto') {
+    normalizedQuality = rawQuality;
+  }
+
+  const reqBody: any = {
+    model: 'openai/gpt-image-2',
+    prompt: prompt,
+    aspect_ratio: body?.aspect_ratio || '1:1',
+    quality: normalizedQuality
+  };
+
+  if (body?.image && typeof body.image === 'string') {
+    const formattedUrl = body.image.startsWith('data:') ? body.image : `data:image/jpeg;base64,${body.image}`;
+    reqBody.input_references = [{ type: 'image_url', image_url: { url: formattedUrl } }];
+  }
+
+  try {
+    let orRes = await fetch('https://openrouter.ai/api/v1/images', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openrouterKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://luminara.ai',
+        'X-Title': 'Luminara'
+      },
+      body: JSON.stringify(reqBody)
+    });
+
+    if (!orRes.ok) {
+      const errText = await orRes.text();
+      // Try fallback to standard images endpoint
+      const retryRes = await fetch('https://openrouter.ai/api/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openrouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.ai',
+          'X-Title': 'Luminara'
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-image-2',
+          prompt: prompt,
+          size: '1024x1024',
+          quality: normalizedQuality
+        })
+      });
+      if (retryRes.ok) {
+        orRes = retryRes;
+      } else {
+        return new Response(
+          JSON.stringify({ error: `OpenRouter GPT Image 2 error (${orRes.status}): ${errText}` }),
+          { status: orRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    const data = await orRes.json();
+    let imageUrl: string | null = null;
+    if (data.data && Array.isArray(data.data) && data.data[0]) {
+      const item = data.data[0];
+      imageUrl = item.b64_json ? `data:${item.media_type || 'image/png'};base64,${item.b64_json}` : item.url;
+    } else if (data.url) {
+      imageUrl = data.url;
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, url: imageUrl, model: 'openai/gpt-image-2', prompt: prompt }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ error: err.message || 'Error generating photo' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 子业务逻辑 4: AI Vision 视频生成 (OpenRouter: minimax/hailuo-3-max)
+// ─────────────────────────────────────────────────────────────
+async function handleVisionVideo(body: any): Promise<Response> {
+  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  if (!openrouterKey) {
+    return new Response(
+      JSON.stringify({ error: 'Please configure OPENROUTER_API_KEY in Supabase secrets or provide it in the request.' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const prompt = (body?.prompt || '').trim();
+  if (!prompt) {
+    return new Response(
+      JSON.stringify({ error: 'Please provide a vision prompt for the video.' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const targetDuration = Math.min(15, Math.max(5, parseInt(body?.duration, 10) || 5));
+  const targetResolution = (body?.resolution === '768p' || body?.resolution === '720p') ? '768p' : '480p';
+
+  const reqBody: any = {
+    model: 'minimax/hailuo-3-max',
+    prompt: prompt,
+    duration: targetDuration,
+    resolution: targetResolution,
+    aspect_ratio: body?.aspect_ratio || '9:16'
+  };
+
+  if (body?.image && typeof body.image === 'string') {
+    const formattedUrl = body.image.startsWith('data:') ? body.image : `data:image/jpeg;base64,${body.image}`;
+    reqBody.frame_images = [
+      {
+        type: 'image_url',
+        frame_type: 'first_frame',
+        image_url: { url: formattedUrl }
+      }
+    ];
+  }
+
+  try {
+    let orRes = await fetch('https://openrouter.ai/api/v1/videos', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openrouterKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://luminara.ai',
+        'X-Title': 'Luminara'
+      },
+      body: JSON.stringify(reqBody)
+    });
+
+    if (!orRes.ok) {
+      const errText = await orRes.text();
+      // If frame_images fails, try with input_references preserving the same portrait
+      if (reqBody.frame_images && body?.image) {
+        const formattedUrl = body.image.startsWith('data:') ? body.image : `data:image/jpeg;base64,${body.image}`;
+        console.warn('[Vision Video] frame_images submission rejected, retrying with input_references...');
+        const retryRes = await fetch('https://openrouter.ai/api/v1/videos', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openrouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://luminara.ai',
+            'X-Title': 'Luminara'
+          },
+          body: JSON.stringify({
+            model: 'minimax/hailuo-3-max',
+            prompt: prompt,
+            duration: targetDuration,
+            resolution: targetResolution,
+            aspect_ratio: body?.aspect_ratio || '9:16',
+            input_references: [
+              {
+                type: 'image_url',
+                image_url: { url: formattedUrl }
+              }
+            ]
+          })
+        });
+        if (retryRes.ok) {
+          orRes = retryRes;
+        } else {
+          const retryErr = await retryRes.text();
+          return new Response(
+            JSON.stringify({ error: `OpenRouter MiniMax H3 Max video rejected (${orRes.status}): ${errText} / ${retryErr}` }),
+            { status: orRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
+        return new Response(
+          JSON.stringify({ error: `MiniMax H3 Max error (${orRes.status}): ${errText}` }),
+          { status: orRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    const data = await orRes.json();
+    const jobId = data.id || data.job_id || (data.data && data.data.id);
+    return new Response(
+      JSON.stringify({ success: true, jobId: jobId, status: data.status || 'submitted', model: 'minimax/hailuo-3-max' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ error: err.message || 'Error submitting video task' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function handleVisionVideoStatus(body: any): Promise<Response> {
+  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  const jobId = body?.jobId;
+  if (!jobId) {
+    return new Response(JSON.stringify({ error: 'jobId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  try {
+    const orRes = await fetch(`https://openrouter.ai/api/v1/videos/${jobId}`, {
+      headers: {
+        'Authorization': `Bearer ${openrouterKey}`,
+        'HTTP-Referer': 'https://luminara.ai',
+        'X-Title': 'Luminara'
+      }
+    });
+
+    if (!orRes.ok) {
+      const errText = await orRes.text();
+      return new Response(JSON.stringify({ error: `Polling error: ${errText}` }), { status: orRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const data = await orRes.json();
+    const status = data.status || (data.data && data.data.status) || 'processing';
+
+    // Comprehensive resolution of OpenRouter video URL across schemas
+    let rawUrl = 
+      (data.unsigned_urls && data.unsigned_urls[0]) ||
+      (data.data && data.data.unsigned_urls && data.data.unsigned_urls[0]) ||
+      data.url || data.video_url ||
+      (data.video && data.video.url) ||
+      (data.result && data.result.url) ||
+      (data.fastrouter_assets && data.fastrouter_assets.urls && data.fastrouter_assets.urls[0]) ||
+      (data.data && (data.data.url || data.data.video_url));
+
+    let finalVideoUrl = rawUrl || null;
+
+    // If completed and rawUrl requires OpenRouter Bearer authentication, download to base64 Data URL
+    if (status === 'completed' || status === 'succeed') {
+      try {
+        const downloadTarget = rawUrl || `https://openrouter.ai/api/v1/videos/${jobId}/content`;
+        const contentRes = await fetch(downloadTarget, {
+          headers: {
+            'Authorization': `Bearer ${openrouterKey}`,
+            'HTTP-Referer': 'https://luminara.ai',
+            'X-Title': 'Luminara'
+          }
+        });
+
+        if (contentRes.ok) {
+          const contentType = contentRes.headers.get('content-type') || 'video/mp4';
+          const arrayBuf = await contentRes.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuf);
+          let binary = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < uint8.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, Array.from(uint8.subarray(i, i + chunkSize)));
+          }
+          finalVideoUrl = `data:${contentType};base64,${btoa(binary)}`;
+        }
+      } catch (dlErr: any) {
+        console.warn('[Vision Video Status] Pre-download to base64 failed, keeping raw URL:', dlErr.message);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        jobId: jobId,
+        status: status,
+        url: finalVideoUrl,
+        raw_url: rawUrl || null,
+        error: data.error || (data.data && data.data.error) || null
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+}
+
+async function handleVisionVideoContent(body: any): Promise<Response> {
+  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  const jobId = body?.jobId;
+  if (!jobId) {
+    return new Response(JSON.stringify({ error: 'jobId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  try {
+    const videoRes = await fetch(`https://openrouter.ai/api/v1/videos/${jobId}/content`, {
+      headers: {
+        'Authorization': `Bearer ${openrouterKey}`,
+        'HTTP-Referer': 'https://luminara.ai',
+        'X-Title': 'Luminara'
+      }
+    });
+
+    if (!videoRes.ok) {
+      const errText = await videoRes.text();
+      return new Response(JSON.stringify({ error: `Video content not ready (${videoRes.status}): ${errText}` }), {
+        status: videoRes.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const contentType = videoRes.headers.get('content-type') || 'video/mp4';
+    const arrayBuf = await videoRes.arrayBuffer();
+
+    return new Response(arrayBuf, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': contentType,
+        'Content-Length': arrayBuf.byteLength.toString(),
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=31536000, immutable'
+      }
+    });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 }
