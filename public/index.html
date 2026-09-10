@@ -745,6 +745,81 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   margin-top: 2px;
 }
 
+.ai-btn-optimize-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(154, 99, 210, 0.12);
+  border: 1px solid rgba(154, 99, 210, 0.35);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ai-btn-optimize-chip:hover {
+  background: rgba(154, 99, 210, 0.22);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.ai-btn-optimize-chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ai-prompt-director-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(154, 99, 210, 0.07);
+  border: 1px solid rgba(154, 99, 210, 0.2);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.ai-director-badge {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ai-director-text {
+  font-size: 11px;
+  color: var(--text-soft);
+}
+.ai-director-text code {
+  font-family: monospace;
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.12);
+  color: var(--text);
+}
+.ai-director-meta {
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(154, 99, 210, 0.08);
+  border: 1px solid rgba(154, 99, 210, 0.22);
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+.ai-prompt-highlight {
+  animation: promptHighlightGlow 2s ease-out;
+}
+@keyframes promptHighlightGlow {
+  0% { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(154, 99, 210, 0.35); }
+  100% { border-color: var(--border); box-shadow: none; }
+}
+
 .ai-inspire-pill {
   font-size: 11.5px;
   padding: 4px 10px;
@@ -3307,15 +3382,25 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <div class="ai-field-group">
               <div class="ai-label-row">
                 <label class="ai-field-title" for="aiPrompt">1 · Manifestation Vision Prompt</label>
-                <span id="aiCharCount" class="ai-char-counter">0 / 400</span>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <button type="button" id="aiBtnOptimizePrompt" class="ai-btn-optimize-chip" title="由 AI 导演深度理解您的意图并扩写专业镜头分镜（优先 MiniMax M3 → OpenRouter Free → Gemini 2.0 Flash 依次调用）">
+                    <span>✨ AI 导演扩写意图</span>
+                  </button>
+                  <span id="aiCharCount" class="ai-char-counter">0 / 800</span>
+                </div>
               </div>
-              <textarea id="aiPrompt" class="ai-textarea" rows="3" placeholder="Describe your future reality: setting, clothing, lighting, emotions, posture, and ambiance..." maxlength="400"></textarea>
+              <textarea id="aiPrompt" class="ai-textarea" rows="3" placeholder="Describe your future reality: setting, clothing, lighting, emotions, posture, and ambiance (or enter simple keywords and click 'AI 导演扩写意图')..." maxlength="800"></textarea>
 
               <div class="ai-inspiration-chips">
                 <span class="ai-inspire-pill" data-prompt="Standing in a sunlit architectural penthouse in Tokyo overlooking the skyline, wearing an elegant tailored cream blazer, confident serene smile, soft golden-hour cinematic depth, 8k portrait">✨ Radiant Success</span>
                 <span class="ai-inspire-pill" data-prompt="Serene morning meditation in a minimalist glass sanctuary surrounded by misty pine forests, wearing cozy off-white cashmere, tranquil expression, soft dawn ambient glow">🌿 Quiet Sanctuary</span>
                 <span class="ai-inspire-pill" data-prompt="Delivering a keynote address on a luminous international amphitheater stage, holding a microphone with poise, warm auditorium lights, inspiring presence">🎙️ Keynote Speaker</span>
                 <span class="ai-inspire-pill" data-prompt="Sitting at an elegant sun-drenched café terrace in Paris, holding warm espresso, joyful confident gaze, chic tailored trench coat, blooming spring streetscape">☕ Parisian Terrace</span>
+              </div>
+
+              <div class="ai-prompt-director-info">
+                <span class="ai-director-badge">🎬 智能意图优化引擎</span>
+                <span class="ai-director-text">生成视频时由 LLM 导演深度解析用户意图，消除表达模糊与镜头动作断层。自动依次调用：<code>minimax/minimax-m3</code> ➔ <code>google/gemma-4-26b-a4b-it:free</code> ➔ <code>openrouter/free</code> 梯级备用。</span>
               </div>
             </div>
 

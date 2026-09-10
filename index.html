@@ -615,6 +615,181 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   }
 }
 
+.ai-studio-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.ai-mode-bar {
+  display: flex;
+  gap: 8px;
+  background: var(--surface-2);
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+@media (max-width: 580px) {
+  .ai-mode-bar {
+    flex-direction: column;
+  }
+}
+
+.ai-mode-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.22s ease;
+  text-align: left;
+  font-family: inherit;
+}
+
+.ai-mode-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.ai-mode-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.ai-mode-tab.active[data-subtab="photo"] {
+  border-color: #a855f7;
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.18);
+}
+
+.ai-mode-tab.active[data-subtab="video"] {
+  border-color: #ec4899;
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.18);
+}
+
+.ai-mode-tab .ai-mode-ico {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ai-mode-tab .ai-mode-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.ai-mode-tab .ai-mode-desc {
+  font-size: 11px;
+  color: var(--text-soft);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.ai-subtab-panel {
+  display: none;
+}
+
+.ai-subtab-panel.active {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-action-single-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ai-tip-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(154, 99, 210, 0.06);
+  border: 1px dashed color-mix(in srgb, var(--accent) 30%, var(--border));
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+.ai-tip-notice strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-btn-text-action {
+  background: none;
+  border: none;
+  font-size: 11.5px;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.ai-btn-text-action:hover {
+  background: rgba(154, 99, 210, 0.12);
+}
+
+.ai-gallery-filter-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-filter-chip {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-soft);
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-filter-chip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.ai-filter-chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-model-tag.photo-tag {
+  color: #a855f7;
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.ai-model-tag.video-tag {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.35);
+  background: rgba(236, 72, 153, 0.08);
+}
+
 .ai-studio-panel {
   display: flex;
   flex-direction: column;
@@ -743,6 +918,81 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   flex-wrap: wrap;
   align-items: center;
   margin-top: 2px;
+}
+
+.ai-btn-optimize-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(154, 99, 210, 0.12);
+  border: 1px solid rgba(154, 99, 210, 0.35);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ai-btn-optimize-chip:hover {
+  background: rgba(154, 99, 210, 0.22);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.ai-btn-optimize-chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ai-prompt-director-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(154, 99, 210, 0.07);
+  border: 1px solid rgba(154, 99, 210, 0.2);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+.ai-director-badge {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ai-director-text {
+  font-size: 11px;
+  color: var(--text-soft);
+}
+.ai-director-text code {
+  font-family: monospace;
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.12);
+  color: var(--text);
+}
+.ai-director-meta {
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(154, 99, 210, 0.08);
+  border: 1px solid rgba(154, 99, 210, 0.22);
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+.ai-prompt-highlight {
+  animation: promptHighlightGlow 2s ease-out;
+}
+@keyframes promptHighlightGlow {
+  0% { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(154, 99, 210, 0.35); }
+  100% { border-color: var(--border); box-shadow: none; }
 }
 
 .ai-inspire-pill {
@@ -3278,195 +3528,333 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
         <div class="ai-vision-container">
           <!-- Left Column: Vision Studio Controls -->
-          <div class="card glass ai-studio-panel">
-            <div class="ai-top-bar">
-              <div class="ai-model-chips">
-                <span class="ai-model-tag">✦ GPT Image 2</span>
-                <span class="ai-model-tag">▶ MiniMax H3 Max</span>
-              </div>
-              <button id="aiKeyToggle" class="ai-config-btn" type="button" title="View Key Configuration">
-                <span class="ai-dot-indicator"></span>
-                <span id="aiKeyState">Supabase Cloud Key (Active)</span>
+          <div class="ai-studio-col">
+            <!-- Studio Switcher Tabs (Photo vs Video) -->
+            <div class="ai-mode-bar" role="tablist" aria-label="AI Vision Modes">
+              <button type="button" class="ai-mode-tab active" id="aiTabBtnPhoto" data-subtab="photo" role="tab" aria-selected="true">
+                <span class="ai-mode-ico">📸</span>
+                <div class="ai-mode-text">
+                  <div class="ai-mode-title">AI 肖像照片 (Photo Studio)</div>
+                  <div class="ai-mode-desc">OpenAI GPT Image 2 · 苹果实拍质感 · ~15s</div>
+                </div>
+              </button>
+              <button type="button" class="ai-mode-tab" id="aiTabBtnVideo" data-subtab="video" role="tab" aria-selected="false">
+                <span class="ai-mode-ico">🎬</span>
+                <div class="ai-mode-text">
+                  <div class="ai-mode-title">AI 动态视频 (Video Studio)</div>
+                  <div class="ai-mode-desc">MiniMax H3 Max · 真实物理动态 · AI导演分镜</div>
+                </div>
               </button>
             </div>
 
-            <!-- Key Drawer -->
-            <div id="aiKeyBox" class="ai-key-drawer hidden">
-              <p class="ai-key-hint">
-                Portraits and videos are powered by OpenRouter's <strong>OpenAI GPT Image 2</strong> and <strong>MiniMax H3 Max (Hailuo 3.0)</strong>, seamlessly authenticated through your Supabase Backend Secrets (<code>OPENROUTER_API_KEY</code>).<br>
-                Optional: Enter a custom OpenRouter key below if you wish to override the default cloud gateway.
-              </p>
-              <label class="field-label" for="aiKey">Custom OpenRouter API Key (Optional)</label>
-              <input id="aiKey" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
-              <div style="display:flex;gap:8px;margin-top:8px;">
-                <button id="aiKeySave" class="btn-primary btn-small" type="button">Save Key</button>
-              </div>
-            </div>
-
-            <!-- Manifestation Prompt -->
-            <div class="ai-field-group">
-              <div class="ai-label-row">
-                <label class="ai-field-title" for="aiPrompt">1 · Manifestation Vision Prompt</label>
-                <span id="aiCharCount" class="ai-char-counter">0 / 400</span>
-              </div>
-              <textarea id="aiPrompt" class="ai-textarea" rows="3" placeholder="Describe your future reality: setting, clothing, lighting, emotions, posture, and ambiance..." maxlength="400"></textarea>
-
-              <div class="ai-inspiration-chips">
-                <span class="ai-inspire-pill" data-prompt="Standing in a sunlit architectural penthouse in Tokyo overlooking the skyline, wearing an elegant tailored cream blazer, confident serene smile, soft golden-hour cinematic depth, 8k portrait">✨ Radiant Success</span>
-                <span class="ai-inspire-pill" data-prompt="Serene morning meditation in a minimalist glass sanctuary surrounded by misty pine forests, wearing cozy off-white cashmere, tranquil expression, soft dawn ambient glow">🌿 Quiet Sanctuary</span>
-                <span class="ai-inspire-pill" data-prompt="Delivering a keynote address on a luminous international amphitheater stage, holding a microphone with poise, warm auditorium lights, inspiring presence">🎙️ Keynote Speaker</span>
-                <span class="ai-inspire-pill" data-prompt="Sitting at an elegant sun-drenched café terrace in Paris, holding warm espresso, joyful confident gaze, chic tailored trench coat, blooming spring streetscape">☕ Parisian Terrace</span>
-              </div>
-            </div>
-
-            <!-- Camera Texture & Quality Selector -->
-            <div class="ai-field-group">
-              <div class="ai-label-row">
-                <label class="ai-field-title">2 · Camera Aesthetic (苹果镜头影调)</label>
-                <span id="aiQualitySelectedHint" class="ai-char-counter">苹果X真实纪实 (原相机质感 · ~$0.006)</span>
-              </div>
-              <div class="ai-quality-selector" role="radiogroup" aria-label="Camera Texture and Quality">
-                <button type="button" class="ai-quality-card active" id="aiQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
-                  <div class="ai-qual-top">
-                    <span class="ai-qual-icon">📱</span>
-                    <span class="ai-qual-badge ai-badge-classic">苹果X经典 · 原相机实拍</span>
-                  </div>
-                  <div class="ai-qual-title">iPhone X 纪实影调</div>
-                  <div class="ai-qual-desc">经典28mm · 手持生活感 · 温暖真实肤色 · 拒绝AI塑料感</div>
-                </button>
-                <button type="button" class="ai-quality-card" id="aiQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
-                  <div class="ai-qual-top">
-                    <span class="ai-qual-icon">📸</span>
-                    <span class="ai-qual-badge ai-badge-pro">旗舰通透感 · 高清晰</span>
-                  </div>
-                  <div class="ai-qual-title">iPhone 16 Pro 影调</div>
-                  <div class="ai-qual-desc">4800万主摄感 · 光子引擎色彩 · Smart HDR 5 · 纯净通透</div>
-                </button>
-                <button type="button" class="ai-quality-card" id="aiQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
-                  <div class="ai-qual-top">
-                    <span class="ai-qual-icon">🎞️</span>
-                    <span class="ai-qual-badge ai-badge-classic">复古快照 · 微颗粒</span>
-                  </div>
-                  <div class="ai-qual-title">iPhone 7 胶片随手拍</div>
-                  <div class="ai-qual-desc">1200万像素 · 怀旧生活随手拍 · 胶片噪点与柔和对比</div>
-                </button>
-              </div>
-            </div>
-
-            <!-- Face Reference Upload (Optional) -->
-            <div class="ai-field-group">
-              <label class="ai-field-title">3 · Portrait Likeness (Optional)</label>
-              <input type="file" id="aiPhoto" accept="image/*" class="hidden">
-              <div class="ai-drop-zone" id="aiDrop">
-                <div class="ai-drop-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <!-- Panel 1: Photo Studio -->
+            <div class="card glass ai-studio-panel ai-subtab-panel active" id="aiPanelPhoto">
+              <div class="ai-top-bar">
+                <div class="ai-model-chips">
+                  <span class="ai-model-tag photo-tag">✦ GPT Image 2</span>
+                  <span class="ai-model-tag">高清原相机质感 · 肖像画</span>
                 </div>
-                <div class="ai-drop-content">
-                  <span class="ai-drop-heading">Upload Face Reference</span>
-                  <span class="ai-drop-sub">Blend your likeness into the scene, or leave blank for text-only vision</span>
+                <button id="aiKeyTogglePhoto" class="ai-config-btn ai-key-toggle-btn" type="button" title="View Key Configuration">
+                  <span class="ai-dot-indicator"></span>
+                  <span class="ai-key-state-label">Supabase Cloud Key (Active)</span>
+                </button>
+              </div>
+
+              <!-- Key Drawer for Photo Studio -->
+              <div id="aiKeyBoxPhoto" class="ai-key-drawer hidden">
+                <p class="ai-key-hint">
+                  肖像生成由 OpenRouter <strong>OpenAI GPT Image 2</strong> 驱动，已由 Supabase 密钥安全代理。<br>
+                  可选：输入自定义 OpenRouter Key 以覆盖云端网关。
+                </p>
+                <label class="field-label" for="aiKeyPhoto">Custom OpenRouter API Key (Optional)</label>
+                <input id="aiKeyPhoto" class="ai-key-input" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button id="aiKeySavePhoto" class="btn-primary btn-small ai-key-save-btn" type="button">Save Key</button>
                 </div>
               </div>
-              <div id="aiPrevBox" class="ai-preview-card hidden">
-                <img id="aiPrevImg" class="ai-preview-thumb" alt="your reference photo">
-                <div class="ai-preview-meta">
-                  <span class="ai-preview-name">Portrait Attached</span>
-                  <span class="ai-preview-note">Likeness will be blended into creation</span>
+
+              <!-- 1 · Portrait Vision Prompt -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title" for="aiPhotoPrompt">1 · 肖像愿景描述词 (Portrait Prompt)</label>
+                  <span id="aiPhotoCharCount" class="ai-char-counter">0 / 800</span>
                 </div>
-                <button id="aiPrevClear" class="chip" type="button" style="margin:0;">Remove</button>
-              </div>
-            </div>
+                <textarea id="aiPhotoPrompt" class="ai-textarea" rows="3" placeholder="描述您的未来肖像：服装、发型面貌、所在场景、光影氛围与从容自信的神态..." maxlength="800"></textarea>
 
-            <!-- Video Resolution & Duration Selector -->
-            <div class="ai-field-group">
-              <div class="ai-label-row">
-                <label class="ai-field-title">4 · Video Quality & Duration (画质档位与时长)</label>
-                <span id="aiVideoDurationHint" class="ai-char-counter">480p 流畅档 (5s · ~$0.25)</span>
-              </div>
-
-              <!-- Resolution Selector (480p vs 768p) -->
-              <div class="ai-resolution-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:10px;">
-                <button type="button" class="ai-res-btn active" id="aiRes480p" data-res="480p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
-                  <span>🟢 480p 节能流畅档</span>
-                  <span style="font-size:10px;opacity:0.9;background:rgba(16,185,129,0.2);padding:1px 6px;border-radius:6px;">$0.05/s</span>
-                </button>
-                <button type="button" class="ai-res-btn" id="aiRes768p" data-res="768p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
-                  <span>🎬 768p 高清影视档</span>
-                  <span style="font-size:10px;opacity:0.9;background:rgba(139,92,246,0.15);padding:1px 6px;border-radius:6px;">$0.08/s</span>
-                </button>
+                <div class="ai-inspiration-chips">
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Standing in a sunlit architectural penthouse in Tokyo overlooking the skyline, wearing an elegant tailored cream blazer, confident serene smile, soft golden-hour cinematic depth, 8k portrait">✨ 商业精英</span>
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Serene morning in a minimalist glass sanctuary surrounded by misty pine forests, wearing cozy off-white cashmere, tranquil expression, soft dawn ambient glow">🌿 阳光森系</span>
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Delivering a keynote address on a luminous international amphitheater stage, holding a microphone with poise, warm auditorium lights, inspiring presence">🎙️ 演讲现场</span>
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Sitting at an elegant sun-drenched café terrace in Paris, holding warm espresso, joyful confident gaze, chic tailored trench coat, blooming spring streetscape">☕ 巴黎街角</span>
+                </div>
               </div>
 
-              <div class="ai-duration-selector" role="radiogroup" aria-label="Video Duration Options">
-                <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
-                  <div class="ai-dur-top">
-                    <span class="ai-dur-badge ai-badge-standard">标准推荐 · 5s</span>
-                    <span class="ai-dur-cost" id="aiCost5s">~$0.25</span>
+              <!-- 2 · Camera Aesthetic (Apple Textures) -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">2 · 苹果镜头影调 (Apple Camera Aesthetic)</label>
+                  <span id="aiPhotoQualityHint" class="ai-char-counter">苹果X真实纪实 (原相机质感 · ~$0.006)</span>
+                </div>
+                <div class="ai-quality-selector" role="radiogroup" aria-label="Photo Camera Texture">
+                  <button type="button" class="ai-quality-card active" id="aiPhotoQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📱</span>
+                      <span class="ai-qual-badge ai-badge-classic">苹果X经典 · 原相机实拍</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone X 纪实影调</div>
+                    <div class="ai-qual-desc">经典28mm · 手持生活感 · 温暖真实肤色 · 拒绝AI塑料感</div>
+                  </button>
+                  <button type="button" class="ai-quality-card" id="aiPhotoQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📸</span>
+                      <span class="ai-qual-badge ai-badge-pro">旗舰通透感 · 高清晰</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 16 Pro 影调</div>
+                    <div class="ai-qual-desc">4800万主摄感 · 光子引擎色彩 · Smart HDR 5 · 纯净通透</div>
+                  </button>
+                  <button type="button" class="ai-quality-card" id="aiPhotoQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">🎞️</span>
+                      <span class="ai-qual-badge ai-badge-classic">复古快照 · 微颗粒</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 7 胶片随手拍</div>
+                    <div class="ai-qual-desc">1200万像素 · 怀旧生活随手拍 · 胶片噪点与柔和对比</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3 · Portrait Likeness (Optional) -->
+              <div class="ai-field-group">
+                <label class="ai-field-title">3 · 人物面部参考图 (Portrait Likeness · Optional)</label>
+                <input type="file" id="aiPhotoFile" accept="image/*" class="hidden">
+                <div class="ai-drop-zone" id="aiPhotoDrop">
+                  <div class="ai-drop-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                   </div>
-                  <div class="ai-dur-title">5 秒 标准镜头</div>
-                  <div class="ai-dur-desc" id="aiDesc5s">首选推荐 · 约1.80元 · 支持真人肖像与立体声</div>
-                </button>
-                <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
-                  <div class="ai-dur-top">
-                    <span class="ai-dur-badge ai-badge-extended">连贯运镜 · 6s</span>
-                    <span class="ai-dur-cost" id="aiCost6s">~$0.30</span>
+                  <div class="ai-drop-content">
+                    <span class="ai-drop-heading">上传面部正面自拍</span>
+                    <span class="ai-drop-sub">融入真实相貌特征；若留空则直接根据文字愿景描绘生成</span>
                   </div>
-                  <div class="ai-dur-title">6 秒 连贯运镜</div>
-                  <div class="ai-dur-desc" id="aiDesc6s">优雅运镜 · 约2.16元 · 动态过渡更平滑</div>
-                </button>
-                <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
-                  <div class="ai-dur-top">
-                    <span class="ai-dur-badge ai-badge-ultra-low">长镜头 · 10s</span>
-                    <span class="ai-dur-cost" id="aiCost10s">~$0.50</span>
+                </div>
+                <div id="aiPhotoPrevBox" class="ai-preview-card hidden">
+                  <img id="aiPhotoPrevImg" class="ai-preview-thumb" alt="your reference photo">
+                  <div class="ai-preview-meta">
+                    <span class="ai-preview-name">已附加肖像参考</span>
+                    <span class="ai-preview-note">相貌特征将融入肖像创作中</span>
                   </div>
-                  <div class="ai-dur-title">10 秒 完整动作</div>
-                  <div class="ai-dur-desc" id="aiDesc10s">长镜头故事 · 约3.60元 · 剧情充沛细节拉满</div>
+                  <button id="aiPhotoPrevClear" class="chip" type="button" style="margin:0;">移除</button>
+                </div>
+              </div>
+
+              <div class="ai-tip-notice">
+                <span class="ai-tip-icon">💡</span>
+                <span class="ai-tip-text"><strong>肖像创作提示</strong>：光线均匀无遮挡的正脸自拍融合效果最佳；避免提交公众人物换脸或敏感画面。出图耗时约 15 秒。</span>
+              </div>
+
+              <!-- Generation Actions for Photo -->
+              <div class="ai-action-single-grid">
+                <button id="aiBtnPhoto" class="ai-btn-generate ai-btn-photo" type="button">
+                  <span class="ai-btn-title">✦ 生成真实质感肖像 (Generate Portrait)</span>
+                  <span class="ai-btn-sub">OpenAI GPT Image 2 · 苹果镜头质感 · ~15s</span>
+                </button>
+                <button id="aiBtnFree" class="ai-btn-free" type="button">
+                  ◈ 极速草稿预览 (Instant Free Draft · No Key Needed)
                 </button>
               </div>
+
+              <div id="aiPhotoStatus" class="ai-status-banner"></div>
             </div>
 
-            <!-- Model Safety & Creation Guidelines Accordion -->
-            <div class="ai-guidance-card" id="aiGuidanceCard">
-              <div class="ai-guidance-header" id="aiGuidanceToggle">
-                <div class="ai-guidance-title">
-                  <span>💡</span>
-                  <span>AI 创作提示与模型限制说明 (Guidelines & Limits)</span>
+            <!-- Panel 2: Video Studio -->
+            <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelVideo">
+              <div class="ai-top-bar">
+                <div class="ai-model-chips">
+                  <span class="ai-model-tag video-tag">▶ MiniMax H3 Max</span>
+                  <span class="ai-model-tag">真实物理动态 · 连贯运镜 · 环境原声</span>
                 </div>
-                <button type="button" class="ai-guidance-toggle" id="aiGuidanceToggleBtn">查看须知 ▾</button>
+                <button id="aiKeyToggleVideo" class="ai-config-btn ai-key-toggle-btn" type="button" title="View Key Configuration">
+                  <span class="ai-dot-indicator"></span>
+                  <span class="ai-key-state-label">Supabase Cloud Key (Active)</span>
+                </button>
               </div>
-              <div class="ai-guidance-body hidden" id="aiGuidanceBody">
-                <div class="ai-guidance-item">
-                  <strong>✦ 肖像照片 (GPT Image 2)</strong>
-                  <span>支持上传生活肖像与自拍。请避免提交公众人物/名星肖像换脸、政治敏感或暴露画面（将被安全审核拦截）。建议画面光线均匀、面部无遮挡。</span>
-                </div>
-                <div class="ai-guidance-item">
-                  <strong>▶ 动态视频 (MiniMax H3 Max)</strong>
-                  <span>支持真人面部与自然动作。标准输出为 5s/6s/10s 档位（不支持任意长度）；生成需 1~2 分钟渲染。微表情、转头走动最自然；超大剧烈打斗或复杂手指穿插可能产生细微形变。</span>
+
+              <!-- Key Drawer for Video Studio -->
+              <div id="aiKeyBoxVideo" class="ai-key-drawer hidden">
+                <p class="ai-key-hint">
+                  视频生成由 OpenRouter <strong>MiniMax H3 Max (Hailuo 3.0)</strong> 驱动，已由 Supabase 密钥安全代理。<br>
+                  可选：输入自定义 OpenRouter Key 以覆盖云端网关。
+                </p>
+                <label class="field-label" for="aiKeyVideo">Custom OpenRouter API Key (Optional)</label>
+                <input id="aiKeyVideo" class="ai-key-input" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button id="aiKeySaveVideo" class="btn-primary btn-small ai-key-save-btn" type="button">Save Key</button>
                 </div>
               </div>
-            </div>
 
-            <!-- Generation Actions -->
-            <div class="ai-action-grid">
-              <button id="aiBtnPhoto" class="ai-btn-generate ai-btn-photo" type="button">
-                <span class="ai-btn-title">✦ Generate Portrait</span>
-                <span class="ai-btn-sub">OpenAI GPT Image 2 · ~15s</span>
-              </button>
-              <button id="aiBtnVideo" class="ai-btn-generate ai-btn-video" type="button">
-                <span class="ai-btn-title">▶ Generate Motion Video</span>
-                <span class="ai-btn-sub">MiniMax H3 Max (5s · 480p) · ~$0.25</span>
-              </button>
-              <button id="aiBtnFree" class="ai-btn-free" type="button">
-                ◈ Instant Draft (Free Preview · No Key Needed)
-              </button>
-            </div>
+              <!-- 1 · Motion & Scene Prompt -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title" for="aiVideoPrompt">1 · 动态场景与分镜描述 (Motion & Scene)</label>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <button type="button" id="aiBtnOptimizePrompt" class="ai-btn-optimize-chip" title="由 AI 导演深度理解您的意图并扩写专业镜头分镜（彻底杜绝开口唱词，优先 MiniMax M3 → Gemma 4 → OpenRouter Free 梯级备用）">
+                      <span>✨ AI 导演扩写意图</span>
+                    </button>
+                    <span id="aiVideoCharCount" class="ai-char-counter">0 / 800</span>
+                  </div>
+                </div>
+                <textarea id="aiVideoPrompt" class="ai-textarea" rows="3" placeholder="描述您在未来现实中的动态场景（如：漫步在阳光海滩海风拂面回眸微笑、在国际演讲台上自信发言、驾驶跑车等）..." maxlength="800"></textarea>
 
-            <div id="aiStatus" class="ai-status-banner"></div>
+                <div class="ai-inspiration-chips">
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Walking leisurely along a sunlit Mediterranean seaside promenade with turquoise ocean views, gentle sea breeze swaying dark hair, relaxed confident smile, holding travel drink">🏖️ 阳光海滩漫步</span>
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Delivering a keynote address on a luminous international amphitheater stage, holding a microphone with poise, warm auditorium lights, inspiring presence">🎙️ 国际舞台演讲</span>
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Sitting in the driver seat of a sleek modern luxury sports car, hands on the leather steering wheel, calm confident smile, city evening lights reflected">🚗 驾驶跑车兜风</span>
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Sitting at an elegant sun-drenched café terrace, holding warm espresso cup, taking a gentle sip, peaceful morning breeze, relaxed posture">☕ 露台品味咖啡</span>
+                </div>
+
+                <div class="ai-prompt-director-info">
+                  <span class="ai-director-badge">🎬 导演保障</span>
+                  <span class="ai-director-text">生成时由 LLM 导演大模型深度展开分镜。<strong>已强制双唇微闭或从容微笑，杜绝将提示词当台词念唱</strong>，呈现真实微风与沉浸环境音。</span>
+                </div>
+              </div>
+
+              <!-- 2 · First-Frame Anchor (Image-to-Video) -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">2 · 首帧人物肖像 (First-Frame Anchor)</label>
+                  <button type="button" id="aiBtnUseRecentPhoto" class="ai-btn-text-action hidden" title="将最近在肖像工坊生成的照片设为首帧">
+                    ✦ 选用最新生成的肖像
+                  </button>
+                </div>
+                <input type="file" id="aiVideoPhotoFile" accept="image/*" class="hidden">
+                <div class="ai-drop-zone" id="aiVideoDrop">
+                  <div class="ai-drop-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  </div>
+                  <div class="ai-drop-content">
+                    <span class="ai-drop-heading">上传首帧人物肖像 (第 0 秒锚定)</span>
+                    <span class="ai-drop-sub">MiniMax 将以此肖像为起点推演连贯动作，100% 保持人物五官一致</span>
+                  </div>
+                </div>
+                <div id="aiVideoPrevBox" class="ai-preview-card hidden">
+                  <img id="aiVideoPrevImg" class="ai-preview-thumb" alt="first frame portrait">
+                  <div class="ai-preview-meta">
+                    <span class="ai-preview-name">首帧人像已就绪</span>
+                    <span class="ai-preview-note">将严格保持原图五官容貌与发型一致</span>
+                  </div>
+                  <button id="aiVideoPrevClear" class="chip" type="button" style="margin:0;">移除</button>
+                </div>
+              </div>
+
+              <!-- 3 · Video Resolution & Duration Selector -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">3 · 视频画质与时长档位 (Resolution & Duration)</label>
+                  <span id="aiVideoDurationHint" class="ai-char-counter">480p 流畅档 (5s · ~$0.25 · 约1.80元)</span>
+                </div>
+
+                <!-- Resolution Selector (480p vs 768p) -->
+                <div class="ai-resolution-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:10px;">
+                  <button type="button" class="ai-res-btn active" id="aiRes480p" data-res="480p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
+                    <span>🟢 480p 节能流畅档</span>
+                    <span style="font-size:10px;opacity:0.9;background:rgba(16,185,129,0.2);padding:1px 6px;border-radius:6px;">$0.05/s</span>
+                  </button>
+                  <button type="button" class="ai-res-btn" id="aiRes768p" data-res="768p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
+                    <span>🎬 768p 高清影视档</span>
+                    <span style="font-size:10px;opacity:0.9;background:rgba(139,92,246,0.15);padding:1px 6px;border-radius:6px;">$0.08/s</span>
+                  </button>
+                </div>
+
+                <div class="ai-duration-selector" role="radiogroup" aria-label="Video Duration Options">
+                  <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-standard">标准推荐 · 5s</span>
+                      <span class="ai-dur-cost" id="aiCost5s">~$0.25</span>
+                    </div>
+                    <div class="ai-dur-title">5 秒 标准镜头</div>
+                    <div class="ai-dur-desc" id="aiDesc5s">首选推荐 · 约1.80元 · 支持真人肖像与立体声</div>
+                  </button>
+                  <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-extended">连贯运镜 · 6s</span>
+                      <span class="ai-dur-cost" id="aiCost6s">~$0.30</span>
+                    </div>
+                    <div class="ai-dur-title">6 秒 连贯运镜</div>
+                    <div class="ai-dur-desc" id="aiDesc6s">优雅运镜 · 约2.16元 · 动态过渡更平滑</div>
+                  </button>
+                  <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-ultra-low">长镜头 · 10s</span>
+                      <span class="ai-dur-cost" id="aiCost10s">~$0.50</span>
+                    </div>
+                    <div class="ai-dur-title">10 秒 完整动作</div>
+                    <div class="ai-dur-desc" id="aiDesc10s">长镜头故事 · 约3.60元 · 剧情充沛细节拉满</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 4 · Camera Cinematics -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">4 · 运镜影调与实拍质感 (Camera Cinematics)</label>
+                  <span id="aiVideoQualityHint" class="ai-char-counter">苹果X真实手持运镜</span>
+                </div>
+                <div class="ai-quality-selector" role="radiogroup" aria-label="Video Camera Texture">
+                  <button type="button" class="ai-quality-card active" id="aiVideoQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📱</span>
+                      <span class="ai-qual-badge ai-badge-classic">苹果X经典 · 手持生活感</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone X 纪实运镜</div>
+                    <div class="ai-qual-desc">经典28mm · 手持呼吸微晃 · 真实肤色 · 拒绝AI塑料感</div>
+                  </button>
+                  <button type="button" class="ai-quality-card" id="aiVideoQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📸</span>
+                      <span class="ai-qual-badge ai-badge-pro">旗舰微推镜头 · 高清晰</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 16 Pro 运镜</div>
+                    <div class="ai-qual-desc">4800万主摄感 · 慢速推轨平稳推近 · 纯净通透</div>
+                  </button>
+                  <button type="button" class="ai-quality-card" id="aiVideoQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">🎞️</span>
+                      <span class="ai-qual-badge ai-badge-classic">复古快照 · 微颗粒</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 7 胶片漫步</div>
+                    <div class="ai-qual-desc">1200万像素 · 怀旧生活漫步 · 胶片微噪点与柔和暖光</div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="ai-tip-notice">
+                <span class="ai-tip-icon">🎬</span>
+                <span class="ai-tip-text"><strong>动态视频提示</strong>：渲染需 1~2 分钟。微表情、转头回眸与自然走动最自然；点击生成时将自动启动 AI 导演意图扩写，杜绝开口唱歌。</span>
+              </div>
+
+              <!-- Generation Actions for Video -->
+              <div class="ai-action-single-grid">
+                <button id="aiBtnVideo" class="ai-btn-generate ai-btn-video" type="button">
+                  <span class="ai-btn-title">▶ 生成连贯动态视频 (Generate Motion Video)</span>
+                  <span class="ai-btn-sub">MiniMax H3 Max (5s · 480p) · ~$0.25</span>
+                </button>
+              </div>
+
+              <div id="aiVideoStatus" class="ai-status-banner"></div>
+            </div>
           </div>
 
           <!-- Right Column: Gallery of Manifestations -->
           <div class="ai-gallery-column">
             <div class="ai-gallery-header">
-              <h3 class="ai-gallery-title">Manifestation Gallery</h3>
-              <span id="aiGalleryCount" class="ai-count-pill">0 visions</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                <h3 class="ai-gallery-title">Manifestation Gallery</h3>
+                <span id="aiGalleryCount" class="ai-count-pill">0 visions</span>
+              </div>
+              <div class="ai-gallery-filter-bar">
+                <button type="button" class="ai-filter-chip active" id="aiFilterAll" data-filter="all">全部 (All)</button>
+                <button type="button" class="ai-filter-chip" id="aiFilterPhoto" data-filter="photo">📸 肖像 (Photos)</button>
+                <button type="button" class="ai-filter-chip" id="aiFilterVideo" data-filter="video">🎬 视频 (Videos)</button>
+              </div>
             </div>
             <div id="aiResults"></div>
           </div>

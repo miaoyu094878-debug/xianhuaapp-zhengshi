@@ -92,6 +92,10 @@ Deno.serve(async (req: Request) => {
       case 'video':
         return await handleVisionVideo(body);
 
+      case 'optimize-video-prompt':
+      case 'optimize-prompt':
+        return await handleOptimizeVideoPrompt(body);
+
       case 'vision-video-status':
       case 'video-status':
         return await handleVisionVideoStatus(body);
@@ -891,8 +895,147 @@ async function handleVisionPhoto(body: any): Promise<Response> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 子业务逻辑 4: AI Vision 视频生成 (OpenRouter: minimax/hailuo-3-max)
+// 子业务逻辑 4: AI Vision 视频生成与分镜导演优化
+// LLM Fallback Sequence:
+// 1. minimax/minimax-m3 -> 2. google/gemma-4-26b-a4b-it:free -> 3. openrouter/free
 // ─────────────────────────────────────────────────────────────
+const FREE_VIDEO_DIRECTOR_MODELS = [
+  'minimax/minimax-m3',
+  'google/gemma-4-26b-a4b-it:free',
+  'liquid/lfm-2.5-2.6b:free',
+  'openrouter/free'
+];
+
+function extractCleanPromptContent(data: any): string {
+  if (!data) return '';
+  const choice = data.choices?.[0];
+  if (!choice) return '';
+  const msg = choice.message || {};
+  let content = (typeof msg.content === 'string' ? msg.content : '') || '';
+  if (!content.trim() && (msg.reasoning || msg.reasoning_content)) {
+    content = (typeof msg.reasoning === 'string' ? msg.reasoning : msg.reasoning_content) || '';
+  }
+  content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  content = content.replace(/^["'`]|["'`]$/g, '').replace(/^(prompt|video prompt|cinematic prompt):\s*/i, '').trim();
+  return content;
+}
+
+async function optimizeVideoPromptWithLLM(params: {
+  rawPrompt: string;
+  hasImage: boolean;
+  qualityMode?: string;
+  cameraQuality?: string;
+  openrouterKey: string;
+}): Promise<{ optimizedPrompt: string | null; modelUsed: string | null }> {
+  const { rawPrompt, hasImage, qualityMode, cameraQuality, openrouterKey } = params;
+  if (!openrouterKey || !rawPrompt || !rawPrompt.trim()) {
+    return { optimizedPrompt: null, modelUsed: null };
+  }
+
+  const cleanInput = rawPrompt.trim();
+  const systemInstruction = `You are an elite cinematic AI Video Director and prompt engineer specializing in realistic video generation (specifically MiniMax Hailuo-3).
+Your mission is to understand the user's authentic intent, resolve vague, metaphorical or colloquial phrasing, and transform it into a vivid, cinematic English video prompt.
+
+CRITICAL DIRECTIVES:
+1. SCENE DIRECTION, NEVER SPOKEN WORDS:
+   - The user's input is a visual scene description, NEVER dialogue or singing lyrics.
+   - NEVER direct the subject to mouth words, talk, or sing the user's prompt!
+   - Explicitly instruct: lips relaxed or gentle closed smile, no singing, no spoken dialogue, no lip-sync, ambient environmental soundscape only.
+2. TRANSLATE VACATION & LIFE INTENT INTO REAL VISUAL ENVIRONMENTS:
+   - When the user asks for travel ("让她去旅行", "去旅游", "度假", "travel", "vacation"), place the subject into a breathtaking outdoor travel destination: e.g., walking leisurely along a sunlit Mediterranean seaside promenade with turquoise ocean views, or strolling along a picturesque European cobblestone avenue, holding a travel beverage, gentle sea breeze swaying her dark hair, confident serene smile, holiday travel atmosphere.
+   - If the input is phrased as a command like "让她..." ("make her..."), direct what she is visibly doing in the cinematic scene.
+3. NATURAL TEMPORAL MOTION (5-10 seconds):
+   - Direct a realistic, smooth sequence of motion: start with a subtle action, transition into a gentle authentic reaction, natural eye contact or glance, gentle blinking, and realistic breathing motion. Avoid abrupt or impossible morphing.
+4. CAMERA WORK & LIGHTING:
+   - Detail cinematic cinematography: subtle handheld camera breathing or slow steady push-in (dolly in), soft natural lighting, flattering skin tones, shallow depth of field.
+5. FIRST-FRAME CONTINUITY:
+   ${hasImage ? '- A reference portrait image is provided as the first frame: seamlessly continue with the exact same person from the reference portrait, keeping 100% facial and character consistency while naturally placing them in the active scenic travel environment.' : '- Feature a believable, photorealistic human subject with lifelike presence.'}
+6. FORMAT RULE:
+   - Return ONLY the final cinematic English prompt text (between 45 and 90 words).
+   - Do NOT output conversational filler, JSON, explanations, or quotes.`;
+
+  for (const model of FREE_VIDEO_DIRECTOR_MODELS) {
+    try {
+      console.log(`🎬 [Edge Video Director] Querying ${model}...`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 14000);
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openrouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.ai',
+          'X-Title': 'Luminara'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: `User's video scene request: "${cleanInput}". Camera style preference: ${cameraQuality || qualityMode || 'natural mobile realism'}. ${hasImage ? 'First-frame reference portrait is attached.' : 'Pure text-to-video.'}` }
+          ],
+          temperature: 0.7,
+          max_tokens: 450,
+          include_reasoning: false
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = extractCleanPromptContent(data);
+        if (content && content.length > 20) {
+          console.log(`✨ [Edge Video Director] Succeeded with ${model}: "${content.slice(0, 90)}..."`);
+          return { optimizedPrompt: content, modelUsed: model };
+        }
+      } else {
+        const errText = await response.text();
+        console.warn(`⚠️ [Edge Video Director] ${model} returned ${response.status}: ${errText.slice(0, 120)}`);
+      }
+    } catch (err: any) {
+      console.warn(`⚠️ [Edge Video Director] ${model} attempt failed:`, err.message);
+    }
+  }
+
+  return { optimizedPrompt: null, modelUsed: null };
+}
+
+async function handleOptimizeVideoPrompt(body: any): Promise<Response> {
+  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  if (!openrouterKey) {
+    return new Response(
+      JSON.stringify({ error: 'Please configure OPENROUTER_API_KEY in Supabase secrets.' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const prompt = (body?.prompt || '').trim();
+  if (!prompt) {
+    return new Response(
+      JSON.stringify({ error: 'Prompt is required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const opt = await optimizeVideoPromptWithLLM({
+    rawPrompt: prompt,
+    hasImage: Boolean(body?.image),
+    qualityMode: body?.quality_mode,
+    cameraQuality: body?.camera_quality,
+    openrouterKey
+  });
+
+  return new Response(
+    JSON.stringify({
+      success: !!opt.optimizedPrompt,
+      optimizedPrompt: opt.optimizedPrompt || prompt,
+      model: opt.modelUsed
+    }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
 async function handleVisionVideo(body: any): Promise<Response> {
   const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
   if (!openrouterKey) {
@@ -903,6 +1046,7 @@ async function handleVisionVideo(body: any): Promise<Response> {
   }
 
   const prompt = (body?.prompt || '').trim();
+  const rawUserInput = (body?.raw_prompt || prompt).trim();
   if (!prompt) {
     return new Response(
       JSON.stringify({ error: 'Please provide a vision prompt for the video.' }),
@@ -913,9 +1057,33 @@ async function handleVisionVideo(body: any): Promise<Response> {
   const targetDuration = Math.min(15, Math.max(5, parseInt(body?.duration, 10) || 5));
   const targetResolution = (body?.resolution === '768p' || body?.resolution === '720p') ? '768p' : '480p';
 
+  // Step 1: LLM optimization fallback chain
+  let finalPrompt = prompt;
+  let directorModel: string | null = null;
+  let optimizedPromptText: string | null = null;
+
+  const opt = await optimizeVideoPromptWithLLM({
+    rawPrompt: rawUserInput,
+    hasImage: Boolean(body?.image),
+    qualityMode: body?.quality_mode,
+    cameraQuality: body?.camera_quality,
+    openrouterKey
+  });
+
+  if (opt.optimizedPrompt) {
+    directorModel = opt.modelUsed;
+    optimizedPromptText = opt.optimizedPrompt;
+    const audioDirective = 'lips naturally relaxed or gentle closed smile, no singing, no spoken dialogue, no lip-sync, ambient environmental soundscape only';
+    if (body?.image) {
+      finalPrompt = `Starting seamlessly from the reference portrait in the first frame, the exact same person naturally: ${optimizedPromptText}. Seamless character and facial consistency with reference image, natural eye blinks and subtle realistic breathing, smooth organic motion, ${audioDirective}.`;
+    } else {
+      finalPrompt = `${optimizedPromptText}, natural realistic character motion and lifelike presence, ${audioDirective}.`;
+    }
+  }
+
   const reqBody: any = {
     model: 'minimax/hailuo-3-max',
-    prompt: prompt,
+    prompt: finalPrompt,
     duration: targetDuration,
     resolution: targetResolution,
     aspect_ratio: body?.aspect_ratio || '9:16'
@@ -960,7 +1128,7 @@ async function handleVisionVideo(body: any): Promise<Response> {
           },
           body: JSON.stringify({
             model: 'minimax/hailuo-3-max',
-            prompt: prompt,
+            prompt: finalPrompt,
             duration: targetDuration,
             resolution: targetResolution,
             aspect_ratio: body?.aspect_ratio || '9:16',
@@ -992,7 +1160,16 @@ async function handleVisionVideo(body: any): Promise<Response> {
     const data = await orRes.json();
     const jobId = data.id || data.job_id || (data.data && data.data.id);
     return new Response(
-      JSON.stringify({ success: true, jobId: jobId, status: data.status || 'submitted', model: 'minimax/hailuo-3-max' }),
+      JSON.stringify({
+        success: true,
+        jobId: jobId,
+        status: data.status || 'submitted',
+        model: 'minimax/hailuo-3-max',
+        prompt: finalPrompt,
+        rawPrompt: rawUserInput,
+        optimizedPrompt: optimizedPromptText,
+        directorModel: directorModel
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {

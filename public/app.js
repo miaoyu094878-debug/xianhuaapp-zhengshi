@@ -1675,7 +1675,76 @@
     aiPromptEl.addEventListener('input', function () {
       var len = (this.value || '').length;
       var counter = $('#aiCharCount');
-      if (counter) counter.textContent = len + ' / 400';
+      if (counter) counter.textContent = len + ' / 800';
+    });
+  }
+
+  // Interactive AI Video Prompt Director: enrich & clarify user intent
+  var aiBtnOptimize = $('#aiBtnOptimizePrompt');
+  if (aiBtnOptimize) {
+    aiBtnOptimize.addEventListener('click', function () {
+      var text = (aiPromptEl && aiPromptEl.value || '').trim();
+      if (!text) {
+        aiStatus('请先在输入框填写您的愿景想法或关键词，AI 导演将为您扩写为专业镜头分镜。', 'error');
+        if (aiPromptEl) aiPromptEl.focus();
+        return;
+      }
+
+      var origBtnHtml = aiBtnOptimize.innerHTML;
+      aiBtnOptimize.disabled = true;
+      aiBtnOptimize.innerHTML = '<span>⏳ 导演构思中…</span>';
+      aiStatus('🎬 正在调用 AI 导演模型（优先 MiniMax M3 → Gemma 4 → OpenRouter Free）深度解析您的意图…', 'running');
+
+      var userKey = aiKeys.openrouterKey || aiKeys.key || '';
+      var srcInput = aiPhotoB64;
+      if (!srcInput) {
+        var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
+        if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
+          srcInput = lastPhoto.url;
+        }
+      }
+
+      var optPayload = {
+        prompt: text,
+        quality_mode: currentCameraQuality,
+        camera_quality: (IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || {}).badge,
+        image: srcInput || undefined
+      };
+      if (userKey) optPayload.openrouterKey = userKey;
+
+      callUnifiedApi('optimize-video-prompt', optPayload)
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok || (data && data.error)) {
+              throw new Error((data && data.error) || ('扩写服务响应异常 (' + res.status + ')'));
+            }
+            return data;
+          });
+        })
+        .then(function (data) {
+          aiBtnOptimize.disabled = false;
+          aiBtnOptimize.innerHTML = origBtnHtml;
+          if (data && data.success && data.optimizedPrompt) {
+            if (aiPromptEl) {
+              aiPromptEl.value = data.optimizedPrompt;
+              aiPromptEl.dispatchEvent(new Event('input'));
+              aiPromptEl.focus();
+              aiPromptEl.classList.add('ai-prompt-highlight');
+              setTimeout(function () { aiPromptEl.classList.remove('ai-prompt-highlight'); }, 2000);
+            }
+            var modelUsed = data.model || 'AI 导演';
+            aiStatus('✨ 已由 ' + modelUsed + ' 深度解析并扩写为高清分镜描述词！您可直接点击生成视频或微调。', 'success');
+          } else {
+            var errMsg = (data && (data.error || data.message)) ? (data.error || data.message) : '未能获取扩写结果，已保留原意图';
+            aiStatus('扩写提示: ' + errMsg, 'error');
+          }
+        })
+        .catch(function (err) {
+          aiBtnOptimize.disabled = false;
+          aiBtnOptimize.innerHTML = origBtnHtml;
+          console.warn('[Prompt Optimizer] Error:', err);
+          aiStatus('AI 导演解析提示: ' + err.message + '（直接生成视频时系统仍将自动尝试优化）', 'error');
+        });
     });
   }
 
@@ -1888,17 +1957,58 @@
     return raw + ', ' + parts.join(', ');
   }
 
+  function expandIntentIfShort(raw, hasImage) {
+    if (!raw) return '';
+    var text = raw.trim();
+    // If it's already a detailed English prompt (over 55 chars of Latin words), return as-is
+    if (text.length > 55 && /^[a-zA-Z0-9\s,.'"-]+$/.test(text)) {
+      return text;
+    }
+
+    // Check common high-level intent patterns and translate into concrete visual scenes
+    if (/旅行|旅游|度假|去玩|散心|travel|vacation|holiday|trip/i.test(text)) {
+      return 'on a luxury scenic vacation, leisurely walking along a sunlit Mediterranean coastal promenade overlooking turquoise ocean waters, gentle sea breeze swaying her dark hair, holding a refreshing iced drink, confident serene smile, vibrant travel holiday atmosphere';
+    }
+    if (/台上|演讲|发言|发布会|讲座|keynote|speech|stage/i.test(text)) {
+      return 'giving a confident inspiring presentation on a modern illuminated amphitheater stage, poised posture, warm auditorium lighting, confident natural gestures, charismatic presence';
+    }
+    if (/咖啡|下午茶|街角|餐厅|cafe|coffee/i.test(text)) {
+      return 'sitting at a charming sun-drenched outdoor Parisian café terrace, holding warm espresso cup, looking up with a radiant serene smile, chic casual attire, soft streetscape depth';
+    }
+    if (/沙滩|海边|海滩|海岸|beach|ocean|seaside/i.test(text)) {
+      return 'walking barefoot on a warm golden sandy beach at sunset, gentle ocean waves lapping the shore, soft warm breeze, joyful serene expression, golden hour glow';
+    }
+    if (/开豪车|开车|豪车|跑车|驾驶|drive|luxury car/i.test(text)) {
+      return 'sitting in the driver seat of a sleek luxury modern sports car, hands on the leather steering wheel, glancing towards the window with calm confident smile, city lights reflected';
+    }
+    if (/财富自由|成功|暴富|赚钱|富豪|rich|wealth|luxury|boss/i.test(text)) {
+      return 'standing in a luxury penthouse overlooking the metropolitan city skyline at dusk, elegant modern attire, confident composed expression, warm architectural interior lighting';
+    }
+    if (/冥想|静心|瑜伽|沉思|meditation|zen|peace/i.test(text)) {
+      return 'relaxing peacefully in a minimalist sunlit sanctuary surrounded by lush green foliage, tranquil serene breathing, soft dawn ambient glow';
+    }
+
+    // Default intent expansion if it's a short command like "让她..."
+    var stripped = text.replace(/^(让[她他它你我]|请让[她他它你我]|帮[她他它你我]|安排[她他它你我])/g, '').trim();
+    if (stripped) {
+      return 'engaging in ' + stripped + ', smooth natural body movement, relaxed confident posture, authentic cinematic atmosphere';
+    }
+    return text;
+  }
+
   function buildAdaptiveVideoPrompt(userPrompt, styleKey, hasImage) {
     var raw = (userPrompt || '').trim();
     var style = IPHONE_TEXTURE_PROMPTS[styleKey] || IPHONE_TEXTURE_PROMPTS.iphonex;
     var videoMod = style.videoModifier || IPHONE_TEXTURE_PROMPTS.iphonex.videoModifier;
+    var intentEnriched = expandIntentIfShort(raw, hasImage);
+    var audioNoDialogue = 'lips naturally relaxed or gentle closed smile, no singing, no spoken dialogue, no lip-sync, ambient environmental soundscape only';
 
     if (hasImage) {
       // Image-to-Video: With reference portrait anchored to the first frame
-      return 'Starting seamlessly from the reference portrait in the first frame, the exact same person naturally: ' + raw + '. ' + videoMod + '. Seamless character consistency with reference image, natural mouth movement and speaking cadence, natural facial expressions and eye blinks, smooth organic motion.';
+      return 'Starting seamlessly from the reference portrait in the first frame, the exact same person naturally: ' + intentEnriched + '. ' + videoMod + '. Seamless character and facial consistency with reference image, natural eye blinks and subtle breathing, smooth organic motion, ' + audioNoDialogue + '.';
     } else {
       // Text-to-Video:
-      return raw + '. ' + videoMod + ', natural realistic character motion and lifelike presence.';
+      return intentEnriched + '. ' + videoMod + ', natural realistic character motion and lifelike presence, ' + audioNoDialogue + '.';
     }
   }
 
@@ -2237,70 +2347,117 @@
         }
       }
       var hasRefImage = Boolean(srcInput);
-      var enhancedVideoPrompt = buildAdaptiveVideoPrompt(prompt, currentCameraQuality, hasRefImage);
 
-      aiStatus('▶ Submitting ' + dur + 's (' + res + ' · ' + cameraInfo.badge + ') video task to MiniMax H3 Max…', 'running');
+      function dispatchVideoJob(finalPromptToSend, directorUsed) {
+        var directorTag = directorUsed ? (' · 意图已由 ' + directorUsed + ' 扩写为真实镜头分镜') : '';
+        aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + directorTag + ')… Initializing frames (~1-2m)', 'running');
 
-      var videoPayload = {
-        prompt: enhancedVideoPrompt,
-        raw_prompt: prompt,
-        quality_mode: currentCameraQuality,
-        camera_quality: cameraInfo.badge,
-        image: srcInput || undefined,
-        duration: dur,
-        resolution: res,
-        aspect_ratio: (aiPhotoAspect === '16:9' || aiPhotoAspect === '4:3') ? '16:9' : '9:16'
-      };
-      if (userKey) videoPayload.openrouterKey = userKey;
+        var videoPayload = {
+          prompt: finalPromptToSend,
+          raw_prompt: prompt,
+          quality_mode: currentCameraQuality,
+          camera_quality: cameraInfo.badge,
+          image: srcInput || undefined,
+          duration: dur,
+          resolution: res,
+          aspect_ratio: (aiPhotoAspect === '16:9' || aiPhotoAspect === '4:3') ? '16:9' : '9:16'
+        };
+        if (userKey) videoPayload.openrouterKey = userKey;
 
-      callUnifiedApi('vision-video', videoPayload)
-      .then(function (res) {
-        return res.json().then(function (data) {
-          if (!res.ok || data.error) throw new Error(data.error || ('Submission failed (' + res.status + ')'));
-          return data;
-        });
-      })
-      .then(function (data) {
-        var jobId = data.jobId;
-        if (!jobId) throw new Error('No video job ID returned from service');
+        callUnifiedApi('vision-video', videoPayload)
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok || data.error) throw new Error(data.error || ('Submission failed (' + res.status + ')'));
+            return data;
+          });
+        })
+        .then(function (data) {
+          var jobId = data.jobId;
+          if (!jobId) throw new Error('No video job ID returned from service');
 
-        aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + ')… Initializing frames (~1-2m)', 'running');
-        pollVideoJob(jobId, userKey, $('#aiStatus'), function (pollErr, videoUrl) {
+          var finalTag = data.directorModel ? (' · 意图已由 ' + data.directorModel + ' 优化') : directorTag;
+          aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
+          pollVideoJob(jobId, userKey, $('#aiStatus'), function (pollErr, videoUrl) {
+            $('#aiBtnPhoto').disabled = false;
+            $('#aiBtnVideo').disabled = false;
+            if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+
+            if (pollErr) {
+              aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
+              return;
+            }
+
+            db.aiVision = db.aiVision || [];
+            db.aiVision.unshift({
+              id: uid(),
+              kind: 'video',
+              model: 'minimax/hailuo-3-max',
+              duration: dur,
+              jobId: jobId,
+              cameraQuality: cameraInfo.badge,
+              qualityMode: currentCameraQuality,
+              ts: Date.now(),
+              prompt: prompt,
+              rawPrompt: data.rawPrompt || prompt,
+              optimizedPrompt: data.optimizedPrompt || null,
+              directorModel: data.directorModel || directorUsed || null,
+              url: videoUrl
+            });
+            save();
+            var readyMsg = '▶ MiniMax H3 Max 真实镜头视频生成就绪！' + (data.directorModel || directorUsed ? '（已通过导演智能扩写）' : '');
+            aiStatus(readyMsg, 'success');
+            renderAiResults();
+          });
+        })
+        .catch(function (err) {
           $('#aiBtnPhoto').disabled = false;
           $('#aiBtnVideo').disabled = false;
           if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
 
-          if (pollErr) {
-            aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
-            return;
-          }
-
-          db.aiVision = db.aiVision || [];
-          db.aiVision.unshift({
-            id: uid(),
-            kind: 'video',
-            model: 'minimax/hailuo-3-max',
-            duration: dur,
-            jobId: jobId,
-            cameraQuality: cameraInfo.badge,
-            qualityMode: currentCameraQuality,
-            ts: Date.now(),
-            prompt: prompt,
-            url: videoUrl
-          });
-          save();
-          aiStatus('▶ MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + ') ready! Stream or download below.', 'success');
-          renderAiResults();
+          var errMsg = err.message || '';
+          aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');
         });
-      })
-      .catch(function (err) {
-        $('#aiBtnPhoto').disabled = false;
-        $('#aiBtnVideo').disabled = false;
-        if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+      }
 
-        var errMsg = err.message || '';
-        aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');
-      });
+      var isDetailedEnglish = (prompt.length > 70 && /^[a-zA-Z0-9\s,.'"-]+$/.test(prompt.trim()));
+      if (isDetailedEnglish) {
+        var directPrompt = buildAdaptiveVideoPrompt(prompt, currentCameraQuality, hasRefImage);
+        dispatchVideoJob(directPrompt, null);
+      } else {
+        aiStatus('🎬 AI 导演正在将意图「' + prompt.slice(0, 16) + '」扩写为真实电影场景（杜绝人物唱歌或空转）…', 'running');
+        var optPayload = {
+          prompt: prompt,
+          quality_mode: currentCameraQuality,
+          camera_quality: cameraInfo.badge,
+          image: srcInput || undefined
+        };
+        if (userKey) optPayload.openrouterKey = userKey;
+
+        callUnifiedApi('optimize-video-prompt', optPayload)
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            var promptToUse = prompt;
+            var dirUsed = null;
+            if (data && data.success && data.optimizedPrompt) {
+              promptToUse = data.optimizedPrompt;
+              dirUsed = data.model || 'AI 导演';
+              var promptEl = $('#aiPrompt');
+              if (promptEl) {
+                promptEl.value = promptToUse;
+                promptEl.dispatchEvent(new Event('input'));
+                promptEl.classList.add('ai-prompt-highlight');
+                setTimeout(function () { promptEl.classList.remove('ai-prompt-highlight'); }, 2000);
+              }
+            }
+            var enhancedPrompt = buildAdaptiveVideoPrompt(promptToUse, currentCameraQuality, hasRefImage);
+            dispatchVideoJob(enhancedPrompt, dirUsed);
+          })
+          .catch(function (optErr) {
+            console.warn('[AI Director auto-expand] Using adaptive intent rules:', optErr);
+            var enhancedPrompt = buildAdaptiveVideoPrompt(prompt, currentCameraQuality, hasRefImage);
+            dispatchVideoJob(enhancedPrompt, 'Adaptive Rule Engine');
+          });
+      }
     }
   }
 
@@ -2434,6 +2591,14 @@
       var body = el('div', 'ai-card-body');
       var p = el('p', 'ai-card-prompt', '“' + v.prompt + '”');
       body.appendChild(p);
+
+      if (v.directorModel) {
+        var directorBox = el('div', 'ai-director-meta', '🎬 导演优化: ' + v.directorModel);
+        if (v.optimizedPrompt) {
+          directorBox.title = 'AI 导演深度优化分镜:\n' + v.optimizedPrompt;
+        }
+        body.appendChild(directorBox);
+      }
 
       var when = new Date(v.ts).toLocaleString([], {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
