@@ -1959,7 +1959,7 @@
       if (prevImg) prevImg.src = data;
       if (prevBox) prevBox.classList.remove('hidden');
       updateUseRecentPhotoBtn();
-      aiStatus('First-frame portrait attached. MiniMax will extrapolate motion from this anchor.', 'success');
+      aiStatus('First-frame portrait attached. Motion and likeness will be preserved from this anchor.', 'success');
     });
   }
 
@@ -2351,7 +2351,7 @@
 
     var btnVideoSub = $('#aiBtnVideo .ai-btn-sub');
     if (btnVideoSub) {
-      btnVideoSub.textContent = 'MiniMax H3 Max (' + currentVideoDuration + 's · ' + currentVideoResolution + ') · ~' + p.costs[currentVideoDuration];
+      btnVideoSub.textContent = '(' + currentVideoDuration + 's · ' + currentVideoResolution + ') · ~' + p.costs[currentVideoDuration];
     }
   }
 
@@ -2440,9 +2440,9 @@
           done(null, finalUrl);
         } else if (st === 'failed') {
           clearInterval(timer);
-          done(data.error || 'MiniMax H3 Max video generation encountered an error. Please try again.', null);
+          done(data.error || 'Video generation encountered an error. Please try again.', null);
         } else {
-          aiStatus('Rendering MiniMax H3 Max video… ' + fmtSec(secs) + ' (' + st + ')', 'running');
+          aiStatus('Rendering cinematic video… ' + fmtSec(secs) + ' (' + st + ')', 'running');
           if (tries >= 120) { // 10 minutes timeout
             clearInterval(timer);
             done('Video rendering is taking longer than expected. Please check back shortly.', null);
@@ -2491,7 +2491,7 @@
       var hasRefImage = Boolean(aiPhotoRefB64);
       var enhancedPrompt = buildAdaptivePrompt(prompt, currentCameraQuality, hasRefImage);
 
-      aiStatus('✦ Rendering portrait (' + cameraInfo.label + ') with OpenAI GPT Image 2… (~15s)', 'running');
+      aiStatus('✦ Rendering portrait (' + cameraInfo.label + ')… (~15s)', 'running');
       var photoPayload = {
         prompt: enhancedPrompt,
         raw_prompt: prompt,
@@ -2556,7 +2556,7 @@
 
       function dispatchVideoJob(finalPromptToSend, directorUsed) {
         var directorTag = directorUsed ? (' · Polished by ' + directorUsed) : '';
-        aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + directorTag + ')… Initializing frames (~1-2m)', 'running');
+        aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + directorTag + ')… Initializing frames (~1-2m)', 'running');
 
         var videoPayload = {
           prompt: finalPromptToSend,
@@ -2582,7 +2582,7 @@
           if (!jobId) throw new Error('No video job ID returned from service');
 
           var finalTag = data.directorModel ? (' · Polished by ' + data.directorModel) : directorTag;
-          aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
+          aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
           pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
             if (btnPhoto) btnPhoto.disabled = false;
             if (btnVideo) btnVideo.disabled = false;
@@ -2610,7 +2610,7 @@
               url: videoUrl
             });
             save();
-            var readyMsg = '▶ MiniMax H3 Max video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
+            var readyMsg = '▶ Cinematic video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
             aiStatus(readyMsg, 'success');
             renderAiResults();
           });
@@ -2709,7 +2709,7 @@
         if (btnPhoto) btnPhoto.disabled = false;
         btnFreeEl.disabled = false;
         if (btnVideo) btnVideo.disabled = false;
-        aiStatus('Draft preview server busy. Please try Generate Portrait with GPT Image 2.', 'error');
+        aiStatus('Draft preview server busy. Please try Generate Portrait.', 'error');
       };
       img.src = url;
     });
@@ -2757,7 +2757,7 @@
       var glyphIcon = currentGalleryFilter === 'video' ? '🎬' : (currentGalleryFilter === 'photo' ? '📸' : '🪞');
       var emptyTitle = currentGalleryFilter === 'video' ? 'No Motion Videos Yet' : (currentGalleryFilter === 'photo' ? 'No Portrait Photos Yet' : 'No Visions Manifested Yet');
       var emptySub = currentGalleryFilter === 'video'
-        ? 'Switch to the Video Studio on the left to generate your first cinematic video with MiniMax H3 Max.'
+        ? 'Switch to the Video Studio on the left to generate your first cinematic motion video.'
         : (currentGalleryFilter === 'photo'
           ? 'Switch to the Photo Studio on the left to create realistic portraits with native camera quality.'
           : 'Select either Photo Studio or Video Studio on the left to start manifesting your visions.');
@@ -2779,14 +2779,14 @@
       var badgeClass = '';
       if (v.kind === 'video') {
         var cameraTag = v.cameraQuality ? (' · ' + v.cameraQuality) : '';
-        var videoModelLabel = (v.model && v.model.indexOf('seedance') !== -1) ? '▶ Seedance 2.0' : '▶ MiniMax H3 Max';
+        var videoModelLabel = '▶ Motion Video';
         badgeTxt = videoModelLabel + cameraTag + (v.duration ? (' (' + v.duration + 's)') : '');
         badgeClass = 'video';
       } else if (v.source === 'free') {
         badgeTxt = '◈ Instant Draft';
         badgeClass = 'free';
       } else {
-        badgeTxt = v.cameraQuality ? ('✦ ' + v.cameraQuality) : '✦ GPT Image 2';
+        badgeTxt = v.cameraQuality ? ('✦ ' + v.cameraQuality) : '✦ Portrait';
         badgeClass = 'photo';
       }
 
