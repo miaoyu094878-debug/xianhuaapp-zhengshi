@@ -622,78 +622,49 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   width: 100%;
 }
 
-.ai-mode-bar {
+.ai-mode-home {
   display: flex;
-  gap: 8px;
-  background: var(--surface-2);
-  padding: 6px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  gap: 12px;
 }
-@media (max-width: 580px) {
-  .ai-mode-bar {
+@media (max-width: 700px) {
+  .ai-mode-home {
     flex-direction: column;
   }
 }
-
-.ai-mode-tab {
+.ai-mode-card {
   flex: 1;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1.5px solid transparent;
-  background: transparent;
-  color: var(--text-soft);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 16px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
   cursor: pointer;
-  transition: all 0.22s ease;
   text-align: left;
   font-family: inherit;
+  transition: all 0.22s ease;
 }
-
-.ai-mode-tab:hover {
-  background: var(--surface-hover);
-  color: var(--text);
+.ai-mode-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
-
-.ai-mode-tab.active {
-  background: var(--surface);
-  color: var(--text);
-  border-color: var(--accent);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 18%, transparent);
-}
-
-.ai-mode-tab.active[data-subtab="photo"] {
-  border-color: #a855f7;
-  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.18);
-}
-
-.ai-mode-tab.active[data-subtab="video"] {
-  border-color: #ec4899;
-  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.18);
-}
-
-.ai-mode-tab .ai-mode-ico {
-  font-size: 22px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.ai-mode-tab .ai-mode-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.ai-mode-tab .ai-mode-desc {
-  font-size: 11px;
-  color: var(--text-soft);
-  margin-top: 2px;
-  line-height: 1.3;
-}
+.ai-mode-card.photo { border-color: color-mix(in srgb, #a855f7 45%, transparent); }
+.ai-mode-card.photo:hover { border-color: #a855f7; box-shadow: 0 10px 24px rgba(168, 85, 247, 0.18); }
+.ai-mode-card.video { border-color: color-mix(in srgb, #ec4899 45%, transparent); }
+.ai-mode-card.video:hover { border-color: #ec4899; box-shadow: 0 10px 24px rgba(236, 72, 153, 0.18); }
+.ai-mode-card .ai-mode-ico { font-size: 26px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+.ai-mode-card .ai-mode-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.ai-mode-feats { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.ai-mode-feats li { position: relative; padding-left: 15px; font-size: 11.5px; color: var(--text-soft); line-height: 1.4; }
+.ai-mode-feats li::before { content: '✦'; position: absolute; left: 0; top: 0; color: #a855f7; }
+.ai-mode-card.video .ai-mode-feats li::before { color: #ec4899; }
+.ai-mode-go { margin-left: auto; align-self: center; font-size: 12px; font-weight: 700; color: #a855f7; white-space: nowrap; }
+.ai-mode-card.video .ai-mode-go { color: #ec4899; }
+.ai-mode-back { width: 100%; }
+.ai-back-btn { background: transparent; border: 1px solid var(--border); color: var(--text-soft); font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: all 0.2s ease; font-family: inherit; align-self: flex-start; }
+.ai-back-btn:hover { color: var(--text); border-color: var(--accent); background: var(--surface-hover); }
 
 .ai-subtab-panel {
   display: none;
@@ -3530,25 +3501,39 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <!-- Left Column: Vision Studio Controls -->
           <div class="ai-studio-col">
             <!-- Studio Switcher Tabs (Photo vs Video) -->
-            <div class="ai-mode-bar" role="tablist" aria-label="AI Vision Modes">
-              <button type="button" class="ai-mode-tab active" id="aiTabBtnPhoto" data-subtab="photo" role="tab" aria-selected="true">
+            <!-- Entry: choose Photo or Video -->
+            <div class="ai-mode-home" id="aiModeHome">
+              <button type="button" class="ai-mode-card photo" id="aiCardPhoto" data-subtab="photo">
                 <span class="ai-mode-ico">📸</span>
                 <div class="ai-mode-text">
-                  <div class="ai-mode-title">Photo Studio</div>
-                  <div class="ai-mode-desc">Apple Camera Aesthetic · ~15s</div>
+                  <div class="ai-mode-title">Photo Generation</div>
+                  <ul class="ai-mode-feats">
+                    <li>Apple Camera Aesthetic 镜头质感</li>
+                    <li>上传面部参考，保留本人样貌</li>
+                    <li>iPhone X · 16 Pro · 7 胶片质感</li>
+                  </ul>
                 </div>
+                <span class="ai-mode-go">Start →</span>
               </button>
-              <button type="button" class="ai-mode-tab" id="aiTabBtnVideo" data-subtab="video" role="tab" aria-selected="false">
+              <button type="button" class="ai-mode-card video" id="aiCardVideo" data-subtab="video">
                 <span class="ai-mode-ico">🎬</span>
                 <div class="ai-mode-text">
-                  <div class="ai-mode-title">Video Studio</div>
-                  <div class="ai-mode-desc">Physical Realism · AI Director</div>
+                  <div class="ai-mode-title">Video Generation</div>
+                  <ul class="ai-mode-feats">
+                    <li>分辨率与时长自由选择</li>
+                    <li>首帧照片锚定，动作样貌连贯</li>
+                    <li>AI Director 运镜润色与环境音</li>
+                  </ul>
                 </div>
+                <span class="ai-mode-go">Start →</span>
               </button>
             </div>
 
             <!-- Panel 1: Photo Studio -->
-            <div class="card glass ai-studio-panel ai-subtab-panel active" id="aiPanelPhoto">
+            <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelPhoto">
+              <div class="ai-mode-back">
+                <button type="button" class="ai-back-btn" data-back="home">‹ All Modes</button>
+              </div>
               <div class="ai-top-bar">
                 <div class="ai-model-chips">
                   <span class="ai-model-tag photo-tag">✦ Studio Portrait</span>
@@ -3667,6 +3652,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
             <!-- Panel 2: Video Studio -->
             <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelVideo">
+              <div class="ai-mode-back">
+                <button type="button" class="ai-back-btn" data-back="home">‹ All Modes</button>
+              </div>
               <div class="ai-top-bar">
                 <div class="ai-model-chips">
                   <span class="ai-model-tag video-tag">▶ Cinematic Motion</span>

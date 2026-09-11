@@ -176,6 +176,7 @@
     }
     $$('.side-link').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
     $$('.tab-page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
+    if (id === 'tab-ai-vision' && typeof setAiSubTab === 'function') setAiSubTab('home');
     window.scrollTo(0, 0);
   }
   $$('.mini-card, .focus-card, .more-card').forEach(function (c) {
@@ -1656,7 +1657,7 @@
   var aiKeys = db.aiKeys || {};
   var aiPhotoRefB64 = null, aiPhotoAspect = '1:1';
   var aiVideoRefB64 = null;
-  var currentAiSubTab = (db && db.aiVisionSubTab) ? db.aiVisionSubTab : 'photo';
+  var currentAiSubTab = 'home';
   var currentGalleryFilter = 'all';
 
   function aiHasKeys() {
@@ -1695,32 +1696,20 @@
   }
 
   function setAiSubTab(tab) {
-    if (tab !== 'photo' && tab !== 'video') tab = 'photo';
+    if (tab !== 'home' && tab !== 'photo' && tab !== 'video') tab = 'home';
     currentAiSubTab = tab;
     if (db) {
       db.aiVisionSubTab = tab;
       save();
     }
 
-    var tabBtnPhoto = $('#aiTabBtnPhoto');
-    var tabBtnVideo = $('#aiTabBtnVideo');
+    var homeEl = $('#aiModeHome');
     var panelPhoto = $('#aiPanelPhoto');
     var panelVideo = $('#aiPanelVideo');
 
-    if (tabBtnPhoto) {
-      tabBtnPhoto.classList.toggle('active', tab === 'photo');
-      tabBtnPhoto.setAttribute('aria-selected', tab === 'photo' ? 'true' : 'false');
-    }
-    if (tabBtnVideo) {
-      tabBtnVideo.classList.toggle('active', tab === 'video');
-      tabBtnVideo.setAttribute('aria-selected', tab === 'video' ? 'true' : 'false');
-    }
-    if (panelPhoto) {
-      panelPhoto.classList.toggle('active', tab === 'photo');
-    }
-    if (panelVideo) {
-      panelVideo.classList.toggle('active', tab === 'video');
-    }
+    if (homeEl) homeEl.classList.toggle('hidden', tab !== 'home');
+    if (panelPhoto) panelPhoto.classList.toggle('active', tab === 'photo');
+    if (panelVideo) panelVideo.classList.toggle('active', tab === 'video');
 
     // Context synchronization: if destination prompt is blank, copy over from other studio
     var photoPrompt = $('#aiPhotoPrompt');
@@ -1736,12 +1725,14 @@
     updateUseRecentPhotoBtn();
   }
 
-  if ($('#aiTabBtnPhoto')) {
-    $('#aiTabBtnPhoto').addEventListener('click', function () { setAiSubTab('photo'); });
-  }
-  if ($('#aiTabBtnVideo')) {
-    $('#aiTabBtnVideo').addEventListener('click', function () { setAiSubTab('video'); });
-  }
+  var aiModeCards = document.querySelectorAll('.ai-mode-card');
+  aiModeCards.forEach(function (c) {
+    c.addEventListener('click', function () { setAiSubTab(c.dataset.subtab); });
+  });
+  var aiBackBtns = document.querySelectorAll('.ai-back-btn');
+  aiBackBtns.forEach(function (b) {
+    b.addEventListener('click', function () { setAiSubTab('home'); });
+  });
 
   // Character counters for Photo and Video Prompts
   var photoPromptEl = $('#aiPhotoPrompt');
