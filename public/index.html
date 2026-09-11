@@ -667,11 +667,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .ai-back-btn:hover { color: var(--text); border-color: var(--accent); background: var(--surface-hover); }
 
 .ai-subtab-panel {
-  display: none;
+  display: none !important;
 }
 
 .ai-subtab-panel.active {
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   gap: 16px;
   animation: fadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
