@@ -623,45 +623,85 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 
 .ai-mode-home {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
 }
 @media (max-width: 700px) {
   .ai-mode-home {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }
 .ai-mode-card {
-  flex: 1;
+  position: relative;
+  overflow: hidden;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 18px 16px;
-  border-radius: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 30px 22px 26px;
+  border-radius: 20px;
   border: 1.5px solid var(--border);
-  background: var(--surface-2);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 92%, #fff), transparent);
   color: var(--text);
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   font-family: inherit;
-  transition: all 0.22s ease;
+  transition: all 0.24s ease;
 }
-.ai-mode-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+.ai-mode-card::before {
+  content: '';
+  position: absolute;
+  top: -45%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  opacity: 0.5;
+  filter: blur(34px);
+  transition: opacity 0.24s ease;
+  pointer-events: none;
 }
-.ai-mode-card.photo { border-color: color-mix(in srgb, #a855f7 45%, transparent); }
-.ai-mode-card.photo:hover { border-color: #a855f7; box-shadow: 0 10px 24px rgba(168, 85, 247, 0.18); }
-.ai-mode-card.video { border-color: color-mix(in srgb, #ec4899 45%, transparent); }
-.ai-mode-card.video:hover { border-color: #ec4899; box-shadow: 0 10px 24px rgba(236, 72, 153, 0.18); }
-.ai-mode-card .ai-mode-ico { font-size: 26px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
-.ai-mode-card .ai-mode-title { font-size: 15px; font-weight: 700; color: var(--text); }
-.ai-mode-feats { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.ai-mode-feats li { position: relative; padding-left: 15px; font-size: 11.5px; color: var(--text-soft); line-height: 1.4; }
-.ai-mode-feats li::before { content: '✦'; position: absolute; left: 0; top: 0; color: #a855f7; }
-.ai-mode-card.video .ai-mode-feats li::before { color: #ec4899; }
-.ai-mode-go { margin-left: auto; align-self: center; font-size: 12px; font-weight: 700; color: #a855f7; white-space: nowrap; }
-.ai-mode-card.video .ai-mode-go { color: #ec4899; }
+.ai-mode-card.photo::before { background: radial-gradient(circle, rgba(168, 85, 247, 0.35), transparent 65%); }
+.ai-mode-card.video::before { background: radial-gradient(circle, rgba(236, 72, 153, 0.32), transparent 65%); }
+.ai-mode-card:hover { transform: translateY(-3px); }
+.ai-mode-card.photo:hover { border-color: #a855f7; box-shadow: 0 16px 34px rgba(168, 85, 247, 0.18); }
+.ai-mode-card.video:hover { border-color: #ec4899; box-shadow: 0 16px 34px rgba(236, 72, 153, 0.18); }
+.ai-mode-card .ai-mode-ico {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  border-radius: 50%;
+  margin-bottom: 4px;
+  transition: transform 0.24s ease;
+}
+.ai-mode-card.photo .ai-mode-ico { background: linear-gradient(135deg, rgba(168, 85, 247, 0.20), rgba(168, 85, 247, 0.05)); box-shadow: inset 0 0 0 1.5px rgba(168, 85, 247, 0.45); }
+.ai-mode-card.video .ai-mode-ico { background: linear-gradient(135deg, rgba(236, 72, 153, 0.20), rgba(236, 72, 153, 0.05)); box-shadow: inset 0 0 0 1.5px rgba(236, 72, 153, 0.45); }
+.ai-mode-card:hover .ai-mode-ico { transform: scale(1.08); }
+.ai-mode-card .ai-mode-title { font-size: 17px; font-weight: 800; letter-spacing: 0.2px; color: var(--text); }
+.ai-mode-card .ai-mode-tag { font-size: 11.5px; letter-spacing: 0.3px; color: var(--text-soft); }
+.ai-mode-card .ai-mode-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 22px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+.ai-mode-card.photo .ai-mode-go { background: linear-gradient(135deg, #a855f7, #9333ea); box-shadow: 0 6px 16px rgba(168, 85, 247, 0.35); }
+.ai-mode-card.video .ai-mode-go { background: linear-gradient(135deg, #ec4899, #db2777); box-shadow: 0 6px 16px rgba(236, 72, 153, 0.35); }
+.ai-mode-card:hover .ai-mode-go { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14); }
+.ai-mode-go .ai-mode-go-arrow { transition: transform 0.24s ease; }
+.ai-mode-card:hover .ai-mode-go .ai-mode-go-arrow { transform: translateX(3px); }
 .ai-mode-back { width: 100%; }
 .ai-back-btn { background: transparent; border: 1px solid var(--border); color: var(--text-soft); font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: all 0.2s ease; font-family: inherit; align-self: flex-start; }
 .ai-back-btn:hover { color: var(--text); border-color: var(--accent); background: var(--surface-hover); }
@@ -2747,6 +2787,13 @@ html.device-desktop .wp-icon-action-btn .wp-btn-ico {
 
 html.device-desktop #tab-ai-vision.active { display: block; }
 html.device-desktop #tab-ai-vision .ai-vision-container { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 24px; align-items: start; }
+@media (max-width: 920px) {
+  html.device-desktop #tab-ai-vision .ai-vision-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+}
 
 html.device-desktop #tab-avatar.active { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
 html.device-desktop #tab-avatar .form-card { margin-bottom: 0; }
@@ -3505,17 +3552,15 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <div class="ai-mode-home" id="aiModeHome">
               <button type="button" class="ai-mode-card photo" id="aiCardPhoto" data-subtab="photo">
                 <span class="ai-mode-ico">📸</span>
-                <div class="ai-mode-text">
-                  <div class="ai-mode-title">Photo Generation</div>
-                </div>
-                <span class="ai-mode-go">Start →</span>
+                <span class="ai-mode-title">Photo Generation</span>
+                <span class="ai-mode-tag">Portrait Studio</span>
+                <span class="ai-mode-go">Start <span class="ai-mode-go-arrow">→</span></span>
               </button>
               <button type="button" class="ai-mode-card video" id="aiCardVideo" data-subtab="video">
                 <span class="ai-mode-ico">🎬</span>
-                <div class="ai-mode-text">
-                  <div class="ai-mode-title">Video Generation</div>
-                </div>
-                <span class="ai-mode-go">Start →</span>
+                <span class="ai-mode-title">Video Generation</span>
+                <span class="ai-mode-tag">Motion Studio</span>
+                <span class="ai-mode-go">Start <span class="ai-mode-go-arrow">→</span></span>
               </button>
             </div>
 
