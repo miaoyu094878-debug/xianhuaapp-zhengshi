@@ -1654,28 +1654,144 @@
 
   /* ═══════ AI Vision (OpenRouter: GPT Image 2 & MiniMax H3 Max) ═══════ */
   var aiKeys = db.aiKeys || {};
-  var aiPhotoB64 = null, aiB64Raw = null, aiPhotoAspect = '1:1';
+  var aiPhotoRefB64 = null, aiPhotoAspect = '1:1';
+  var aiVideoRefB64 = null;
+  var currentAiSubTab = (db && db.aiVisionSubTab) ? db.aiVisionSubTab : 'photo';
+  var currentGalleryFilter = 'all';
 
   function aiHasKeys() {
     return !!(aiKeys.openrouterKey || aiKeys.key);
   }
   function aiStatus(msg, type) {
-    var el = $('#aiStatus');
-    if (!el) return;
-    el.textContent = msg || '';
-    el.className = 'ai-status-banner' + (type ? ' ' + type : '');
+    var pEl = $('#aiPhotoStatus');
+    var vEl = $('#aiVideoStatus');
+    var gEl = $('#aiStatus');
+    [pEl, vEl, gEl].forEach(function (el) {
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'ai-status-banner' + (type ? ' ' + type : '');
+    });
   }
   function aiKeyStateTxt() {
     return aiHasKeys() ? 'Custom Key' : 'Supabase Cloud Key (Active)';
   }
+  function updateKeyStateLabels() {
+    var txt = aiKeyStateTxt();
+    document.querySelectorAll('.ai-key-state-label, #aiKeyState').forEach(function (el) {
+      el.textContent = txt;
+    });
+  }
 
-  // Character counter and prompt inspiration pills
-  var aiPromptEl = $('#aiPrompt');
-  if (aiPromptEl) {
-    aiPromptEl.addEventListener('input', function () {
+  /* Sub-tab Switching: Photo Studio vs Video Studio */
+  function updateUseRecentPhotoBtn() {
+    var btn = $('#aiBtnUseRecentPhoto');
+    if (!btn) return;
+    var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
+    if (lastPhoto && lastPhoto.url && !aiVideoRefB64) {
+      btn.classList.remove('hidden');
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
+
+  function setAiSubTab(tab) {
+    if (tab !== 'photo' && tab !== 'video') tab = 'photo';
+    currentAiSubTab = tab;
+    if (db) {
+      db.aiVisionSubTab = tab;
+      save();
+    }
+
+    var tabBtnPhoto = $('#aiTabBtnPhoto');
+    var tabBtnVideo = $('#aiTabBtnVideo');
+    var panelPhoto = $('#aiPanelPhoto');
+    var panelVideo = $('#aiPanelVideo');
+
+    if (tabBtnPhoto) {
+      tabBtnPhoto.classList.toggle('active', tab === 'photo');
+      tabBtnPhoto.setAttribute('aria-selected', tab === 'photo' ? 'true' : 'false');
+    }
+    if (tabBtnVideo) {
+      tabBtnVideo.classList.toggle('active', tab === 'video');
+      tabBtnVideo.setAttribute('aria-selected', tab === 'video' ? 'true' : 'false');
+    }
+    if (panelPhoto) {
+      panelPhoto.classList.toggle('active', tab === 'photo');
+    }
+    if (panelVideo) {
+      panelVideo.classList.toggle('active', tab === 'video');
+    }
+
+    // Context synchronization: if destination prompt is blank, copy over from other studio
+    var photoPrompt = $('#aiPhotoPrompt');
+    var videoPrompt = $('#aiVideoPrompt');
+    if (tab === 'video' && videoPrompt && !videoPrompt.value.trim() && photoPrompt && photoPrompt.value.trim()) {
+      videoPrompt.value = photoPrompt.value.trim();
+      videoPrompt.dispatchEvent(new Event('input'));
+    } else if (tab === 'photo' && photoPrompt && !photoPrompt.value.trim() && videoPrompt && videoPrompt.value.trim()) {
+      photoPrompt.value = videoPrompt.value.trim();
+      photoPrompt.dispatchEvent(new Event('input'));
+    }
+
+    updateUseRecentPhotoBtn();
+  }
+
+  if ($('#aiTabBtnPhoto')) {
+    $('#aiTabBtnPhoto').addEventListener('click', function () { setAiSubTab('photo'); });
+  }
+  if ($('#aiTabBtnVideo')) {
+    $('#aiTabBtnVideo').addEventListener('click', function () { setAiSubTab('video'); });
+  }
+
+  // Character counters for Photo and Video Prompts
+  var photoPromptEl = $('#aiPhotoPrompt');
+  if (photoPromptEl) {
+    photoPromptEl.addEventListener('input', function () {
+      var len = (this.value || '').length;
+      var counter = $('#aiPhotoCharCount');
+      if (counter) counter.textContent = len + ' / 800';
+    });
+  }
+  var videoPromptEl = $('#aiVideoPrompt');
+  if (videoPromptEl) {
+    videoPromptEl.addEventListener('input', function () {
+      var len = (this.value || '').length;
+      var counter = $('#aiVideoCharCount');
+      if (counter) counter.textContent = len + ' / 800';
+    });
+  }
+  var legacyPromptEl = $('#aiPrompt');
+  if (legacyPromptEl) {
+    legacyPromptEl.addEventListener('input', function () {
       var len = (this.value || '').length;
       var counter = $('#aiCharCount');
       if (counter) counter.textContent = len + ' / 800';
+    });
+  }
+
+  // Inspiration Pills
+  var inspirePills = document.querySelectorAll('.ai-inspire-pill');
+  if (inspirePills && inspirePills.length) {
+    inspirePills.forEach(function (pill) {
+      pill.addEventListener('click', function () {
+        var text = this.getAttribute('data-prompt') || '';
+        var target = this.getAttribute('data-target');
+        var targetEl = null;
+        if (target === 'photo') {
+          targetEl = $('#aiPhotoPrompt');
+        } else if (target === 'video') {
+          targetEl = $('#aiVideoPrompt');
+        } else {
+          targetEl = (currentAiSubTab === 'video') ? $('#aiVideoPrompt') : $('#aiPhotoPrompt');
+        }
+        if (!targetEl) targetEl = $('#aiPhotoPrompt') || $('#aiVideoPrompt') || $('#aiPrompt');
+
+        if (targetEl) {
+          targetEl.value = text;
+          targetEl.dispatchEvent(new Event('input'));
+          targetEl.focus();
+        }
+      });
     });
   }
 
@@ -1683,20 +1799,21 @@
   var aiBtnOptimize = $('#aiBtnOptimizePrompt');
   if (aiBtnOptimize) {
     aiBtnOptimize.addEventListener('click', function () {
-      var text = (aiPromptEl && aiPromptEl.value || '').trim();
+      var targetInput = $('#aiVideoPrompt') || $('#aiPrompt');
+      var text = (targetInput && targetInput.value || '').trim();
       if (!text) {
-        aiStatus('请先在输入框填写您的愿景想法或关键词，AI 导演将为您扩写为专业镜头分镜。', 'error');
-        if (aiPromptEl) aiPromptEl.focus();
+        aiStatus('Please enter your motion scene prompt or keywords first. The AI Director will expand it into cinematic shot directions.', 'error');
+        if (targetInput) targetInput.focus();
         return;
       }
 
       var origBtnHtml = aiBtnOptimize.innerHTML;
       aiBtnOptimize.disabled = true;
-      aiBtnOptimize.innerHTML = '<span>⏳ 导演构思中…</span>';
-      aiStatus('🎬 正在调用 AI 导演模型（优先 MiniMax M3 → Gemma 4 → OpenRouter Free）深度解析您的意图…', 'running');
+      aiBtnOptimize.innerHTML = '<span>⏳ Director Composing…</span>';
+      aiStatus('🎬 Calling AI Director to develop cinematic shot directions…', 'running');
 
       var userKey = aiKeys.openrouterKey || aiKeys.key || '';
-      var srcInput = aiPhotoB64;
+      var srcInput = aiVideoRefB64 || aiPhotoRefB64;
       if (!srcInput) {
         var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
         if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
@@ -1716,7 +1833,7 @@
         .then(function (res) {
           return res.json().then(function (data) {
             if (!res.ok || (data && data.error)) {
-              throw new Error((data && data.error) || ('扩写服务响应异常 (' + res.status + ')'));
+              throw new Error((data && data.error) || ('Director service error (' + res.status + ')'));
             }
             return data;
           });
@@ -1725,112 +1842,197 @@
           aiBtnOptimize.disabled = false;
           aiBtnOptimize.innerHTML = origBtnHtml;
           if (data && data.success && data.optimizedPrompt) {
-            if (aiPromptEl) {
-              aiPromptEl.value = data.optimizedPrompt;
-              aiPromptEl.dispatchEvent(new Event('input'));
-              aiPromptEl.focus();
-              aiPromptEl.classList.add('ai-prompt-highlight');
-              setTimeout(function () { aiPromptEl.classList.remove('ai-prompt-highlight'); }, 2000);
+            if (targetInput) {
+              targetInput.value = data.optimizedPrompt;
+              targetInput.dispatchEvent(new Event('input'));
+              targetInput.focus();
+              targetInput.classList.add('ai-prompt-highlight');
+              setTimeout(function () { targetInput.classList.remove('ai-prompt-highlight'); }, 2000);
             }
-            var modelUsed = data.model || 'AI 导演';
-            aiStatus('✨ 已由 ' + modelUsed + ' 深度解析并扩写为高清分镜描述词！您可直接点击生成视频或微调。', 'success');
+            var modelUsed = data.model || 'AI Director';
+            aiStatus('✨ Cinematic shot directions composed by ' + modelUsed + '! Ready to generate or refine.', 'success');
           } else {
-            var errMsg = (data && (data.error || data.message)) ? (data.error || data.message) : '未能获取扩写结果，已保留原意图';
-            aiStatus('扩写提示: ' + errMsg, 'error');
+            var errMsg = (data && (data.error || data.message)) ? (data.error || data.message) : 'Unable to polish prompt; original prompt kept.';
+            aiStatus('Director note: ' + errMsg, 'error');
           }
         })
         .catch(function (err) {
           aiBtnOptimize.disabled = false;
           aiBtnOptimize.innerHTML = origBtnHtml;
           console.warn('[Prompt Optimizer] Error:', err);
-          aiStatus('AI 导演解析提示: ' + err.message + '（直接生成视频时系统仍将自动尝试优化）', 'error');
+          aiStatus('Director note: ' + err.message + ' (System will still auto-optimize upon generation)', 'error');
         });
     });
   }
 
-  var inspirePills = document.querySelectorAll('.ai-inspire-pill');
-  if (inspirePills && inspirePills.length) {
-    inspirePills.forEach(function (pill) {
-      pill.addEventListener('click', function () {
-        var text = this.getAttribute('data-prompt') || '';
-        if (aiPromptEl) {
-          aiPromptEl.value = text;
-          aiPromptEl.dispatchEvent(new Event('input'));
-          aiPromptEl.focus();
-        }
-      });
-    });
-  }
-
-  // Dropzone click & drag-and-drop
-  var dropEl = $('#aiDrop');
-  if (dropEl) {
-    dropEl.addEventListener('click', function () { $('#aiPhoto').click(); });
-    dropEl.addEventListener('dragover', function (e) {
+  // Reference Photos: Photo Studio Upload & Dropzone
+  var photoDropEl = $('#aiPhotoDrop') || $('#aiDrop');
+  var photoFileInput = $('#aiPhotoFile') || $('#aiPhoto');
+  if (photoDropEl && photoFileInput) {
+    photoDropEl.addEventListener('click', function () { photoFileInput.click(); });
+    photoDropEl.addEventListener('dragover', function (e) {
       e.preventDefault();
-      dropEl.style.borderColor = 'var(--accent)';
+      photoDropEl.style.borderColor = 'var(--accent)';
     });
-    dropEl.addEventListener('dragleave', function () {
-      dropEl.style.borderColor = '';
+    photoDropEl.addEventListener('dragleave', function () {
+      photoDropEl.style.borderColor = '';
     });
-    dropEl.addEventListener('drop', function (e) {
+    photoDropEl.addEventListener('drop', function (e) {
       e.preventDefault();
-      dropEl.style.borderColor = '';
+      photoDropEl.style.borderColor = '';
       var dt = e.dataTransfer;
       var f = dt && dt.files && dt.files[0];
       if (f && f.type.indexOf('image/') === 0) {
-        processAiPhoto(f);
+        processAiPhotoRef(f);
       }
+    });
+    photoFileInput.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (f) processAiPhotoRef(f);
     });
   }
 
-  function processAiPhoto(f) {
+  function processAiPhotoRef(f) {
     compressImage(f, function (data, detectedAspect) {
       if (!data) {
-        aiStatus('Unable to read this photo file. Please try another image.', 'error');
+        aiStatus('Unable to read photo. Please select another image file.', 'error');
         return;
       }
-      aiPhotoB64 = data;
+      aiPhotoRefB64 = data;
       aiPhotoAspect = detectedAspect || '1:1';
-      aiB64Raw = data.split(',')[1];
-      $('#aiPrevImg').src = data;
-      $('#aiPrevBox').classList.remove('hidden');
-      aiStatus('Photo attached (' + aiPhotoAspect + '). Preserving original person and scene.', 'success');
+      var prevImg = $('#aiPhotoPrevImg') || $('#aiPrevImg');
+      var prevBox = $('#aiPhotoPrevBox') || $('#aiPrevBox');
+      if (prevImg) prevImg.src = data;
+      if (prevBox) prevBox.classList.remove('hidden');
+      aiStatus('Portrait reference attached (' + aiPhotoAspect + '). Facial features will be preserved.', 'success');
     });
   }
 
-  $('#aiPhoto').addEventListener('change', function () {
-    var f = this.files && this.files[0];
-    if (f) processAiPhoto(f);
-  });
+  var photoPrevClear = $('#aiPhotoPrevClear') || $('#aiPrevClear');
+  if (photoPrevClear) {
+    photoPrevClear.addEventListener('click', function () {
+      aiPhotoRefB64 = null;
+      aiPhotoAspect = '1:1';
+      var prevBox = $('#aiPhotoPrevBox') || $('#aiPrevBox');
+      if (prevBox) prevBox.classList.add('hidden');
+      if (photoFileInput) photoFileInput.value = '';
+      aiStatus('');
+    });
+  }
 
-  $('#aiPrevClear').addEventListener('click', function () {
-    aiPhotoB64 = null;
-    aiB64Raw = null;
-    aiPhotoAspect = '1:1';
-    $('#aiPrevBox').classList.add('hidden');
-    $('#aiPhoto').value = '';
-    aiStatus('');
-  });
+  // Reference Photos: Video Studio First-Frame Anchor Upload & Dropzone
+  var videoDropEl = $('#aiVideoDrop');
+  var videoFileInput = $('#aiVideoPhotoFile');
+  if (videoDropEl && videoFileInput) {
+    videoDropEl.addEventListener('click', function () { videoFileInput.click(); });
+    videoDropEl.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      videoDropEl.style.borderColor = 'var(--accent)';
+    });
+    videoDropEl.addEventListener('dragleave', function () {
+      videoDropEl.style.borderColor = '';
+    });
+    videoDropEl.addEventListener('drop', function (e) {
+      e.preventDefault();
+      videoDropEl.style.borderColor = '';
+      var dt = e.dataTransfer;
+      var f = dt && dt.files && dt.files[0];
+      if (f && f.type.indexOf('image/') === 0) {
+        processAiVideoAnchor(f);
+      }
+    });
+    videoFileInput.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (f) processAiVideoAnchor(f);
+    });
+  }
 
-  $('#aiKeyToggle').addEventListener('click', function () {
-    var box = $('#aiKeyBox');
+  function processAiVideoAnchor(f) {
+    compressImage(f, function (data) {
+      if (!data) {
+        aiStatus('Unable to read image file.', 'error');
+        return;
+      }
+      aiVideoRefB64 = data;
+      var prevImg = $('#aiVideoPrevImg');
+      var prevBox = $('#aiVideoPrevBox');
+      if (prevImg) prevImg.src = data;
+      if (prevBox) prevBox.classList.remove('hidden');
+      updateUseRecentPhotoBtn();
+      aiStatus('First-frame portrait attached. MiniMax will extrapolate motion from this anchor.', 'success');
+    });
+  }
+
+  var videoPrevClear = $('#aiVideoPrevClear');
+  if (videoPrevClear) {
+    videoPrevClear.addEventListener('click', function () {
+      aiVideoRefB64 = null;
+      var prevBox = $('#aiVideoPrevBox');
+      if (prevBox) prevBox.classList.add('hidden');
+      if (videoFileInput) videoFileInput.value = '';
+      updateUseRecentPhotoBtn();
+      aiStatus('');
+    });
+  }
+
+  // Use recent generated photo as video anchor
+  if ($('#aiBtnUseRecentPhoto')) {
+    $('#aiBtnUseRecentPhoto').addEventListener('click', function () {
+      var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
+      if (lastPhoto && lastPhoto.url) {
+        aiVideoRefB64 = lastPhoto.url;
+        var prevImg = $('#aiVideoPrevImg');
+        var prevBox = $('#aiVideoPrevBox');
+        if (prevImg) prevImg.src = lastPhoto.url;
+        if (prevBox) prevBox.classList.remove('hidden');
+        updateUseRecentPhotoBtn();
+        aiStatus('✦ Set latest generated portrait as first-frame anchor!', 'success');
+      }
+    });
+  }
+
+  // Key Configuration Drawers & Handlers
+  function toggleKeyDrawer(drawerId, inputId) {
+    var box = $(drawerId);
+    if (!box) return;
     box.classList.toggle('hidden');
     if (!box.classList.contains('hidden')) {
-      $('#aiKey').value = aiKeys.openrouterKey || aiKeys.key || '';
+      var input = $(inputId);
+      if (input) input.value = aiKeys.openrouterKey || aiKeys.key || '';
     }
-  });
+  }
 
-  $('#aiKeySave').addEventListener('click', function () {
-    var val = $('#aiKey').value.trim();
+  function saveCustomKey(inputId, drawerId) {
+    var input = $(inputId);
+    var val = input ? input.value.trim() : '';
     aiKeys.openrouterKey = val;
     aiKeys.key = val;
     db.aiKeys = aiKeys;
     save();
-    $('#aiKeyState').textContent = aiKeyStateTxt();
+    updateKeyStateLabels();
     aiStatus(val ? 'OpenRouter API Key saved successfully.' : 'Custom key cleared. Default system key will be used.', 'success');
-    $('#aiKeyBox').classList.add('hidden');
-  });
+    var box = $(drawerId);
+    if (box) box.classList.add('hidden');
+  }
+
+  if ($('#aiKeyTogglePhoto')) {
+    $('#aiKeyTogglePhoto').addEventListener('click', function () { toggleKeyDrawer('#aiKeyBoxPhoto', '#aiKeyPhoto'); });
+  }
+  if ($('#aiKeySavePhoto')) {
+    $('#aiKeySavePhoto').addEventListener('click', function () { saveCustomKey('#aiKeyPhoto', '#aiKeyBoxPhoto'); });
+  }
+  if ($('#aiKeyToggleVideo')) {
+    $('#aiKeyToggleVideo').addEventListener('click', function () { toggleKeyDrawer('#aiKeyBoxVideo', '#aiKeyVideo'); });
+  }
+  if ($('#aiKeySaveVideo')) {
+    $('#aiKeySaveVideo').addEventListener('click', function () { saveCustomKey('#aiKeyVideo', '#aiKeyBoxVideo'); });
+  }
+  if ($('#aiKeyToggle')) {
+    $('#aiKeyToggle').addEventListener('click', function () { toggleKeyDrawer('#aiKeyBox', '#aiKey'); });
+  }
+  if ($('#aiKeySave')) {
+    $('#aiKeySave').addEventListener('click', function () { saveCustomKey('#aiKey', '#aiKeyBox'); });
+  }
 
   // ═══════════════ Camera Aesthetic & Quality Selector (iPhone Textures) ═══════════════
   var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphonex'; // Default to iPhone X as requested
@@ -1838,28 +2040,28 @@
   var IPHONE_TEXTURE_PROMPTS = {
     iphonex: {
       key: 'iphonex',
-      label: 'iPhone X 纪实影调',
+      label: 'iPhone X Documentary',
       badge: 'iPhone X',
       qualityParam: 'low',
-      hint: '苹果X真实纪实 (原相机质感 · ~$0.006)',
+      hint: 'iPhone X Documentary (Native Camera · ~$0.006)',
       modifier: ', shot on Apple iPhone X camera, 28mm f/1.8 lens, authentic everyday smartphone snapshot, candid casual photography, natural true-to-life Apple color science, warm flattering skin tones, authentic skin micro-textures, zero artificial beauty smoothing, realistic dynamic range, subtle organic sensor grain in shadows, gentle natural lens flare, candid raw camera roll photo',
       videoModifier: 'Shot on Apple iPhone X rear camera, 4K 30fps handheld smartphone video, authentic iPhone X video recording aesthetic, 28mm f/1.8 lens with optical image stabilization, natural handheld micro-camera movement and subtle breathing, authentic smartphone auto-exposure adjustment, realistic motion blur, true-to-life Apple color science, warm natural skin tones without plastic AI smoothing, authentic skin pores and texture, candid smartphone vlog footage, unedited camera roll realism, natural ambient lighting, zero CGI or cartoonish gloss'
     },
     iphone16pro: {
       key: 'iphone16pro',
-      label: 'iPhone 16 Pro 影调',
+      label: 'iPhone 16 Pro Cinematic',
       badge: 'iPhone 16 Pro',
       qualityParam: 'low',
-      hint: '旗舰影调高清晰 (Low ~$0.006)',
+      hint: 'Flagship Clarity (Low ~$0.006)',
       modifier: ', shot on iPhone 16 Pro Max 48MP camera, 24mm f/1.78 lens, Apple Photonic Engine processing, Smart HDR 5, ultra-clean sharp focus, crisp optical clarity, natural skin micro-textures, true-to-life modern Apple color science, balanced highlights, clean shadows, premium commercial smartphone photography, high resolution candid portrait',
       videoModifier: 'Shot on iPhone 16 Pro Max 4K 60fps HDR video, Apple Action Mode stabilization, crisp optical clarity, Photonic Engine true-to-life color rendering, subtle handheld movement, natural skin detail, premium smartphone footage'
     },
     iphone7: {
       key: 'iphone7',
-      label: 'iPhone 7 胶片随手拍',
+      label: 'iPhone 7 Film Snapshot',
       badge: 'iPhone 7',
       qualityParam: 'low',
-      hint: '复古微颗粒随手拍 (Low ~$0.006)',
+      hint: 'Vintage Grain Snapshot (Low ~$0.006)',
       modifier: ', shot on Apple iPhone 7 back camera, 28mm f/1.8 lens, authentic everyday snapshot, candid casual photography, subtle sensor noise, soft digital grain, natural slightly warm Apple color science, realistic raw dynamic range, unedited camera roll photo, slight motion blur, casual authentic lighting, no oversaturation, no artificial HDR halo, nostalgic mobile photography aesthetic',
       videoModifier: 'Shot on Apple iPhone 7 1080p video, 28mm lens, authentic early smartphone video look, subtle digital grain, warm nostalgic Apple color tones, casual handheld movement, raw snapshot video'
     }
@@ -2020,37 +2222,27 @@
       save();
     }
     var info = IPHONE_TEXTURE_PROMPTS[key];
-    var btnX = $('#aiQualIphoneX');
-    var btn16 = $('#aiQualIphone16');
-    var btn7 = $('#aiQualIphone7');
-    var hint = $('#aiQualitySelectedHint');
+    document.querySelectorAll('.ai-quality-card').forEach(function (card) {
+      var q = card.getAttribute('data-quality');
+      var isActive = q === key;
+      card.classList.toggle('active', isActive);
+      card.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    });
 
-    if (btnX) {
-      btnX.classList.toggle('active', key === 'iphonex');
-      btnX.setAttribute('aria-checked', key === 'iphonex' ? 'true' : 'false');
-    }
-    if (btn16) {
-      btn16.classList.toggle('active', key === 'iphone16pro');
-      btn16.setAttribute('aria-checked', key === 'iphone16pro' ? 'true' : 'false');
-    }
-    if (btn7) {
-      btn7.classList.toggle('active', key === 'iphone7');
-      btn7.setAttribute('aria-checked', key === 'iphone7' ? 'true' : 'false');
-    }
-    if (hint) {
-      hint.textContent = info.hint;
-    }
+    var photoHint = $('#aiPhotoQualityHint');
+    if (photoHint) photoHint.textContent = info.hint;
+    var videoHint = $('#aiVideoQualityHint');
+    if (videoHint) videoHint.textContent = info.label;
+    var legacyHint = $('#aiQualitySelectedHint');
+    if (legacyHint) legacyHint.textContent = info.hint;
   }
 
-  if ($('#aiQualIphoneX')) {
-    $('#aiQualIphoneX').addEventListener('click', function () { setCameraQuality('iphonex'); });
-  }
-  if ($('#aiQualIphone16')) {
-    $('#aiQualIphone16').addEventListener('click', function () { setCameraQuality('iphone16pro'); });
-  }
-  if ($('#aiQualIphone7')) {
-    $('#aiQualIphone7').addEventListener('click', function () { setCameraQuality('iphone7'); });
-  }
+  document.querySelectorAll('.ai-quality-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var q = this.getAttribute('data-quality');
+      if (q) setCameraQuality(q);
+    });
+  });
   setCameraQuality(currentCameraQuality);
 
   // Helper to translate raw technical errors/safety blocks into human-readable guidance
@@ -2061,37 +2253,37 @@
     // 1. Sensitive/Safety/Moderation Policy Violations
     if (lower.indexOf('sensitive') !== -1 || lower.indexOf('safety') !== -1 || lower.indexOf('moderation') !== -1 || lower.indexOf('nsfw') !== -1 || lower.indexOf('content policy') !== -1 || lower.indexOf('blocked') !== -1) {
       if (kind === 'video') {
-        return '安全审核提示：视频内容或输入照片触发了模型安全合规策略（如知名公众人物肖像保护、敏感/低俗画面等）。请尝试更换一张自然的生活自拍照，或简化调整描述词。';
+        return 'Safety Moderation Notice: Video prompt or reference photo triggered the content safety policy. Please try a natural personal selfie or refine your prompt.';
       }
-      return '安全审核提示：提示词或参考图触发了安全合规策略（请避免涉及知名公众人物肖像、暴力或过于暴露的画面）。请适当微调描述词后重试。';
+      return 'Safety Moderation Notice: Portrait prompt or reference photo triggered the content safety policy. Please avoid celebrity likenesses or sensitive imagery and retry.';
     }
 
     // 2. Face / Portrait detection or aspect ratio issues
     if (lower.indexOf('face') !== -1 || lower.indexOf('portrait') !== -1 || lower.indexOf('detect') !== -1) {
-      return '肖像解析提示：未能在上传的图片中清晰识别到人物面部，或五官遮挡较多。建议上传正面光线充足、五官清晰的生活自拍。';
+      return 'Portrait Analysis Notice: Could not detect a clear frontal face in the uploaded image. Please upload a well-lit, unobstructed selfie.';
     }
 
     // 3. Balance or Quota exhaustion
     if (lower.indexOf('credits') !== -1 || lower.indexOf('quota') !== -1 || lower.indexOf('balance') !== -1 || lower.indexOf('402') !== -1 || lower.indexOf('insufficient') !== -1) {
-      return '账户额度提示：OpenRouter API 账户余额不足，请在 OpenRouter 充值或在上方展开“密钥设置”输入自备可用 Key。';
+      return 'Account Balance Notice: OpenRouter API account has insufficient credits. Please top up or enter your custom key in Key Configuration above.';
     }
 
     // 4. Rate limits or Concurrent jobs
     if (lower.indexOf('rate limit') !== -1 || lower.indexOf('429') !== -1 || lower.indexOf('too many requests') !== -1 || lower.indexOf('concurrency') !== -1) {
-      return '排队拥挤提示：当前生成任务较多或触发了并发频率限制，请稍候 30 秒至 1 分钟后再次点击生成。';
+      return 'Service Busy: Rate limit or queue concurrency reached. Please wait 30–60 seconds before trying again.';
     }
 
     // 5. Invalid duration/resolution parameters
     if (lower.indexOf('duration') !== -1 || lower.indexOf('resolution') !== -1 || lower.indexOf('invalid parameter') !== -1) {
-      return '规格参数提示：当前模型支持 5s、6s、10s 时长及 480p/768p 分辨率档位，系统已为您自动校准。';
+      return 'Parameters Notice: 5s, 6s, 10s durations and 480p/768p resolutions supported. System calibrated automatically.';
     }
 
     // 6. Network or timeout
     if (lower.indexOf('timeout') !== -1 || lower.indexOf('longer than expected') !== -1) {
-      return '渲染耗时提示：云端 GPU 正在高峰期排队渲染视频（通常需要 1~2 分钟），请稍等片刻后刷新查看结果。';
+      return 'Rendering Notice: Cloud GPU is queueing during peak hours (renders take 1–2 mins). Please wait a moment.';
     }
 
-    return (kind === 'video' ? '视频生成提示：' : '肖像生成提示：') + str;
+    return (kind === 'video' ? 'Video generation note: ' : 'Portrait generation note: ') + str;
   }
 
   // Toggle Guidance Card
@@ -2101,7 +2293,7 @@
   if (guidanceToggle && guidanceBody) {
     guidanceToggle.addEventListener('click', function () {
       var isHidden = guidanceBody.classList.toggle('hidden');
-      if (guidanceBtn) guidanceBtn.textContent = isHidden ? '查看须知 ▾' : '收起须知 ▴';
+      if (guidanceBtn) guidanceBtn.textContent = isHidden ? 'View Guidelines ▾' : 'Hide Guidelines ▴';
     });
   }
 
@@ -2112,17 +2304,15 @@
   var VIDEO_PRICING = {
     '480p': {
       rate: 0.05,
-      label: '480p 节能流畅档',
-      hintPrefix: '480p 流畅档',
-      costs: { 5: '$0.25', 6: '$0.30', 10: '$0.50' },
-      cny: { 5: '约1.80元', 6: '约2.16元', 10: '约3.60元' }
+      label: '480p Eco Smooth',
+      hintPrefix: '480p Smooth',
+      costs: { 5: '$0.25', 6: '$0.30', 10: '$0.50' }
     },
     '768p': {
       rate: 0.08,
-      label: '768p 高清影视档',
-      hintPrefix: '768p 高清档',
-      costs: { 5: '$0.40', 6: '$0.48', 10: '$0.80' },
-      cny: { 5: '约2.88元', 6: '约3.46元', 10: '约5.76元' }
+      label: '768p Cinema HD',
+      hintPrefix: '768p Cinema HD',
+      costs: { 5: '$0.40', 6: '$0.48', 10: '$0.80' }
     }
   };
 
@@ -2148,15 +2338,15 @@
       var descEl = $('#aiDesc' + d + 's');
       if (costEl) costEl.textContent = '~' + p.costs[d];
       if (descEl) {
-        if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? '首选推荐 · ' : '高清通透 · ') + p.cny[5] + ' · 支持真人肖像与立体声';
-        if (d === 6) descEl.textContent = '优雅运镜 · ' + p.cny[6] + ' · 动态过渡更平滑约1.5分钟';
-        if (d === 10) descEl.textContent = '长镜头故事 · ' + p.cny[10] + ' · 剧情充沛细节拉满约2-3分钟';
+        if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + '~' + p.costs[5] + ' · Real likeness & stereo audio';
+        if (d === 6) descEl.textContent = 'Fluid motion · ~' + p.costs[6] + ' · Smoother transition (~1.5m)';
+        if (d === 10) descEl.textContent = 'Extended story · ~' + p.costs[10] + ' · Full motion & rich detail (~2-3m)';
       }
     });
 
     var hint = $('#aiVideoDurationHint');
     if (hint) {
-      hint.textContent = p.hintPrefix + ' (' + currentVideoDuration + 's · ~' + p.costs[currentVideoDuration] + ' · ' + p.cny[currentVideoDuration] + ')';
+      hint.textContent = p.hintPrefix + ' (' + currentVideoDuration + 's · ~' + p.costs[currentVideoDuration] + ')';
     }
 
     var btnVideoSub = $('#aiBtnVideo .ai-btn-sub');
@@ -2269,21 +2459,36 @@
   }
 
   function aiGenerate(kind) {
-    var prompt = $('#aiPrompt').value.trim();
-    if (!prompt) {
-      aiStatus('Please describe the manifestation scene you want to create.', 'error');
-      $('#aiPrompt').focus();
-      return;
+    var prompt = '';
+    if (kind === 'photo') {
+      var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
+      prompt = (pInput && pInput.value || '').trim();
+      if (!prompt) {
+        aiStatus('Please enter a description in "Portrait Vision Prompt" first.', 'error');
+        if (pInput) pInput.focus();
+        return;
+      }
+    } else {
+      var vInput = $('#aiVideoPrompt') || $('#aiPrompt');
+      prompt = (vInput && vInput.value || '').trim();
+      if (!prompt) {
+        aiStatus('Please enter a description in "Motion & Scene Prompt" first.', 'error');
+        if (vInput) vInput.focus();
+        return;
+      }
     }
 
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
-    $('#aiBtnPhoto').disabled = true;
-    $('#aiBtnVideo').disabled = true;
-    if ($('#aiBtnFree')) $('#aiBtnFree').disabled = true;
+    var btnPhoto = $('#aiBtnPhoto');
+    var btnVideo = $('#aiBtnVideo');
+    var btnFree = $('#aiBtnFree');
+    if (btnPhoto) btnPhoto.disabled = true;
+    if (btnVideo) btnVideo.disabled = true;
+    if (btnFree) btnFree.disabled = true;
 
     if (kind === 'photo') {
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
-      var hasRefImage = Boolean(aiPhotoB64);
+      var hasRefImage = Boolean(aiPhotoRefB64);
       var enhancedPrompt = buildAdaptivePrompt(prompt, currentCameraQuality, hasRefImage);
 
       aiStatus('✦ Rendering portrait (' + cameraInfo.label + ') with OpenAI GPT Image 2… (~15s)', 'running');
@@ -2292,7 +2497,7 @@
         raw_prompt: prompt,
         quality: cameraInfo.qualityParam,
         quality_mode: currentCameraQuality,
-        image: aiPhotoB64 || undefined,
+        image: aiPhotoRefB64 || undefined,
         aspect_ratio: hasRefImage ? (aiPhotoAspect || '1:1') : '1:1'
       };
       if (userKey) photoPayload.openrouterKey = userKey;
@@ -2305,9 +2510,9 @@
         });
       })
       .then(function (data) {
-        $('#aiBtnPhoto').disabled = false;
-        $('#aiBtnVideo').disabled = false;
-        if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+        if (btnPhoto) btnPhoto.disabled = false;
+        if (btnVideo) btnVideo.disabled = false;
+        if (btnFree) btnFree.disabled = false;
 
         if (!data.url) throw new Error('No image URL returned from generator');
 
@@ -2324,12 +2529,13 @@
         });
         save();
         aiStatus('✦ Portrait generated with ' + cameraInfo.label + '! View and download below.', 'success');
+        updateUseRecentPhotoBtn();
         renderAiResults();
       })
       .catch(function (err) {
-        $('#aiBtnPhoto').disabled = false;
-        $('#aiBtnVideo').disabled = false;
-        if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+        if (btnPhoto) btnPhoto.disabled = false;
+        if (btnVideo) btnVideo.disabled = false;
+        if (btnFree) btnFree.disabled = false;
 
         var errMsg = err.message || '';
         aiStatus(formatFriendlyAiError(errMsg, 'photo'), 'error');
@@ -2339,7 +2545,7 @@
       var dur = currentVideoDuration || 5;
       var res = currentVideoResolution || '480p';
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphonex;
-      var srcInput = aiPhotoB64;
+      var srcInput = aiVideoRefB64 || aiPhotoRefB64;
       if (!srcInput) {
         var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
         if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
@@ -2349,7 +2555,7 @@
       var hasRefImage = Boolean(srcInput);
 
       function dispatchVideoJob(finalPromptToSend, directorUsed) {
-        var directorTag = directorUsed ? (' · 意图已由 ' + directorUsed + ' 扩写为真实镜头分镜') : '';
+        var directorTag = directorUsed ? (' · Polished by ' + directorUsed) : '';
         aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + directorTag + ')… Initializing frames (~1-2m)', 'running');
 
         var videoPayload = {
@@ -2375,12 +2581,12 @@
           var jobId = data.jobId;
           if (!jobId) throw new Error('No video job ID returned from service');
 
-          var finalTag = data.directorModel ? (' · 意图已由 ' + data.directorModel + ' 优化') : directorTag;
+          var finalTag = data.directorModel ? (' · Polished by ' + data.directorModel) : directorTag;
           aiStatus('Rendering MiniMax H3 Max video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
-          pollVideoJob(jobId, userKey, $('#aiStatus'), function (pollErr, videoUrl) {
-            $('#aiBtnPhoto').disabled = false;
-            $('#aiBtnVideo').disabled = false;
-            if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+          pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
+            if (btnPhoto) btnPhoto.disabled = false;
+            if (btnVideo) btnVideo.disabled = false;
+            if (btnFree) btnFree.disabled = false;
 
             if (pollErr) {
               aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
@@ -2404,15 +2610,15 @@
               url: videoUrl
             });
             save();
-            var readyMsg = '▶ MiniMax H3 Max 真实镜头视频生成就绪！' + (data.directorModel || directorUsed ? '（已通过导演智能扩写）' : '');
+            var readyMsg = '▶ MiniMax H3 Max video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
             aiStatus(readyMsg, 'success');
             renderAiResults();
           });
         })
         .catch(function (err) {
-          $('#aiBtnPhoto').disabled = false;
-          $('#aiBtnVideo').disabled = false;
-          if ($('#aiBtnFree')) $('#aiBtnFree').disabled = false;
+          if (btnPhoto) btnPhoto.disabled = false;
+          if (btnVideo) btnVideo.disabled = false;
+          if (btnFree) btnFree.disabled = false;
 
           var errMsg = err.message || '';
           aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');
@@ -2424,7 +2630,7 @@
         var directPrompt = buildAdaptiveVideoPrompt(prompt, currentCameraQuality, hasRefImage);
         dispatchVideoJob(directPrompt, null);
       } else {
-        aiStatus('🎬 AI 导演正在将意图「' + prompt.slice(0, 16) + '」扩写为真实电影场景（杜绝人物唱歌或空转）…', 'running');
+        aiStatus('🎬 AI Director is developing cinematic shot directions for "' + prompt.slice(0, 20) + '"…', 'running');
         var optPayload = {
           prompt: prompt,
           quality_mode: currentCameraQuality,
@@ -2440,8 +2646,8 @@
             var dirUsed = null;
             if (data && data.success && data.optimizedPrompt) {
               promptToUse = data.optimizedPrompt;
-              dirUsed = data.model || 'AI 导演';
-              var promptEl = $('#aiPrompt');
+              dirUsed = data.model || 'AI Director';
+              var promptEl = $('#aiVideoPrompt') || $('#aiPrompt');
               if (promptEl) {
                 promptEl.value = promptToUse;
                 promptEl.dispatchEvent(new Event('input'));
@@ -2461,55 +2667,86 @@
     }
   }
 
-  $('#aiBtnFree').addEventListener('click', function () {
-    var prompt = $('#aiPrompt').value.trim();
-    if (!prompt) {
-      aiStatus('Please describe the manifestation scene you want to create.', 'error');
-      $('#aiPrompt').focus();
-      return;
-    }
-    $('#aiBtnPhoto').disabled = true;
-    $('#aiBtnFree').disabled = true;
-    $('#aiBtnVideo').disabled = true;
-    aiStatus('◈ Generating instant draft preview… (~10s)', 'running');
-    var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt + ', photorealistic, master quality, high resolution, 8k, cinematic lighting') + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6);
-    var img = new Image();
-    img.onload = function () {
-      db.aiVision = db.aiVision || [];
-      db.aiVision.unshift({
-        id: uid(),
-        kind: 'photo',
-        source: 'free',
-        model: 'pollinations',
-        ts: Date.now(),
-        prompt: prompt,
-        url: url
-      });
-      save();
-      $('#aiBtnPhoto').disabled = false;
-      $('#aiBtnFree').disabled = false;
-      $('#aiBtnVideo').disabled = false;
-      aiStatus('◈ Instant draft preview ready! View and download below.', 'success');
-      renderAiResults();
-    };
-    img.onerror = function () {
-      $('#aiBtnPhoto').disabled = false;
-      $('#aiBtnFree').disabled = false;
-      $('#aiBtnVideo').disabled = false;
-      aiStatus('Draft preview server busy. Please try Generate Portrait with GPT Image 2.', 'error');
-    };
-    img.src = url;
-  });
+  // Instant Free Draft Action
+  var btnFreeEl = $('#aiBtnFree');
+  if (btnFreeEl) {
+    btnFreeEl.addEventListener('click', function () {
+      var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
+      var prompt = (pInput && pInput.value || '').trim();
+      if (!prompt) {
+        aiStatus('Please enter a description in "Portrait Vision Prompt" first to preview.', 'error');
+        if (pInput) pInput.focus();
+        return;
+      }
+      var btnPhoto = $('#aiBtnPhoto');
+      var btnVideo = $('#aiBtnVideo');
+      if (btnPhoto) btnPhoto.disabled = true;
+      btnFreeEl.disabled = true;
+      if (btnVideo) btnVideo.disabled = true;
+      aiStatus('◈ Generating instant draft preview… (~10s)', 'running');
+      var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt + ', photorealistic, master quality, high resolution, 8k, cinematic lighting') + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6);
+      var img = new Image();
+      img.onload = function () {
+        db.aiVision = db.aiVision || [];
+        db.aiVision.unshift({
+          id: uid(),
+          kind: 'photo',
+          source: 'free',
+          model: 'pollinations',
+          ts: Date.now(),
+          prompt: prompt,
+          url: url
+        });
+        save();
+        if (btnPhoto) btnPhoto.disabled = false;
+        btnFreeEl.disabled = false;
+        if (btnVideo) btnVideo.disabled = false;
+        aiStatus('◈ Instant draft preview ready! View and download below.', 'success');
+        updateUseRecentPhotoBtn();
+        renderAiResults();
+      };
+      img.onerror = function () {
+        if (btnPhoto) btnPhoto.disabled = false;
+        btnFreeEl.disabled = false;
+        if (btnVideo) btnVideo.disabled = false;
+        aiStatus('Draft preview server busy. Please try Generate Portrait with GPT Image 2.', 'error');
+      };
+      img.src = url;
+    });
+  }
 
-  $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
-  $('#aiBtnVideo').addEventListener('click', function () { aiGenerate('video'); });
+  if ($('#aiBtnPhoto')) $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
+  if ($('#aiBtnVideo')) $('#aiBtnVideo').addEventListener('click', function () { aiGenerate('video'); });
+
+  // Gallery Filter Chips
+  function setGalleryFilter(filter) {
+    currentGalleryFilter = filter;
+    var fAll = $('#aiFilterAll');
+    var fPhoto = $('#aiFilterPhoto');
+    var fVideo = $('#aiFilterVideo');
+    if (fAll) fAll.classList.toggle('active', filter === 'all');
+    if (fPhoto) fPhoto.classList.toggle('active', filter === 'photo');
+    if (fVideo) fVideo.classList.toggle('active', filter === 'video');
+    renderAiResults();
+  }
+
+  if ($('#aiFilterAll')) $('#aiFilterAll').addEventListener('click', function () { setGalleryFilter('all'); });
+  if ($('#aiFilterPhoto')) $('#aiFilterPhoto').addEventListener('click', function () { setGalleryFilter('photo'); });
+  if ($('#aiFilterVideo')) $('#aiFilterVideo').addEventListener('click', function () { setGalleryFilter('video'); });
 
   function renderAiResults() {
     var wrap = $('#aiResults');
     if (!wrap) return;
     wrap.innerHTML = '';
 
-    var items = db.aiVision || [];
+    var allItems = db.aiVision || [];
+    var items = allItems;
+    if (currentGalleryFilter === 'photo') {
+      items = allItems.filter(function (v) { return v.kind === 'photo'; });
+    } else if (currentGalleryFilter === 'video') {
+      items = allItems.filter(function (v) { return v.kind === 'video'; });
+    }
+
     var countEl = $('#aiGalleryCount');
     if (countEl) {
       countEl.textContent = items.length === 1 ? '1 vision' : items.length + ' visions';
@@ -2517,9 +2754,17 @@
 
     if (!items.length) {
       var emptyBox = el('div', 'ai-empty-box');
-      var glyph = el('div', 'ai-empty-glyph', '🪞');
-      var title = el('div', 'ai-empty-title', 'No Visions Manifested Yet');
-      var desc = el('div', 'ai-empty-desc', 'Describe your future aspirations on the left to render photorealistic imagery and cinematic video.');
+      var glyphIcon = currentGalleryFilter === 'video' ? '🎬' : (currentGalleryFilter === 'photo' ? '📸' : '🪞');
+      var emptyTitle = currentGalleryFilter === 'video' ? 'No Motion Videos Yet' : (currentGalleryFilter === 'photo' ? 'No Portrait Photos Yet' : 'No Visions Manifested Yet');
+      var emptySub = currentGalleryFilter === 'video'
+        ? 'Switch to the Video Studio on the left to generate your first cinematic video with MiniMax H3 Max.'
+        : (currentGalleryFilter === 'photo'
+          ? 'Switch to the Photo Studio on the left to create realistic portraits with native camera quality.'
+          : 'Select either Photo Studio or Video Studio on the left to start manifesting your visions.');
+
+      var glyph = el('div', 'ai-empty-glyph', glyphIcon);
+      var title = el('div', 'ai-empty-title', emptyTitle);
+      var desc = el('div', 'ai-empty-desc', emptySub);
       emptyBox.appendChild(glyph);
       emptyBox.appendChild(title);
       emptyBox.appendChild(desc);
@@ -2593,9 +2838,9 @@
       body.appendChild(p);
 
       if (v.directorModel) {
-        var directorBox = el('div', 'ai-director-meta', '🎬 导演优化: ' + v.directorModel);
+        var directorBox = el('div', 'ai-director-meta', '🎬 AI Director: ' + v.directorModel);
         if (v.optimizedPrompt) {
-          directorBox.title = 'AI 导演深度优化分镜:\n' + v.optimizedPrompt;
+          directorBox.title = 'AI Director Shot Directions:\n' + v.optimizedPrompt;
         }
         body.appendChild(directorBox);
       }
@@ -2665,6 +2910,7 @@
       delBtn.addEventListener('click', function () {
         db.aiVision = (db.aiVision || []).filter(function (item) { return item.id !== v.id; });
         save();
+        updateUseRecentPhotoBtn();
         renderAiResults();
       });
       actions.appendChild(delBtn);
@@ -2675,8 +2921,14 @@
     });
   }
 
+  // Initial UI setups
+  setAiSubTab(currentAiSubTab);
+  setCameraQuality(currentCameraQuality);
+  setVideoResolution(currentVideoResolution);
+  setVideoDuration(currentVideoDuration);
+  updateKeyStateLabels();
+  updateUseRecentPhotoBtn();
   renderAiResults();
-  $('#aiKeyState').textContent = aiKeyStateTxt();
 
   /* ═══════ Affirmation Wallpaper ═══════ */
   var WP_QUOTES = [
