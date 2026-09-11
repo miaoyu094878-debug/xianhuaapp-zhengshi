@@ -615,6 +615,181 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   }
 }
 
+.ai-studio-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.ai-mode-bar {
+  display: flex;
+  gap: 8px;
+  background: var(--surface-2);
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+@media (max-width: 580px) {
+  .ai-mode-bar {
+    flex-direction: column;
+  }
+}
+
+.ai-mode-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.22s ease;
+  text-align: left;
+  font-family: inherit;
+}
+
+.ai-mode-tab:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.ai-mode-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.ai-mode-tab.active[data-subtab="photo"] {
+  border-color: #a855f7;
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.18);
+}
+
+.ai-mode-tab.active[data-subtab="video"] {
+  border-color: #ec4899;
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.18);
+}
+
+.ai-mode-tab .ai-mode-ico {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ai-mode-tab .ai-mode-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.ai-mode-tab .ai-mode-desc {
+  font-size: 11px;
+  color: var(--text-soft);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.ai-subtab-panel {
+  display: none;
+}
+
+.ai-subtab-panel.active {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-action-single-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ai-tip-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(154, 99, 210, 0.06);
+  border: 1px dashed color-mix(in srgb, var(--accent) 30%, var(--border));
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+.ai-tip-notice strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-btn-text-action {
+  background: none;
+  border: none;
+  font-size: 11.5px;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.ai-btn-text-action:hover {
+  background: rgba(154, 99, 210, 0.12);
+}
+
+.ai-gallery-filter-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-filter-chip {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-soft);
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-filter-chip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.ai-filter-chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-model-tag.photo-tag {
+  color: #a855f7;
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.ai-model-tag.video-tag {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.35);
+  background: rgba(236, 72, 153, 0.08);
+}
+
 .ai-studio-panel {
   display: flex;
   flex-direction: column;
@@ -3353,205 +3528,333 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
         <div class="ai-vision-container">
           <!-- Left Column: Vision Studio Controls -->
-          <div class="card glass ai-studio-panel">
-            <div class="ai-top-bar">
-              <div class="ai-model-chips">
-                <span class="ai-model-tag">✦ GPT Image 2</span>
-                <span class="ai-model-tag">▶ MiniMax H3 Max</span>
-              </div>
-              <button id="aiKeyToggle" class="ai-config-btn" type="button" title="View Key Configuration">
-                <span class="ai-dot-indicator"></span>
-                <span id="aiKeyState">Supabase Cloud Key (Active)</span>
+          <div class="ai-studio-col">
+            <!-- Studio Switcher Tabs (Photo vs Video) -->
+            <div class="ai-mode-bar" role="tablist" aria-label="AI Vision Modes">
+              <button type="button" class="ai-mode-tab active" id="aiTabBtnPhoto" data-subtab="photo" role="tab" aria-selected="true">
+                <span class="ai-mode-ico">📸</span>
+                <div class="ai-mode-text">
+                  <div class="ai-mode-title">Photo Studio</div>
+                  <div class="ai-mode-desc">OpenAI GPT Image 2 · Apple Camera Aesthetic · ~15s</div>
+                </div>
+              </button>
+              <button type="button" class="ai-mode-tab" id="aiTabBtnVideo" data-subtab="video" role="tab" aria-selected="false">
+                <span class="ai-mode-ico">🎬</span>
+                <div class="ai-mode-text">
+                  <div class="ai-mode-title">Video Studio</div>
+                  <div class="ai-mode-desc">MiniMax H3 Max · Physical Realism · AI Director</div>
+                </div>
               </button>
             </div>
 
-            <!-- Key Drawer -->
-            <div id="aiKeyBox" class="ai-key-drawer hidden">
-              <p class="ai-key-hint">
-                Portraits and videos are powered by OpenRouter's <strong>OpenAI GPT Image 2</strong> and <strong>MiniMax H3 Max (Hailuo 3.0)</strong>, seamlessly authenticated through your Supabase Backend Secrets (<code>OPENROUTER_API_KEY</code>).<br>
-                Optional: Enter a custom OpenRouter key below if you wish to override the default cloud gateway.
-              </p>
-              <label class="field-label" for="aiKey">Custom OpenRouter API Key (Optional)</label>
-              <input id="aiKey" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
-              <div style="display:flex;gap:8px;margin-top:8px;">
-                <button id="aiKeySave" class="btn-primary btn-small" type="button">Save Key</button>
+            <!-- Panel 1: Photo Studio -->
+            <div class="card glass ai-studio-panel ai-subtab-panel active" id="aiPanelPhoto">
+              <div class="ai-top-bar">
+                <div class="ai-model-chips">
+                  <span class="ai-model-tag photo-tag">✦ GPT Image 2</span>
+                  <span class="ai-model-tag">Native Camera Aesthetic · Portraiture</span>
+                </div>
+                <button id="aiKeyTogglePhoto" class="ai-config-btn ai-key-toggle-btn" type="button" title="View Key Configuration">
+                  <span class="ai-dot-indicator"></span>
+                  <span class="ai-key-state-label">Supabase Cloud Key (Active)</span>
+                </button>
               </div>
-            </div>
 
-            <!-- Manifestation Prompt -->
-            <div class="ai-field-group">
-              <div class="ai-label-row">
-                <label class="ai-field-title" for="aiPrompt">1 · Manifestation Vision Prompt</label>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <button type="button" id="aiBtnOptimizePrompt" class="ai-btn-optimize-chip" title="AI Director deeply analyzes your intent and expands it into professional cinematic shot directions">
-                    <span>✨ AI Director Polish</span>
+              <!-- Key Drawer for Photo Studio -->
+              <div id="aiKeyBoxPhoto" class="ai-key-drawer hidden">
+                <p class="ai-key-hint">
+                  Portraits are powered by OpenRouter's <strong>OpenAI GPT Image 2</strong>, authenticated via Supabase.<br>
+                  Optional: Enter a custom OpenRouter key to override the cloud gateway.
+                </p>
+                <label class="field-label" for="aiKeyPhoto">Custom OpenRouter API Key (Optional)</label>
+                <input id="aiKeyPhoto" class="ai-key-input" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button id="aiKeySavePhoto" class="btn-primary btn-small ai-key-save-btn" type="button">Save Key</button>
+                </div>
+              </div>
+
+              <!-- 1 · Portrait Vision Prompt -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title" for="aiPhotoPrompt">1 · Portrait Vision Prompt</label>
+                  <span id="aiPhotoCharCount" class="ai-char-counter">0 / 800</span>
+                </div>
+                <textarea id="aiPhotoPrompt" class="ai-textarea" rows="3" placeholder="Describe your future portrait: clothing, hairstyle, facial look, setting, lighting ambiance, and confident relaxed expression..." maxlength="800"></textarea>
+
+                <div class="ai-inspiration-chips">
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Standing in a sunlit architectural penthouse in Tokyo overlooking the skyline, wearing an elegant tailored cream blazer, confident serene smile, soft golden-hour cinematic depth, 8k portrait">✨ Business Elite</span>
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Serene morning in a minimalist glass sanctuary surrounded by misty pine forests, wearing cozy off-white cashmere, tranquil expression, soft dawn ambient glow">🌿 Sunlit Sanctuary</span>
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Delivering a keynote address on a luminous international amphitheater stage, holding a microphone with poise, warm auditorium lights, inspiring presence">🎙️ Keynote Stage</span>
+                  <span class="ai-inspire-pill" data-target="photo" data-prompt="Sitting at an elegant sun-drenched café terrace in Paris, holding warm espresso, joyful confident gaze, chic tailored trench coat, blooming spring streetscape">☕ Parisian Terrace</span>
+                </div>
+              </div>
+
+              <!-- 2 · Camera Aesthetic (Apple Textures) -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">2 · Camera Aesthetic (Apple Lens Tones)</label>
+                  <span id="aiPhotoQualityHint" class="ai-char-counter">iPhone X Documentary (Native Camera · ~$0.006)</span>
+                </div>
+                <div class="ai-quality-selector" role="radiogroup" aria-label="Photo Camera Texture">
+                  <button type="button" class="ai-quality-card active" id="aiPhotoQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📱</span>
+                      <span class="ai-qual-badge ai-badge-classic">iPhone X Classic · Candid Snapshot</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone X Documentary</div>
+                    <div class="ai-qual-desc">Classic 28mm · Handheld realism · Warm natural skin tones · No AI plastic sheen</div>
                   </button>
-                  <span id="aiCharCount" class="ai-char-counter">0 / 800</span>
+                  <button type="button" class="ai-quality-card" id="aiPhotoQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📸</span>
+                      <span class="ai-qual-badge ai-badge-pro">Flagship Clarity · Ultra High-Res</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 16 Pro Cinematic</div>
+                    <div class="ai-qual-desc">48MP sensor feel · Photonic Engine color · Smart HDR 5 · Pure clarity</div>
+                  </button>
+                  <button type="button" class="ai-quality-card" id="aiPhotoQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">🎞️</span>
+                      <span class="ai-qual-badge ai-badge-classic">Vintage Snap · Subtle Grain</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 7 Film Snapshot</div>
+                    <div class="ai-qual-desc">12MP nostalgia · Candid everyday walk · Film micro-grain & soft warm lighting</div>
+                  </button>
                 </div>
               </div>
-              <textarea id="aiPrompt" class="ai-textarea" rows="3" placeholder="Describe your future reality: setting, clothing, lighting, emotions, posture, and ambiance (or enter simple keywords and click 'AI Director Polish')..." maxlength="800"></textarea>
 
-              <div class="ai-inspiration-chips">
-                <span class="ai-inspire-pill" data-prompt="Standing in a sunlit architectural penthouse in Tokyo overlooking the skyline, wearing an elegant tailored cream blazer, confident serene smile, soft golden-hour cinematic depth, 8k portrait">✨ Radiant Success</span>
-                <span class="ai-inspire-pill" data-prompt="Serene morning meditation in a minimalist glass sanctuary surrounded by misty pine forests, wearing cozy off-white cashmere, tranquil expression, soft dawn ambient glow">🌿 Quiet Sanctuary</span>
-                <span class="ai-inspire-pill" data-prompt="Delivering a keynote address on a luminous international amphitheater stage, holding a microphone with poise, warm auditorium lights, inspiring presence">🎙️ Keynote Speaker</span>
-                <span class="ai-inspire-pill" data-prompt="Sitting at an elegant sun-drenched café terrace in Paris, holding warm espresso, joyful confident gaze, chic tailored trench coat, blooming spring streetscape">☕ Parisian Terrace</span>
+              <!-- 3 · Portrait Likeness (Optional) -->
+              <div class="ai-field-group">
+                <label class="ai-field-title">3 · Portrait Likeness (Optional)</label>
+                <input type="file" id="aiPhotoFile" accept="image/*" class="hidden">
+                <div class="ai-drop-zone" id="aiPhotoDrop">
+                  <div class="ai-drop-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  </div>
+                  <div class="ai-drop-content">
+                    <span class="ai-drop-heading">Upload Face Reference</span>
+                    <span class="ai-drop-sub">Blend your likeness into the scene, or leave blank for text-only vision</span>
+                  </div>
+                </div>
+                <div id="aiPhotoPrevBox" class="ai-preview-card hidden">
+                  <img id="aiPhotoPrevImg" class="ai-preview-thumb" alt="your reference photo">
+                  <div class="ai-preview-meta">
+                    <span class="ai-preview-name">Portrait Attached</span>
+                    <span class="ai-preview-note">Likeness will be blended into portrait creation</span>
+                  </div>
+                  <button id="aiPhotoPrevClear" class="chip" type="button" style="margin:0;">Remove</button>
+                </div>
               </div>
 
-              <div class="ai-prompt-director-info">
-                <span class="ai-director-badge">🎬 Smart Intent Director Engine</span>
-                <span class="ai-director-text">During video generation, the LLM Director deeply parses user intent to eliminate ambiguity and disjointed camera cuts. Automatically cascades: <code>minimax/minimax-m3</code> ➔ <code>google/gemma-4-26b-a4b-it:free</code> ➔ <code>openrouter/free</code>.</span>
+              <div class="ai-tip-notice">
+                <span class="ai-tip-icon">💡</span>
+                <span class="ai-tip-text"><strong>Portrait Tips</strong>: Clear, evenly lit frontal selfies blend best. Avoid celebrity likenesses or sensitive imagery. Renders in ~15s.</span>
               </div>
+
+              <!-- Generation Actions for Photo -->
+              <div class="ai-action-single-grid">
+                <button id="aiBtnPhoto" class="ai-btn-generate ai-btn-photo" type="button">
+                  <span class="ai-btn-title">✦ Generate Portrait</span>
+                  <span class="ai-btn-sub">OpenAI GPT Image 2 · Apple Camera Aesthetic · ~15s</span>
+                </button>
+                <button id="aiBtnFree" class="ai-btn-free" type="button">
+                  ◈ Instant Free Draft (No Key Needed)
+                </button>
+              </div>
+
+              <div id="aiPhotoStatus" class="ai-status-banner"></div>
             </div>
 
-            <!-- Camera Texture & Quality Selector -->
-            <div class="ai-field-group">
-              <div class="ai-label-row">
-                <label class="ai-field-title">2 · Camera Aesthetic (Apple Lens Tones)</label>
-                <span id="aiQualitySelectedHint" class="ai-char-counter">iPhone X Documentary (Native Camera · ~$0.006)</span>
-              </div>
-              <div class="ai-quality-selector" role="radiogroup" aria-label="Camera Texture and Quality">
-                <button type="button" class="ai-quality-card active" id="aiQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
-                  <div class="ai-qual-top">
-                    <span class="ai-qual-icon">📱</span>
-                    <span class="ai-qual-badge ai-badge-classic">iPhone X Classic · Candid Snapshot</span>
-                  </div>
-                  <div class="ai-qual-title">iPhone X Documentary</div>
-                  <div class="ai-qual-desc">Classic 28mm · Handheld realism · Warm natural skin tones · No AI plastic sheen</div>
-                </button>
-                <button type="button" class="ai-quality-card" id="aiQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
-                  <div class="ai-qual-top">
-                    <span class="ai-qual-icon">📸</span>
-                    <span class="ai-qual-badge ai-badge-pro">Flagship Clarity · Ultra High-Res</span>
-                  </div>
-                  <div class="ai-qual-title">iPhone 16 Pro Cinematic</div>
-                  <div class="ai-qual-desc">48MP sensor feel · Photonic Engine color · Smart HDR 5 · Pure clarity</div>
-                </button>
-                <button type="button" class="ai-quality-card" id="aiQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
-                  <div class="ai-qual-top">
-                    <span class="ai-qual-icon">🎞️</span>
-                    <span class="ai-qual-badge ai-badge-classic">Vintage Snap · Subtle Grain</span>
-                  </div>
-                  <div class="ai-qual-title">iPhone 7 Film Snapshot</div>
-                  <div class="ai-qual-desc">12MP nostalgia · Candid everyday walk · Film micro-grain & soft warm lighting</div>
+            <!-- Panel 2: Video Studio -->
+            <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelVideo">
+              <div class="ai-top-bar">
+                <div class="ai-model-chips">
+                  <span class="ai-model-tag video-tag">▶ MiniMax H3 Max</span>
+                  <span class="ai-model-tag">Physical Realism · Smooth Motion · Ambient Sound</span>
+                </div>
+                <button id="aiKeyToggleVideo" class="ai-config-btn ai-key-toggle-btn" type="button" title="View Key Configuration">
+                  <span class="ai-dot-indicator"></span>
+                  <span class="ai-key-state-label">Supabase Cloud Key (Active)</span>
                 </button>
               </div>
+
+              <!-- Key Drawer for Video Studio -->
+              <div id="aiKeyBoxVideo" class="ai-key-drawer hidden">
+                <p class="ai-key-hint">
+                  Video generation is powered by OpenRouter's <strong>MiniMax H3 Max (Hailuo 3.0)</strong>, authenticated via Supabase.<br>
+                  Optional: Enter a custom OpenRouter key to override the cloud gateway.
+                </p>
+                <label class="field-label" for="aiKeyVideo">Custom OpenRouter API Key (Optional)</label>
+                <input id="aiKeyVideo" class="ai-key-input" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button id="aiKeySaveVideo" class="btn-primary btn-small ai-key-save-btn" type="button">Save Key</button>
+                </div>
+              </div>
+
+              <!-- 1 · Motion & Scene Prompt -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title" for="aiVideoPrompt">1 · Motion & Scene Prompt</label>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <button type="button" id="aiBtnOptimizePrompt" class="ai-btn-optimize-chip" title="AI Director deeply analyzes your intent and expands it into professional cinematic shot directions">
+                      <span>✨ AI Director Polish</span>
+                    </button>
+                    <span id="aiVideoCharCount" class="ai-char-counter">0 / 800</span>
+                  </div>
+                </div>
+                <textarea id="aiVideoPrompt" class="ai-textarea" rows="3" placeholder="Describe your future dynamic scene (e.g. strolling along a sunlit beach with breeze in hair, speaking on an international keynote stage, driving a sports car)..." maxlength="800"></textarea>
+
+                <div class="ai-inspiration-chips">
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Walking leisurely along a sunlit Mediterranean seaside promenade with turquoise ocean views, gentle sea breeze swaying dark hair, relaxed confident smile, holding travel drink">🏖️ Seaside Promenade</span>
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Delivering a keynote address on a luminous international amphitheater stage, holding a microphone with poise, warm auditorium lights, inspiring presence">🎙️ Keynote Stage</span>
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Sitting in the driver seat of a sleek modern luxury sports car, hands on the leather steering wheel, calm confident smile, city evening lights reflected">🚗 Driving Sports Car</span>
+                  <span class="ai-inspire-pill" data-target="video" data-prompt="Sitting at an elegant sun-drenched café terrace, holding warm espresso cup, taking a gentle sip, peaceful morning breeze, relaxed posture">☕ Terrace Espresso</span>
+                </div>
+
+                <div class="ai-prompt-director-info">
+                  <span class="ai-director-badge">🎬 Director Assurance</span>
+                  <span class="ai-director-text">Prompts are expanded by the LLM Director into cinematic shot directions. <strong>Enforces relaxed lips or subtle smile without sung lyrics</strong>, bringing realistic breeze and ambient environmental sound.</span>
+                </div>
+              </div>
+
+              <!-- 2 · First-Frame Anchor (Image-to-Video) -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">2 · First-Frame Anchor (Image-to-Video)</label>
+                  <button type="button" id="aiBtnUseRecentPhoto" class="ai-btn-text-action hidden" title="Use the latest portrait created in Photo Studio as the first frame">
+                    ✦ Use Latest Generated Portrait
+                  </button>
+                </div>
+                <input type="file" id="aiVideoPhotoFile" accept="image/*" class="hidden">
+                <div class="ai-drop-zone" id="aiVideoDrop">
+                  <div class="ai-drop-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  </div>
+                  <div class="ai-drop-content">
+                    <span class="ai-drop-heading">Upload First-Frame Portrait (0s Anchor)</span>
+                    <span class="ai-drop-sub">MiniMax starts from this portrait to extrapolate continuous motion, preserving facial consistency</span>
+                  </div>
+                </div>
+                <div id="aiVideoPrevBox" class="ai-preview-card hidden">
+                  <img id="aiVideoPrevImg" class="ai-preview-thumb" alt="first frame portrait">
+                  <div class="ai-preview-meta">
+                    <span class="ai-preview-name">First Frame Ready</span>
+                    <span class="ai-preview-note">Preserves facial likeness, hairstyle, and features</span>
+                  </div>
+                  <button id="aiVideoPrevClear" class="chip" type="button" style="margin:0;">Remove</button>
+                </div>
+              </div>
+
+              <!-- 3 · Video Resolution & Duration Selector -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">3 · Video Resolution & Duration</label>
+                  <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth (5s · ~$0.25)</span>
+                </div>
+
+                <!-- Resolution Selector (480p vs 768p) -->
+                <div class="ai-resolution-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:10px;">
+                  <button type="button" class="ai-res-btn active" id="aiRes480p" data-res="480p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
+                    <span>🟢 480p Eco Smooth</span>
+                    <span style="font-size:10px;opacity:0.9;background:rgba(16,185,129,0.2);padding:1px 6px;border-radius:6px;">$0.05/s</span>
+                  </button>
+                  <button type="button" class="ai-res-btn" id="aiRes768p" data-res="768p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
+                    <span>🎬 768p Cinema HD</span>
+                    <span style="font-size:10px;opacity:0.9;background:rgba(139,92,246,0.15);padding:1px 6px;border-radius:6px;">$0.08/s</span>
+                  </button>
+                </div>
+
+                <div class="ai-duration-selector" role="radiogroup" aria-label="Video Duration Options">
+                  <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-standard">Recommended · 5s</span>
+                      <span class="ai-dur-cost" id="aiCost5s">~$0.25</span>
+                    </div>
+                    <div class="ai-dur-title">5s Standard Shot</div>
+                    <div class="ai-dur-desc" id="aiDesc5s">Top recommendation · ~$0.25 · Real likeness & stereo audio</div>
+                  </button>
+                  <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-extended">Fluid Motion · 6s</span>
+                      <span class="ai-dur-cost" id="aiCost6s">~$0.30</span>
+                    </div>
+                    <div class="ai-dur-title">6s Fluid Shot</div>
+                    <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · ~$0.30 · Smoother transition</div>
+                  </button>
+                  <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-ultra-low">Extended · 10s</span>
+                      <span class="ai-dur-cost" id="aiCost10s">~$0.50</span>
+                    </div>
+                    <div class="ai-dur-title">10s Extended Scene</div>
+                    <div class="ai-dur-desc" id="aiDesc10s">Extended story · ~$0.50 · Rich detail & full motion</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 4 · Camera Cinematics -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">4 · Camera Cinematics</label>
+                  <span id="aiVideoQualityHint" class="ai-char-counter">iPhone X Handheld Cinematics</span>
+                </div>
+                <div class="ai-quality-selector" role="radiogroup" aria-label="Video Camera Texture">
+                  <button type="button" class="ai-quality-card active" id="aiVideoQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📱</span>
+                      <span class="ai-qual-badge ai-badge-classic">iPhone X Classic · Handheld Realism</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone X Handheld</div>
+                    <div class="ai-qual-desc">Classic 28mm · Organic handheld breathing · Authentic skin tones · No AI plastic sheen</div>
+                  </button>
+                  <button type="button" class="ai-quality-card" id="aiVideoQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">📸</span>
+                      <span class="ai-qual-badge ai-badge-pro">Flagship Dolly · Ultra High-Res</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 16 Pro Dolly</div>
+                    <div class="ai-qual-desc">48MP sensor feel · Smooth slow dolly push-in · Pristine clarity</div>
+                  </button>
+                  <button type="button" class="ai-quality-card" id="aiVideoQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
+                    <div class="ai-qual-top">
+                      <span class="ai-qual-icon">🎞️</span>
+                      <span class="ai-qual-badge ai-badge-classic">Vintage Grain · Subtle Texture</span>
+                    </div>
+                    <div class="ai-qual-title">iPhone 7 Film Walk</div>
+                    <div class="ai-qual-desc">12MP nostalgia · Candid handheld walk · Film micro-grain & soft warm glow</div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="ai-tip-notice">
+                <span class="ai-tip-icon">🎬</span>
+                <span class="ai-tip-text"><strong>Motion Video Tips</strong>: Renders in 1–2 minutes. Subtle expressions, head turns, and walking look most natural. Generates without sung lyrics.</span>
+              </div>
+
+              <!-- Generation Actions for Video -->
+              <div class="ai-action-single-grid">
+                <button id="aiBtnVideo" class="ai-btn-generate ai-btn-video" type="button">
+                  <span class="ai-btn-title">▶ Generate Motion Video</span>
+                  <span class="ai-btn-sub">MiniMax H3 Max (5s · 480p) · ~$0.25</span>
+                </button>
+              </div>
+
+              <div id="aiVideoStatus" class="ai-status-banner"></div>
             </div>
-
-            <!-- Face Reference Upload (Optional) -->
-            <div class="ai-field-group">
-              <label class="ai-field-title">3 · Portrait Likeness (Optional)</label>
-              <input type="file" id="aiPhoto" accept="image/*" class="hidden">
-              <div class="ai-drop-zone" id="aiDrop">
-                <div class="ai-drop-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                </div>
-                <div class="ai-drop-content">
-                  <span class="ai-drop-heading">Upload Face Reference</span>
-                  <span class="ai-drop-sub">Blend your likeness into the scene, or leave blank for text-only vision</span>
-                </div>
-              </div>
-              <div id="aiPrevBox" class="ai-preview-card hidden">
-                <img id="aiPrevImg" class="ai-preview-thumb" alt="your reference photo">
-                <div class="ai-preview-meta">
-                  <span class="ai-preview-name">Portrait Attached</span>
-                  <span class="ai-preview-note">Likeness will be blended into creation</span>
-                </div>
-                <button id="aiPrevClear" class="chip" type="button" style="margin:0;">Remove</button>
-              </div>
-            </div>
-
-            <!-- Video Resolution & Duration Selector -->
-            <div class="ai-field-group">
-              <div class="ai-label-row">
-                <label class="ai-field-title">4 · Video Quality & Duration</label>
-                <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth (5s · ~$0.25)</span>
-              </div>
-
-              <!-- Resolution Selector (480p vs 768p) -->
-              <div class="ai-resolution-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:10px;">
-                <button type="button" class="ai-res-btn active" id="aiRes480p" data-res="480p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
-                  <span>🟢 480p Eco Smooth</span>
-                  <span style="font-size:10px;opacity:0.9;background:rgba(16,185,129,0.2);padding:1px 6px;border-radius:6px;">$0.05/s</span>
-                </button>
-                <button type="button" class="ai-res-btn" id="aiRes768p" data-res="768p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
-                  <span>🎬 768p Cinema HD</span>
-                  <span style="font-size:10px;opacity:0.9;background:rgba(139,92,246,0.15);padding:1px 6px;border-radius:6px;">$0.08/s</span>
-                </button>
-              </div>
-
-              <div class="ai-duration-selector" role="radiogroup" aria-label="Video Duration Options">
-                <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
-                  <div class="ai-dur-top">
-                    <span class="ai-dur-badge ai-badge-standard">Recommended · 5s</span>
-                    <span class="ai-dur-cost" id="aiCost5s">~$0.25</span>
-                  </div>
-                  <div class="ai-dur-title">5s Standard Shot</div>
-                  <div class="ai-dur-desc" id="aiDesc5s">Top choice · ~$0.25 · Realistic portrait & ambient sound</div>
-                </button>
-                <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
-                  <div class="ai-dur-top">
-                    <span class="ai-dur-badge ai-badge-extended">Fluid Motion · 6s</span>
-                    <span class="ai-dur-cost" id="aiCost6s">~$0.30</span>
-                  </div>
-                  <div class="ai-dur-title">6s Fluid Shot</div>
-                  <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · ~$0.30 · Smoother cinematic transition</div>
-                </button>
-                <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
-                  <div class="ai-dur-top">
-                    <span class="ai-dur-badge ai-badge-ultra-low">Extended · 10s</span>
-                    <span class="ai-dur-cost" id="aiCost10s">~$0.50</span>
-                  </div>
-                  <div class="ai-dur-title">10s Extended Scene</div>
-                  <div class="ai-dur-desc" id="aiDesc10s">Extended story · ~$0.50 · Rich detail & full motion</div>
-                </button>
-              </div>
-            </div>
-
-            <!-- Model Safety & Creation Guidelines Accordion -->
-            <div class="ai-guidance-card" id="aiGuidanceCard">
-              <div class="ai-guidance-header" id="aiGuidanceToggle">
-                <div class="ai-guidance-title">
-                  <span>💡</span>
-                  <span>AI Creation Tips & Guidelines</span>
-                </div>
-                <button type="button" class="ai-guidance-toggle" id="aiGuidanceToggleBtn">View Guidelines ▾</button>
-              </div>
-              <div class="ai-guidance-body hidden" id="aiGuidanceBody">
-                <div class="ai-guidance-item">
-                  <strong>✦ Portrait Photos (GPT Image 2)</strong>
-                  <span>Upload personal portraits or everyday selfies. Avoid celebrity likenesses, politically sensitive, or inappropriate imagery (filtered by moderation). Best results with even lighting and unobstructed faces.</span>
-                </div>
-                <div class="ai-guidance-item">
-                  <strong>▶ Motion Video (MiniMax H3 Max)</strong>
-                  <span>Supports real faces and natural movements. Output in 5s/6s/10s tiers; takes 1–2 minutes to render. Subtle expressions, head turns, and walking look most natural.</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Generation Actions -->
-            <div class="ai-action-grid">
-              <button id="aiBtnPhoto" class="ai-btn-generate ai-btn-photo" type="button">
-                <span class="ai-btn-title">✦ Generate Portrait</span>
-                <span class="ai-btn-sub">OpenAI GPT Image 2 · ~15s</span>
-              </button>
-              <button id="aiBtnVideo" class="ai-btn-generate ai-btn-video" type="button">
-                <span class="ai-btn-title">▶ Generate Motion Video</span>
-                <span class="ai-btn-sub">MiniMax H3 Max (5s · 480p) · ~$0.25</span>
-              </button>
-              <button id="aiBtnFree" class="ai-btn-free" type="button">
-                ◈ Instant Draft (Free Preview · No Key Needed)
-              </button>
-            </div>
-
-            <div id="aiStatus" class="ai-status-banner"></div>
           </div>
 
           <!-- Right Column: Gallery of Manifestations -->
           <div class="ai-gallery-column">
             <div class="ai-gallery-header">
-              <h3 class="ai-gallery-title">Manifestation Gallery</h3>
-              <span id="aiGalleryCount" class="ai-count-pill">0 visions</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                <h3 class="ai-gallery-title">Manifestation Gallery</h3>
+                <span id="aiGalleryCount" class="ai-count-pill">0 visions</span>
+              </div>
+              <div class="ai-gallery-filter-bar">
+                <button type="button" class="ai-filter-chip active" id="aiFilterAll" data-filter="all">All Visions</button>
+                <button type="button" class="ai-filter-chip" id="aiFilterPhoto" data-filter="photo">📸 Photos</button>
+                <button type="button" class="ai-filter-chip" id="aiFilterVideo" data-filter="video">🎬 Videos</button>
+              </div>
             </div>
             <div id="aiResults"></div>
           </div>
