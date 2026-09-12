@@ -738,9 +738,44 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   background-clip: text;
   color: transparent;
 }
-.ai-mode-back { width: 100%; }
-.ai-back-btn { background: transparent; border: 1px solid var(--border); color: var(--text-soft); font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: all 0.2s ease; font-family: inherit; align-self: flex-start; }
-.ai-back-btn:hover { color: var(--text); border-color: var(--accent); background: var(--surface-hover); }
+.ai-mode-back { display: flex; justify-content: flex-start; width: 100%; }
+.ai-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 5%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-top-color: color-mix(in srgb, #ffffff 32%, transparent);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 6px 16px 6px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: inherit;
+  align-self: flex-start;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.ai-back-chip {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+  transition: all 0.25s ease;
+}
+.ai-back-arrow { width: 14px; height: 14px; transition: transform 0.25s ease; }
+.ai-back-label { padding-right: 2px; }
+.ai-back-btn:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 42%, transparent); }
+.ai-back-btn:hover .ai-back-chip { background: color-mix(in srgb, var(--accent) 24%, transparent); border-color: var(--accent); }
+.ai-back-btn:hover .ai-back-arrow { transform: translateX(-2px); }
+.ai-back-btn:active { transform: translateY(1px) scale(0.995); }
+.ai-back-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .ai-subtab-panel {
   display: none !important;
@@ -992,37 +1027,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   transform: none;
 }
 
-.ai-prompt-director-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: rgba(154, 99, 210, 0.07);
-  border: 1px solid rgba(154, 99, 210, 0.2);
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--text-soft);
-}
-.ai-director-badge {
-  font-weight: 600;
-  color: var(--accent);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.ai-director-text {
-  font-size: 11px;
-  color: var(--text-soft);
-}
-.ai-director-text code {
-  font-family: monospace;
-  font-size: 10.5px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(0,0,0,0.12);
-  color: var(--text);
-}
 .ai-director-meta {
   font-size: 11px;
   color: var(--accent);
@@ -1270,12 +1274,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: #8b5cf6;
   border: 1px solid rgba(139, 92, 246, 0.35);
 }
-.ai-dur-cost {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-soft);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-}
 .ai-dur-title {
   font-size: 13px;
   font-weight: 600;
@@ -1342,27 +1340,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: #fff;
   box-shadow: 0 4px 14px rgba(236, 72, 153, 0.22);
 }
-.ai-btn-free {
-  grid-column: 1 / -1;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-soft);
-  padding: 9px 14px;
-  font-size: 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-.ai-btn-free:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-.ai-btn-free:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .ai-status-banner {
   font-size: 12.5px;
   padding: 10px 14px;
@@ -3603,29 +3580,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <!-- Panel 1: Photo Studio -->
             <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelPhoto">
               <div class="ai-mode-back">
-                <button type="button" class="ai-back-btn" data-back="home">‹ All Modes</button>
+                <button type="button" class="ai-back-btn" data-back="home" aria-label="Back to All Modes">
+                  <span class="ai-back-chip" aria-hidden="true">
+                    <svg class="ai-back-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                  </span>
+                  <span class="ai-back-label">Back to Modes</span>
+                </button>
               </div>
               <div class="ai-top-bar">
                 <div class="ai-model-chips">
                   <span class="ai-model-tag photo-tag">✦ Studio Portrait</span>
-                  <span class="ai-model-tag">Native Camera Aesthetic · Portraiture</span>
-                </div>
-                <button id="aiKeyTogglePhoto" class="ai-config-btn ai-key-toggle-btn" type="button" title="View Key Configuration">
-                  <span class="ai-dot-indicator"></span>
-                  <span class="ai-key-state-label">Supabase Cloud Key (Active)</span>
-                </button>
-              </div>
-
-              <!-- Key Drawer for Photo Studio -->
-              <div id="aiKeyBoxPhoto" class="ai-key-drawer hidden">
-                <p class="ai-key-hint">
-                  Portraits are rendered by our dedicated AI studio, authenticated via Supabase.<br>
-                  Optional: Enter a custom OpenRouter key to override the cloud gateway.
-                </p>
-                <label class="field-label" for="aiKeyPhoto">Custom OpenRouter API Key (Optional)</label>
-                <input id="aiKeyPhoto" class="ai-key-input" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
-                <div style="display:flex;gap:8px;margin-top:8px;">
-                  <button id="aiKeySavePhoto" class="btn-primary btn-small ai-key-save-btn" type="button">Save Key</button>
                 </div>
               </div>
 
@@ -3645,36 +3609,29 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- 2 · Camera Aesthetic (Apple Textures) -->
+              <!-- 2 · Style -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">2 · Camera Aesthetic (Apple Lens Tones)</label>
-                  <span id="aiPhotoQualityHint" class="ai-char-counter">iPhone X Documentary (Native Camera · ~$0.006)</span>
+                  <label class="ai-field-title">2 · Style</label>
                 </div>
                 <div class="ai-quality-selector" role="radiogroup" aria-label="Photo Camera Texture">
                   <button type="button" class="ai-quality-card active" id="aiPhotoQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
                     <div class="ai-qual-top">
                       <span class="ai-qual-icon">📱</span>
-                      <span class="ai-qual-badge ai-badge-classic">iPhone X Classic · Candid Snapshot</span>
                     </div>
-                    <div class="ai-qual-title">iPhone X Documentary</div>
-                    <div class="ai-qual-desc">Classic 28mm · Handheld realism · Warm natural skin tones · No AI plastic sheen</div>
+                    <div class="ai-qual-title">Documentary</div>
                   </button>
                   <button type="button" class="ai-quality-card" id="aiPhotoQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
                     <div class="ai-qual-top">
                       <span class="ai-qual-icon">📸</span>
-                      <span class="ai-qual-badge ai-badge-pro">Flagship Clarity · Ultra High-Res</span>
                     </div>
-                    <div class="ai-qual-title">iPhone 16 Pro Cinematic</div>
-                    <div class="ai-qual-desc">48MP sensor feel · Photonic Engine color · Smart HDR 5 · Pure clarity</div>
+                    <div class="ai-qual-title">Cinematic</div>
                   </button>
                   <button type="button" class="ai-quality-card" id="aiPhotoQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
                     <div class="ai-qual-top">
                       <span class="ai-qual-icon">🎞️</span>
-                      <span class="ai-qual-badge ai-badge-classic">Vintage Snap · Subtle Grain</span>
                     </div>
-                    <div class="ai-qual-title">iPhone 7 Film Snapshot</div>
-                    <div class="ai-qual-desc">12MP nostalgia · Candid everyday walk · Film micro-grain & soft warm lighting</div>
+                    <div class="ai-qual-title">Film Snapshot</div>
                   </button>
                 </div>
               </div>
@@ -3713,9 +3670,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <span class="ai-btn-title">✦ Generate Portrait</span>
                   <span class="ai-btn-sub">Apple Camera Aesthetic · ~15s</span>
                 </button>
-                <button id="aiBtnFree" class="ai-btn-free" type="button">
-                  ◈ Instant Free Draft (No Key Needed)
-                </button>
               </div>
 
               <div id="aiPhotoStatus" class="ai-status-banner"></div>
@@ -3724,29 +3678,17 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <!-- Panel 2: Video Studio -->
             <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelVideo">
               <div class="ai-mode-back">
-                <button type="button" class="ai-back-btn" data-back="home">‹ All Modes</button>
+                <button type="button" class="ai-back-btn" data-back="home" aria-label="Back to All Modes">
+                  <span class="ai-back-chip" aria-hidden="true">
+                    <svg class="ai-back-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                  </span>
+                  <span class="ai-back-label">Back to Modes</span>
+                </button>
               </div>
               <div class="ai-top-bar">
                 <div class="ai-model-chips">
                   <span class="ai-model-tag video-tag">▶ Cinematic Motion</span>
                   <span class="ai-model-tag">Physical Realism · Smooth Motion · Ambient Sound</span>
-                </div>
-                <button id="aiKeyToggleVideo" class="ai-config-btn ai-key-toggle-btn" type="button" title="View Key Configuration">
-                  <span class="ai-dot-indicator"></span>
-                  <span class="ai-key-state-label">Supabase Cloud Key (Active)</span>
-                </button>
-              </div>
-
-              <!-- Key Drawer for Video Studio -->
-              <div id="aiKeyBoxVideo" class="ai-key-drawer hidden">
-                <p class="ai-key-hint">
-                  Video generation is handled by our dedicated AI studio, authenticated via Supabase.<br>
-                  Optional: Enter a custom OpenRouter key to override the cloud gateway.
-                </p>
-                <label class="field-label" for="aiKeyVideo">Custom OpenRouter API Key (Optional)</label>
-                <input id="aiKeyVideo" class="ai-key-input" type="password" placeholder="sk-or-v1-xxxxxxxx..." autocomplete="off">
-                <div style="display:flex;gap:8px;margin-top:8px;">
-                  <button id="aiKeySaveVideo" class="btn-primary btn-small ai-key-save-btn" type="button">Save Key</button>
                 </div>
               </div>
 
@@ -3769,17 +3711,12 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <span class="ai-inspire-pill" data-target="video" data-prompt="Sitting in the driver seat of a sleek modern luxury sports car, hands on the leather steering wheel, calm confident smile, city evening lights reflected">🚗 Driving Sports Car</span>
                   <span class="ai-inspire-pill" data-target="video" data-prompt="Sitting at an elegant sun-drenched café terrace, holding warm espresso cup, taking a gentle sip, peaceful morning breeze, relaxed posture">☕ Terrace Espresso</span>
                 </div>
-
-                <div class="ai-prompt-director-info">
-                  <span class="ai-director-badge">🎬 Director Assurance</span>
-                  <span class="ai-director-text">Prompts are expanded by the LLM Director into cinematic shot directions. <strong>Enforces relaxed lips or subtle smile without sung lyrics</strong>, bringing realistic breeze and ambient environmental sound.</span>
-                </div>
               </div>
 
-              <!-- 2 · First-Frame Anchor (Image-to-Video) -->
+              <!-- 2 · Reference Photo -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">2 · First-Frame Anchor (Image-to-Video)</label>
+                  <label class="ai-field-title">2 · Reference Photo</label>
                   <button type="button" id="aiBtnUseRecentPhoto" class="ai-btn-text-action hidden" title="Use the latest portrait created in Photo Studio as the first frame">
                     ✦ Use Latest Generated Portrait
                   </button>
@@ -3790,7 +3727,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                   </div>
                   <div class="ai-drop-content">
-                    <span class="ai-drop-heading">Upload First-Frame Portrait (0s Anchor)</span>
+                    <span class="ai-drop-heading">Upload Photo</span>
                     <span class="ai-drop-sub">Starts from this portrait to extrapolate continuous motion, preserving facial consistency</span>
                   </div>
                 </div>
@@ -3808,18 +3745,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <div class="ai-field-group">
                 <div class="ai-label-row">
                   <label class="ai-field-title">3 · Video Resolution & Duration</label>
-                  <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth (5s · ~$0.25)</span>
+                  <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth</span>
                 </div>
 
                 <!-- Resolution Selector (480p vs 768p) -->
                 <div class="ai-resolution-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:10px;">
                   <button type="button" class="ai-res-btn active" id="aiRes480p" data-res="480p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
                     <span>🟢 480p Eco Smooth</span>
-                    <span style="font-size:10px;opacity:0.9;background:rgba(16,185,129,0.2);padding:1px 6px;border-radius:6px;">$0.05/s</span>
                   </button>
                   <button type="button" class="ai-res-btn" id="aiRes768p" data-res="768p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
                     <span>🎬 768p Cinema HD</span>
-                    <span style="font-size:10px;opacity:0.9;background:rgba(139,92,246,0.15);padding:1px 6px;border-radius:6px;">$0.08/s</span>
                   </button>
                 </div>
 
@@ -3827,26 +3762,23 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
                     <div class="ai-dur-top">
                       <span class="ai-dur-badge ai-badge-standard">Recommended · 5s</span>
-                      <span class="ai-dur-cost" id="aiCost5s">~$0.25</span>
                     </div>
                     <div class="ai-dur-title">5s Standard Shot</div>
-                    <div class="ai-dur-desc" id="aiDesc5s">Top recommendation · ~$0.25 · Real likeness & stereo audio</div>
+                    <div class="ai-dur-desc" id="aiDesc5s">Top recommendation · Real likeness & stereo audio</div>
                   </button>
                   <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
                     <div class="ai-dur-top">
                       <span class="ai-dur-badge ai-badge-extended">Fluid Motion · 6s</span>
-                      <span class="ai-dur-cost" id="aiCost6s">~$0.30</span>
                     </div>
                     <div class="ai-dur-title">6s Fluid Shot</div>
-                    <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · ~$0.30 · Smoother transition</div>
+                    <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · Smoother transition</div>
                   </button>
                   <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
                     <div class="ai-dur-top">
                       <span class="ai-dur-badge ai-badge-ultra-low">Extended · 10s</span>
-                      <span class="ai-dur-cost" id="aiCost10s">~$0.50</span>
                     </div>
                     <div class="ai-dur-title">10s Extended Scene</div>
-                    <div class="ai-dur-desc" id="aiDesc10s">Extended story · ~$0.50 · Rich detail & full motion</div>
+                    <div class="ai-dur-desc" id="aiDesc10s">Extended story · Rich detail & full motion</div>
                   </button>
                 </div>
               </div>
@@ -3855,32 +3787,26 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <div class="ai-field-group">
                 <div class="ai-label-row">
                   <label class="ai-field-title">4 · Camera Cinematics</label>
-                  <span id="aiVideoQualityHint" class="ai-char-counter">iPhone X Handheld Cinematics</span>
+                  <span id="aiVideoQualityHint" class="ai-char-counter">Handheld Cinematics</span>
                 </div>
                 <div class="ai-quality-selector" role="radiogroup" aria-label="Video Camera Texture">
                   <button type="button" class="ai-quality-card active" id="aiVideoQualIphoneX" data-quality="iphonex" role="radio" aria-checked="true">
                     <div class="ai-qual-top">
                       <span class="ai-qual-icon">📱</span>
-                      <span class="ai-qual-badge ai-badge-classic">iPhone X Classic · Handheld Realism</span>
                     </div>
-                    <div class="ai-qual-title">iPhone X Handheld</div>
-                    <div class="ai-qual-desc">Classic 28mm · Organic handheld breathing · Authentic skin tones · No AI plastic sheen</div>
+                    <div class="ai-qual-title">Handheld</div>
                   </button>
                   <button type="button" class="ai-quality-card" id="aiVideoQualIphone16" data-quality="iphone16pro" role="radio" aria-checked="false">
                     <div class="ai-qual-top">
                       <span class="ai-qual-icon">📸</span>
-                      <span class="ai-qual-badge ai-badge-pro">Flagship Dolly · Ultra High-Res</span>
                     </div>
-                    <div class="ai-qual-title">iPhone 16 Pro Dolly</div>
-                    <div class="ai-qual-desc">48MP sensor feel · Smooth slow dolly push-in · Pristine clarity</div>
+                    <div class="ai-qual-title">Dolly</div>
                   </button>
                   <button type="button" class="ai-quality-card" id="aiVideoQualIphone7" data-quality="iphone7" role="radio" aria-checked="false">
                     <div class="ai-qual-top">
                       <span class="ai-qual-icon">🎞️</span>
-                      <span class="ai-qual-badge ai-badge-classic">Vintage Grain · Subtle Texture</span>
                     </div>
-                    <div class="ai-qual-title">iPhone 7 Film Walk</div>
-                    <div class="ai-qual-desc">12MP nostalgia · Candid handheld walk · Film micro-grain & soft warm glow</div>
+                    <div class="ai-qual-title">Film Walk</div>
                   </button>
                 </div>
               </div>
@@ -3894,7 +3820,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <div class="ai-action-single-grid">
                 <button id="aiBtnVideo" class="ai-btn-generate ai-btn-video" type="button">
                   <span class="ai-btn-title">▶ Generate Motion Video</span>
-                  <span class="ai-btn-sub">(5s · 480p) · ~$0.25</span>
+                  <span class="ai-btn-sub">5s · 480p</span>
                 </button>
               </div>
 

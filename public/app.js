@@ -2031,16 +2031,16 @@
   var IPHONE_TEXTURE_PROMPTS = {
     iphonex: {
       key: 'iphonex',
-      label: 'iPhone X Documentary',
+      label: 'Documentary',
       badge: 'iPhone X',
       qualityParam: 'low',
-      hint: 'iPhone X Documentary (Native Camera · ~$0.006)',
+      hint: 'Documentary (Native Camera · ~$0.006)',
       modifier: ', shot on Apple iPhone X camera, 28mm f/1.8 lens, authentic everyday smartphone snapshot, candid casual photography, natural true-to-life Apple color science, warm flattering skin tones, authentic skin micro-textures, zero artificial beauty smoothing, realistic dynamic range, subtle organic sensor grain in shadows, gentle natural lens flare, candid raw camera roll photo',
       videoModifier: 'Shot on Apple iPhone X rear camera, 4K 30fps handheld smartphone video, authentic iPhone X video recording aesthetic, 28mm f/1.8 lens with optical image stabilization, natural handheld micro-camera movement and subtle breathing, authentic smartphone auto-exposure adjustment, realistic motion blur, true-to-life Apple color science, warm natural skin tones without plastic AI smoothing, authentic skin pores and texture, candid smartphone vlog footage, unedited camera roll realism, natural ambient lighting, zero CGI or cartoonish gloss'
     },
     iphone16pro: {
       key: 'iphone16pro',
-      label: 'iPhone 16 Pro Cinematic',
+      label: 'Cinematic',
       badge: 'iPhone 16 Pro',
       qualityParam: 'low',
       hint: 'Flagship Clarity (Low ~$0.006)',
@@ -2049,7 +2049,7 @@
     },
     iphone7: {
       key: 'iphone7',
-      label: 'iPhone 7 Film Snapshot',
+      label: 'Film Snapshot',
       badge: 'iPhone 7',
       qualityParam: 'low',
       hint: 'Vintage Grain Snapshot (Low ~$0.006)',
@@ -2325,24 +2325,20 @@
     }
 
     [5, 6, 10].forEach(function (d) {
-      var costEl = $('#aiCost' + d + 's');
       var descEl = $('#aiDesc' + d + 's');
-      if (costEl) costEl.textContent = '~' + p.costs[d];
-      if (descEl) {
-        if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + '~' + p.costs[5] + ' · Real likeness & stereo audio';
-        if (d === 6) descEl.textContent = 'Fluid motion · ~' + p.costs[6] + ' · Smoother transition (~1.5m)';
-        if (d === 10) descEl.textContent = 'Extended story · ~' + p.costs[10] + ' · Full motion & rich detail (~2-3m)';
-      }
+      if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + 'Real likeness & stereo audio';
+      if (d === 6) descEl.textContent = 'Elegant motion · Smoother transition';
+      if (d === 10) descEl.textContent = 'Extended story · Rich detail & full motion';
     });
 
     var hint = $('#aiVideoDurationHint');
     if (hint) {
-      hint.textContent = p.hintPrefix + ' (' + currentVideoDuration + 's · ~' + p.costs[currentVideoDuration] + ')';
+      hint.textContent = p.hintPrefix + ' · ' + currentVideoDuration + 's';
     }
 
     var btnVideoSub = $('#aiBtnVideo .ai-btn-sub');
     if (btnVideoSub) {
-      btnVideoSub.textContent = '(' + currentVideoDuration + 's · ' + currentVideoResolution + ') · ~' + p.costs[currentVideoDuration];
+      btnVideoSub.textContent = currentVideoDuration + 's · ' + currentVideoResolution;
     }
   }
 
@@ -2472,10 +2468,8 @@
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
     var btnPhoto = $('#aiBtnPhoto');
     var btnVideo = $('#aiBtnVideo');
-    var btnFree = $('#aiBtnFree');
     if (btnPhoto) btnPhoto.disabled = true;
     if (btnVideo) btnVideo.disabled = true;
-    if (btnFree) btnFree.disabled = true;
 
     if (kind === 'photo') {
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
@@ -2656,54 +2650,6 @@
           });
       }
     }
-  }
-
-  // Instant Free Draft Action
-  var btnFreeEl = $('#aiBtnFree');
-  if (btnFreeEl) {
-    btnFreeEl.addEventListener('click', function () {
-      var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
-      var prompt = (pInput && pInput.value || '').trim();
-      if (!prompt) {
-        aiStatus('Please enter a description in "Portrait Vision Prompt" first to preview.', 'error');
-        if (pInput) pInput.focus();
-        return;
-      }
-      var btnPhoto = $('#aiBtnPhoto');
-      var btnVideo = $('#aiBtnVideo');
-      if (btnPhoto) btnPhoto.disabled = true;
-      btnFreeEl.disabled = true;
-      if (btnVideo) btnVideo.disabled = true;
-      aiStatus('◈ Generating instant draft preview… (~10s)', 'running');
-      var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt + ', photorealistic, master quality, high resolution, 8k, cinematic lighting') + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6);
-      var img = new Image();
-      img.onload = function () {
-        db.aiVision = db.aiVision || [];
-        db.aiVision.unshift({
-          id: uid(),
-          kind: 'photo',
-          source: 'free',
-          model: 'pollinations',
-          ts: Date.now(),
-          prompt: prompt,
-          url: url
-        });
-        save();
-        if (btnPhoto) btnPhoto.disabled = false;
-        btnFreeEl.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
-        aiStatus('◈ Instant draft preview ready! View and download below.', 'success');
-        updateUseRecentPhotoBtn();
-        renderAiResults();
-      };
-      img.onerror = function () {
-        if (btnPhoto) btnPhoto.disabled = false;
-        btnFreeEl.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
-        aiStatus('Draft preview server busy. Please try Generate Portrait.', 'error');
-      };
-      img.src = url;
-    });
   }
 
   if ($('#aiBtnPhoto')) $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
