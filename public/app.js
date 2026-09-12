@@ -2325,24 +2325,20 @@
     }
 
     [5, 6, 10].forEach(function (d) {
-      var costEl = $('#aiCost' + d + 's');
       var descEl = $('#aiDesc' + d + 's');
-      if (costEl) costEl.textContent = '~' + p.costs[d];
-      if (descEl) {
-        if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + '~' + p.costs[5] + ' · Real likeness & stereo audio';
-        if (d === 6) descEl.textContent = 'Fluid motion · ~' + p.costs[6] + ' · Smoother transition (~1.5m)';
-        if (d === 10) descEl.textContent = 'Extended story · ~' + p.costs[10] + ' · Full motion & rich detail (~2-3m)';
-      }
+      if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + 'Real likeness & stereo audio';
+      if (d === 6) descEl.textContent = 'Elegant motion · Smoother transition';
+      if (d === 10) descEl.textContent = 'Extended story · Rich detail & full motion';
     });
 
     var hint = $('#aiVideoDurationHint');
     if (hint) {
-      hint.textContent = p.hintPrefix + ' (' + currentVideoDuration + 's · ~' + p.costs[currentVideoDuration] + ')';
+      hint.textContent = p.hintPrefix + ' · ' + currentVideoDuration + 's';
     }
 
     var btnVideoSub = $('#aiBtnVideo .ai-btn-sub');
     if (btnVideoSub) {
-      btnVideoSub.textContent = '(' + currentVideoDuration + 's · ' + currentVideoResolution + ') · ~' + p.costs[currentVideoDuration];
+      btnVideoSub.textContent = currentVideoDuration + 's · ' + currentVideoResolution;
     }
   }
 

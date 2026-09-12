@@ -1274,12 +1274,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: #8b5cf6;
   border: 1px solid rgba(139, 92, 246, 0.35);
 }
-.ai-dur-cost {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-soft);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-}
 .ai-dur-title {
   font-size: 13px;
   font-weight: 600;
@@ -3751,18 +3745,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <div class="ai-field-group">
                 <div class="ai-label-row">
                   <label class="ai-field-title">3 · Video Resolution & Duration</label>
-                  <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth (5s · ~$0.25)</span>
+                  <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth</span>
                 </div>
 
                 <!-- Resolution Selector (480p vs 768p) -->
                 <div class="ai-resolution-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:10px;">
                   <button type="button" class="ai-res-btn active" id="aiRes480p" data-res="480p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
                     <span>🟢 480p Eco Smooth</span>
-                    <span style="font-size:10px;opacity:0.9;background:rgba(16,185,129,0.2);padding:1px 6px;border-radius:6px;">$0.05/s</span>
                   </button>
                   <button type="button" class="ai-res-btn" id="aiRes768p" data-res="768p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
                     <span>🎬 768p Cinema HD</span>
-                    <span style="font-size:10px;opacity:0.9;background:rgba(139,92,246,0.15);padding:1px 6px;border-radius:6px;">$0.08/s</span>
                   </button>
                 </div>
 
@@ -3770,26 +3762,23 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
                     <div class="ai-dur-top">
                       <span class="ai-dur-badge ai-badge-standard">Recommended · 5s</span>
-                      <span class="ai-dur-cost" id="aiCost5s">~$0.25</span>
                     </div>
                     <div class="ai-dur-title">5s Standard Shot</div>
-                    <div class="ai-dur-desc" id="aiDesc5s">Top recommendation · ~$0.25 · Real likeness & stereo audio</div>
+                    <div class="ai-dur-desc" id="aiDesc5s">Top recommendation · Real likeness & stereo audio</div>
                   </button>
                   <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
                     <div class="ai-dur-top">
                       <span class="ai-dur-badge ai-badge-extended">Fluid Motion · 6s</span>
-                      <span class="ai-dur-cost" id="aiCost6s">~$0.30</span>
                     </div>
                     <div class="ai-dur-title">6s Fluid Shot</div>
-                    <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · ~$0.30 · Smoother transition</div>
+                    <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · Smoother transition</div>
                   </button>
                   <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
                     <div class="ai-dur-top">
                       <span class="ai-dur-badge ai-badge-ultra-low">Extended · 10s</span>
-                      <span class="ai-dur-cost" id="aiCost10s">~$0.50</span>
                     </div>
                     <div class="ai-dur-title">10s Extended Scene</div>
-                    <div class="ai-dur-desc" id="aiDesc10s">Extended story · ~$0.50 · Rich detail & full motion</div>
+                    <div class="ai-dur-desc" id="aiDesc10s">Extended story · Rich detail & full motion</div>
                   </button>
                 </div>
               </div>
@@ -3831,7 +3820,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <div class="ai-action-single-grid">
                 <button id="aiBtnVideo" class="ai-btn-generate ai-btn-video" type="button">
                   <span class="ai-btn-title">▶ Generate Motion Video</span>
-                  <span class="ai-btn-sub">(5s · 480p) · ~$0.25</span>
+                  <span class="ai-btn-sub">5s · 480p</span>
                 </button>
               </div>
 
