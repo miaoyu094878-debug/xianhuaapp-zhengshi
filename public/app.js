@@ -2031,16 +2031,16 @@
   var IPHONE_TEXTURE_PROMPTS = {
     iphonex: {
       key: 'iphonex',
-      label: 'iPhone X Documentary',
+      label: 'Documentary',
       badge: 'iPhone X',
       qualityParam: 'low',
-      hint: 'iPhone X Documentary (Native Camera · ~$0.006)',
+      hint: 'Documentary (Native Camera · ~$0.006)',
       modifier: ', shot on Apple iPhone X camera, 28mm f/1.8 lens, authentic everyday smartphone snapshot, candid casual photography, natural true-to-life Apple color science, warm flattering skin tones, authentic skin micro-textures, zero artificial beauty smoothing, realistic dynamic range, subtle organic sensor grain in shadows, gentle natural lens flare, candid raw camera roll photo',
       videoModifier: 'Shot on Apple iPhone X rear camera, 4K 30fps handheld smartphone video, authentic iPhone X video recording aesthetic, 28mm f/1.8 lens with optical image stabilization, natural handheld micro-camera movement and subtle breathing, authentic smartphone auto-exposure adjustment, realistic motion blur, true-to-life Apple color science, warm natural skin tones without plastic AI smoothing, authentic skin pores and texture, candid smartphone vlog footage, unedited camera roll realism, natural ambient lighting, zero CGI or cartoonish gloss'
     },
     iphone16pro: {
       key: 'iphone16pro',
-      label: 'iPhone 16 Pro Cinematic',
+      label: 'Cinematic',
       badge: 'iPhone 16 Pro',
       qualityParam: 'low',
       hint: 'Flagship Clarity (Low ~$0.006)',
@@ -2049,7 +2049,7 @@
     },
     iphone7: {
       key: 'iphone7',
-      label: 'iPhone 7 Film Snapshot',
+      label: 'Film Snapshot',
       badge: 'iPhone 7',
       qualityParam: 'low',
       hint: 'Vintage Grain Snapshot (Low ~$0.006)',
