@@ -738,9 +738,30 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   background-clip: text;
   color: transparent;
 }
-.ai-mode-back { width: 100%; }
-.ai-back-btn { background: transparent; border: 1px solid var(--border); color: var(--text-soft); font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: all 0.2s ease; font-family: inherit; align-self: flex-start; }
-.ai-back-btn:hover { color: var(--text); border-color: var(--accent); background: var(--surface-hover); }
+.ai-mode-back { display: flex; justify-content: flex-start; width: 100%; }
+.ai-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.3px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  font-family: inherit;
+  align-self: flex-start;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.ai-back-btn .ai-back-arrow { font-size: 15px; line-height: 1; transition: transform 0.22s ease; }
+.ai-back-btn:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: var(--accent); color: var(--text); }
+.ai-back-btn:hover .ai-back-arrow { transform: translateX(-3px); }
+.ai-back-btn:active { transform: translateY(0.5px) scale(0.99); }
+.ai-back-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .ai-subtab-panel {
   display: none !important;
@@ -3603,7 +3624,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <!-- Panel 1: Photo Studio -->
             <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelPhoto">
               <div class="ai-mode-back">
-                <button type="button" class="ai-back-btn" data-back="home">‹ All Modes</button>
+                <button type="button" class="ai-back-btn" data-back="home" aria-label="Back to All Modes">
+                  <span class="ai-back-arrow" aria-hidden="true">←</span>
+                  <span>Back to Modes</span>
+                </button>
               </div>
               <div class="ai-top-bar">
                 <div class="ai-model-chips">
@@ -3707,7 +3731,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <!-- Panel 2: Video Studio -->
             <div class="card glass ai-studio-panel ai-subtab-panel" id="aiPanelVideo">
               <div class="ai-mode-back">
-                <button type="button" class="ai-back-btn" data-back="home">‹ All Modes</button>
+                <button type="button" class="ai-back-btn" data-back="home" aria-label="Back to All Modes">
+                  <span class="ai-back-arrow" aria-hidden="true">←</span>
+                  <span>Back to Modes</span>
+                </button>
               </div>
               <div class="ai-top-bar">
                 <div class="ai-model-chips">
