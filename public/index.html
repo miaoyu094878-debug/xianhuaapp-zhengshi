@@ -993,6 +993,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(154, 99, 210, 0.15);
 }
+.ai-textarea::placeholder {
+  color: color-mix(in srgb, var(--text-dim) 55%, transparent);
+}
 
 .ai-inspiration-chips {
   display: flex;
