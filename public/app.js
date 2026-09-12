@@ -2472,10 +2472,8 @@
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
     var btnPhoto = $('#aiBtnPhoto');
     var btnVideo = $('#aiBtnVideo');
-    var btnFree = $('#aiBtnFree');
     if (btnPhoto) btnPhoto.disabled = true;
     if (btnVideo) btnVideo.disabled = true;
-    if (btnFree) btnFree.disabled = true;
 
     if (kind === 'photo') {
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
@@ -2656,54 +2654,6 @@
           });
       }
     }
-  }
-
-  // Instant Free Draft Action
-  var btnFreeEl = $('#aiBtnFree');
-  if (btnFreeEl) {
-    btnFreeEl.addEventListener('click', function () {
-      var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
-      var prompt = (pInput && pInput.value || '').trim();
-      if (!prompt) {
-        aiStatus('Please enter a description in "Portrait Vision Prompt" first to preview.', 'error');
-        if (pInput) pInput.focus();
-        return;
-      }
-      var btnPhoto = $('#aiBtnPhoto');
-      var btnVideo = $('#aiBtnVideo');
-      if (btnPhoto) btnPhoto.disabled = true;
-      btnFreeEl.disabled = true;
-      if (btnVideo) btnVideo.disabled = true;
-      aiStatus('◈ Generating instant draft preview… (~10s)', 'running');
-      var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt + ', photorealistic, master quality, high resolution, 8k, cinematic lighting') + '?width=768&height=768&nologo=true&seed=' + Math.floor(Math.random() * 1e6);
-      var img = new Image();
-      img.onload = function () {
-        db.aiVision = db.aiVision || [];
-        db.aiVision.unshift({
-          id: uid(),
-          kind: 'photo',
-          source: 'free',
-          model: 'pollinations',
-          ts: Date.now(),
-          prompt: prompt,
-          url: url
-        });
-        save();
-        if (btnPhoto) btnPhoto.disabled = false;
-        btnFreeEl.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
-        aiStatus('◈ Instant draft preview ready! View and download below.', 'success');
-        updateUseRecentPhotoBtn();
-        renderAiResults();
-      };
-      img.onerror = function () {
-        if (btnPhoto) btnPhoto.disabled = false;
-        btnFreeEl.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
-        aiStatus('Draft preview server busy. Please try Generate Portrait.', 'error');
-      };
-      img.src = url;
-    });
   }
 
   if ($('#aiBtnPhoto')) $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
