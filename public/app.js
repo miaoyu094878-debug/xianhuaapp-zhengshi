@@ -1735,22 +1735,6 @@
   });
 
   // Character counters for Photo and Video Prompts
-  var photoPromptEl = $('#aiPhotoPrompt');
-  if (photoPromptEl) {
-    photoPromptEl.addEventListener('input', function () {
-      var len = (this.value || '').length;
-      var counter = $('#aiPhotoCharCount');
-      if (counter) counter.textContent = len + ' / 800';
-    });
-  }
-  var videoPromptEl = $('#aiVideoPrompt');
-  if (videoPromptEl) {
-    videoPromptEl.addEventListener('input', function () {
-      var len = (this.value || '').length;
-      var counter = $('#aiVideoCharCount');
-      if (counter) counter.textContent = len + ' / 800';
-    });
-  }
   var legacyPromptEl = $('#aiPrompt');
   if (legacyPromptEl) {
     legacyPromptEl.addEventListener('input', function () {
