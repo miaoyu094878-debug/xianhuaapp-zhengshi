@@ -1735,22 +1735,6 @@
   });
 
   // Character counters for Photo and Video Prompts
-  var photoPromptEl = $('#aiPhotoPrompt');
-  if (photoPromptEl) {
-    photoPromptEl.addEventListener('input', function () {
-      var len = (this.value || '').length;
-      var counter = $('#aiPhotoCharCount');
-      if (counter) counter.textContent = len + ' / 800';
-    });
-  }
-  var videoPromptEl = $('#aiVideoPrompt');
-  if (videoPromptEl) {
-    videoPromptEl.addEventListener('input', function () {
-      var len = (this.value || '').length;
-      var counter = $('#aiVideoCharCount');
-      if (counter) counter.textContent = len + ' / 800';
-    });
-  }
   var legacyPromptEl = $('#aiPrompt');
   if (legacyPromptEl) {
     legacyPromptEl.addEventListener('input', function () {
@@ -2497,7 +2481,6 @@
       .then(function (data) {
         if (btnPhoto) btnPhoto.disabled = false;
         if (btnVideo) btnVideo.disabled = false;
-        if (btnFree) btnFree.disabled = false;
 
         if (!data.url) throw new Error('No image URL returned from generator');
 
@@ -2520,7 +2503,6 @@
       .catch(function (err) {
         if (btnPhoto) btnPhoto.disabled = false;
         if (btnVideo) btnVideo.disabled = false;
-        if (btnFree) btnFree.disabled = false;
 
         var errMsg = err.message || '';
         aiStatus(formatFriendlyAiError(errMsg, 'photo'), 'error');
@@ -2571,7 +2553,6 @@
           pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
             if (btnPhoto) btnPhoto.disabled = false;
             if (btnVideo) btnVideo.disabled = false;
-            if (btnFree) btnFree.disabled = false;
 
             if (pollErr) {
               aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
@@ -2603,7 +2584,6 @@
         .catch(function (err) {
           if (btnPhoto) btnPhoto.disabled = false;
           if (btnVideo) btnVideo.disabled = false;
-          if (btnFree) btnFree.disabled = false;
 
           var errMsg = err.message || '';
           aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');

@@ -993,6 +993,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(154, 99, 210, 0.15);
 }
+.ai-textarea::placeholder {
+  color: color-mix(in srgb, var(--text-dim) 55%, transparent);
+}
 
 .ai-inspiration-chips {
   display: flex;
@@ -3597,7 +3600,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <div class="ai-field-group">
                 <div class="ai-label-row">
                   <label class="ai-field-title" for="aiPhotoPrompt">1 · Portrait Vision Prompt</label>
-                  <span id="aiPhotoCharCount" class="ai-char-counter">0 / 800</span>
                 </div>
                 <textarea id="aiPhotoPrompt" class="ai-textarea" rows="3" placeholder="Describe your future portrait: clothing, hairstyle, facial look, setting, lighting ambiance, and confident relaxed expression..." maxlength="800"></textarea>
 
@@ -3636,16 +3638,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- 3 · Portrait Likeness (Optional) -->
+              <!-- 3 · Reference Photo -->
               <div class="ai-field-group">
-                <label class="ai-field-title">3 · Portrait Likeness (Optional)</label>
+                <label class="ai-field-title">3 · Reference Photo</label>
                 <input type="file" id="aiPhotoFile" accept="image/*" class="hidden">
                 <div class="ai-drop-zone" id="aiPhotoDrop">
                   <div class="ai-drop-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                   </div>
                   <div class="ai-drop-content">
-                    <span class="ai-drop-heading">Upload Face Reference</span>
+                    <span class="ai-drop-heading">Upload Photo</span>
                     <span class="ai-drop-sub">Blend your likeness into the scene, or leave blank for text-only vision</span>
                   </div>
                 </div>
@@ -3700,7 +3702,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                     <button type="button" id="aiBtnOptimizePrompt" class="ai-btn-optimize-chip" title="AI Director deeply analyzes your intent and expands it into professional cinematic shot directions">
                       <span>✨ AI Director Polish</span>
                     </button>
-                    <span id="aiVideoCharCount" class="ai-char-counter">0 / 800</span>
                   </div>
                 </div>
                 <textarea id="aiVideoPrompt" class="ai-textarea" rows="3" placeholder="Describe your future dynamic scene (e.g. strolling along a sunlit beach with breeze in hair, speaking on an international keynote stage, driving a sports car)..." maxlength="800"></textarea>
