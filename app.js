@@ -2025,19 +2025,19 @@
     },
     iphone16pro: {
       key: 'iphone16pro',
-      label: 'Cinematic',
+      label: '高清 (HD)',
       badge: 'iPhone 16 Pro',
       qualityParam: 'low',
-      hint: 'Flagship Clarity (Low ~$0.006)',
+      hint: '高清 (HD · ~$0.006)',
       modifier: ', shot on iPhone 16 Pro Max 48MP camera, 24mm f/1.78 lens, Apple Photonic Engine processing, Smart HDR 5, ultra-clean sharp focus, crisp optical clarity, natural skin micro-textures, true-to-life modern Apple color science, balanced highlights, clean shadows, premium commercial smartphone photography, high resolution candid portrait',
       videoModifier: 'Shot on iPhone 16 Pro Max 4K 60fps HDR video, Apple Action Mode stabilization, crisp optical clarity, Photonic Engine true-to-life color rendering, subtle handheld movement, natural skin detail, premium smartphone footage'
     },
     iphone7: {
       key: 'iphone7',
-      label: 'Film Snapshot',
+      label: '质感 (Texture)',
       badge: 'iPhone 7',
       qualityParam: 'low',
-      hint: 'Vintage Grain Snapshot (Low ~$0.006)',
+      hint: '质感 (Texture · ~$0.006)',
       modifier: ', shot on Apple iPhone 7 back camera, 28mm f/1.8 lens, authentic everyday snapshot, candid casual photography, subtle sensor noise, soft digital grain, natural slightly warm Apple color science, realistic raw dynamic range, unedited camera roll photo, slight motion blur, casual authentic lighting, no oversaturation, no artificial HDR halo, nostalgic mobile photography aesthetic',
       videoModifier: 'Shot on Apple iPhone 7 1080p video, 28mm lens, authentic early smartphone video look, subtle digital grain, warm nostalgic Apple color tones, casual handheld movement, raw snapshot video'
     }
