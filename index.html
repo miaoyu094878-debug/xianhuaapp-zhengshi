@@ -1174,6 +1174,37 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   background: color-mix(in srgb, var(--accent) 9%, var(--surface-2));
   box-shadow: 0 0 0 1px var(--accent), 0 4px 14px color-mix(in srgb, var(--accent) 20%, transparent);
 }
+.ai-aspect-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ai-aspect-btn {
+  flex: 1 1 auto;
+  min-width: 60px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12.5px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  text-align: center;
+}
+.ai-aspect-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+.ai-aspect-btn.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
 .ai-qual-top {
   display: flex;
   align-items: center;
@@ -3667,6 +3698,20 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
+              <!-- 4 · Aspect Ratio -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">4 · Aspect Ratio</label>
+                </div>
+                <div class="ai-aspect-selector" role="radiogroup" aria-label="Photo Aspect Ratio">
+                  <button type="button" class="ai-aspect-btn" data-aspect="9:16" role="radio" aria-checked="false">9:16</button>
+                  <button type="button" class="ai-aspect-btn" data-aspect="16:9" role="radio" aria-checked="false">16:9</button>
+                  <button type="button" class="ai-aspect-btn" data-aspect="4:3" role="radio" aria-checked="false">4:3</button>
+                  <button type="button" class="ai-aspect-btn active" data-aspect="3:4" role="radio" aria-checked="true">3:4</button>
+                  <button type="button" class="ai-aspect-btn" data-aspect="1:1" role="radio" aria-checked="false">1:1</button>
+                </div>
+              </div>
+
               <div class="ai-tip-notice">
                 <span class="ai-tip-icon">💡</span>
                 <span class="ai-tip-text"><strong>Portrait Tips</strong>: Clear, evenly lit frontal selfies blend best. Avoid celebrity likenesses or sensitive imagery. Renders in ~15s.</span>
@@ -3809,6 +3854,20 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                     </div>
                     <div class="ai-qual-title">Film Walk</div>
                   </button>
+                </div>
+              </div>
+
+              <!-- 5 · Aspect Ratio -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">5 · Aspect Ratio</label>
+                </div>
+                <div class="ai-aspect-selector" role="radiogroup" aria-label="Video Aspect Ratio">
+                  <button type="button" class="ai-aspect-btn" data-aspect="9:16" role="radio" aria-checked="false">9:16</button>
+                  <button type="button" class="ai-aspect-btn" data-aspect="16:9" role="radio" aria-checked="false">16:9</button>
+                  <button type="button" class="ai-aspect-btn" data-aspect="4:3" role="radio" aria-checked="false">4:3</button>
+                  <button type="button" class="ai-aspect-btn active" data-aspect="3:4" role="radio" aria-checked="true">3:4</button>
+                  <button type="button" class="ai-aspect-btn" data-aspect="1:1" role="radio" aria-checked="false">1:1</button>
                 </div>
               </div>
 

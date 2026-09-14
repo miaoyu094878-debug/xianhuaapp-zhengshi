@@ -1656,6 +1656,7 @@
   /* ═══════ AI Vision (OpenRouter: GPT Image 2 & MiniMax H3 Max) ═══════ */
   var aiKeys = db.aiKeys || {};
   var aiPhotoRefB64 = null, aiPhotoAspect = '1:1';
+  var aiPhotoAspectSel = '3:4', aiVideoAspectSel = '3:4';
   var aiVideoRefB64 = null;
   var currentAiSubTab = 'home';
   var currentGalleryFilter = 'all';
@@ -2220,6 +2221,25 @@
   });
   setCameraQuality(currentCameraQuality);
 
+  // Aspect Ratio selectors (Photo & Video), default 3:4
+  [['#aiPanelPhoto .ai-aspect-btn', function (v) { aiPhotoAspectSel = v; }],
+   ['#aiPanelVideo .ai-aspect-btn', function (v) { aiVideoAspectSel = v; }]
+  ].forEach(function (pair) {
+    var selector = pair[0], setter = pair[1];
+    var btns = Array.prototype.slice.call(document.querySelectorAll(selector));
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btns.forEach(function (b) {
+          b.classList.remove('active');
+          b.setAttribute('aria-checked', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-checked', 'true');
+        setter(this.getAttribute('data-aspect'));
+      });
+    });
+  });
+
   // Helper to translate raw technical errors/safety blocks into human-readable guidance
   function formatFriendlyAiError(rawErr, kind) {
     var str = String(rawErr || '');
@@ -2467,7 +2487,7 @@
         quality: cameraInfo.qualityParam,
         quality_mode: currentCameraQuality,
         image: aiPhotoRefB64 || undefined,
-        aspect_ratio: hasRefImage ? (aiPhotoAspect || '1:1') : '1:1'
+        aspect_ratio: aiPhotoAspectSel || '3:4'
       };
       if (userKey) photoPayload.openrouterKey = userKey;
 
@@ -2533,7 +2553,7 @@
           image: srcInput || undefined,
           duration: dur,
           resolution: res,
-          aspect_ratio: (aiPhotoAspect === '16:9' || aiPhotoAspect === '4:3') ? '16:9' : '9:16'
+          aspect_ratio: aiVideoAspectSel || '3:4'
         };
         if (userKey) videoPayload.openrouterKey = userKey;
 
