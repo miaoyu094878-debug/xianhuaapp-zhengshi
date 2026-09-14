@@ -2229,7 +2229,7 @@
 
     // 1. Sensitive/Safety/Moderation Policy Violations
     if (lower.indexOf('sensitive') !== -1 || lower.indexOf('safety') !== -1 || lower.indexOf('moderation') !== -1 || lower.indexOf('nsfw') !== -1 || lower.indexOf('content policy') !== -1 || lower.indexOf('blocked') !== -1) {
-      var sexyHit = /(sexy|sensual|nsfw|revealing|alter|no clothing|topless|nude|hot girl)/.test(lower) || /(sexy|bikini|nude|revealing|topless)/.test(promptLower) || /(性感|比基尼|泳装|内衣|暴露|诱惑|火辣|撩人)/.test(str + promptText);
+      var sexyHit = /(sexy|sensual|nsfw|revealing|alter|no clothing|topless|nude|hot girl)/.test(lower) || /(sexy|bikini|nude|revealing|topless)/.test(promptLower) || /(性感|比基尼|泳装|内衣|暴露|诱惑|火辣|撩人|裸体|裸女|裸照|裸身|半裸|全裸|不穿衣服|不戴|脱衣)/.test(str + promptText);
       if (kind === 'video') {
         if (sexyHit) {
           return 'Content Filter: This video prompt was blocked by the content safety policy. Try rephrasing with a natural, non-suggestive scene description (e.g. "watercolor bikini fashion portrait, beach vibes") or use a gen Z/trendy tone.';
