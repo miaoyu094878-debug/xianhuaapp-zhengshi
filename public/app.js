@@ -2221,14 +2221,23 @@
   setCameraQuality(currentCameraQuality);
 
   // Helper to translate raw technical errors/safety blocks into human-readable guidance
-  function formatFriendlyAiError(rawErr, kind) {
+  function formatFriendlyAiError(rawErr, kind, userPrompt) {
     var str = String(rawErr || '');
     var lower = str.toLowerCase();
+    var promptText = String(userPrompt || '');
+    var promptLower = promptText.toLowerCase();
 
     // 1. Sensitive/Safety/Moderation Policy Violations
     if (lower.indexOf('sensitive') !== -1 || lower.indexOf('safety') !== -1 || lower.indexOf('moderation') !== -1 || lower.indexOf('nsfw') !== -1 || lower.indexOf('content policy') !== -1 || lower.indexOf('blocked') !== -1) {
+      var sexyHit = /(sexy|sensual|nsfw|revealing|alter|no clothing|topless|nude|hot girl)/.test(lower) || /(sexy|bikini|nude|revealing|topless)/.test(promptLower) || /(性感|比基尼|泳装|内衣|暴露|诱惑|火辣|撩人)/.test(str + promptText);
       if (kind === 'video') {
+        if (sexyHit) {
+          return 'Content Filter: This video prompt was blocked by the content safety policy. Try rephrasing with a natural, non-suggestive scene description (e.g. "watercolor bikini fashion portrait, beach vibes") or use a gen Z/trendy tone.';
+        }
         return 'Safety Moderation Notice: Video prompt or reference photo triggered the content safety policy. Please try a natural personal selfie or refine your prompt.';
+      }
+      if (sexyHit) {
+        return 'Content Filter: This portrait prompt was blocked. Words like 性感 / bikini / nude / revealing may flag the safety filter. Try rephrasing with neutral styling instead, e.g. "fashion portrait, beach vacation aesthetic, natural light" and avoid 性感/暴露/比基尼 wording.';
       }
       return 'Safety Moderation Notice: Portrait prompt or reference photo triggered the content safety policy. Please avoid celebrity likenesses or sensitive imagery and retry.';
     }
@@ -2505,7 +2514,7 @@
         if (btnVideo) btnVideo.disabled = false;
 
         var errMsg = err.message || '';
-        aiStatus(formatFriendlyAiError(errMsg, 'photo'), 'error');
+        aiStatus(formatFriendlyAiError(errMsg, 'photo', prompt), 'error');
       });
     } else {
       // kind === 'video'
@@ -2555,7 +2564,7 @@
             if (btnVideo) btnVideo.disabled = false;
 
             if (pollErr) {
-              aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
+              aiStatus(formatFriendlyAiError(pollErr, 'video', prompt), 'error');
               return;
             }
 
@@ -2586,7 +2595,7 @@
           if (btnVideo) btnVideo.disabled = false;
 
           var errMsg = err.message || '';
-          aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');
+          aiStatus(formatFriendlyAiError(errMsg, 'video', prompt), 'error');
         });
       }
 

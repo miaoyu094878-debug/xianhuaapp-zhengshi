@@ -1344,10 +1344,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   box-shadow: 0 4px 14px rgba(236, 72, 153, 0.22);
 }
 .ai-status-banner {
-  font-size: 12.5px;
-  padding: 10px 14px;
+  font-size: 13px;
+  padding: 12px 15px;
   border-radius: 12px;
-  line-height: 1.55;
+  line-height: 1.6;
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text-soft);
@@ -1368,8 +1368,20 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: #10b981;
 }
 .ai-status-banner.error {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.13);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #b91c1c;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.12) inset;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.ai-status-banner.error::before {
+  content: "⚠";
+  flex: 0 0 auto;
+  font-size: 15px;
+  line-height: 1.4;
   color: #ef4444;
 }
 .ai-status-banner.warning {
@@ -4417,7 +4429,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260914style2opts" defer></script>
+  <script src="app.js?v=20260914filterui" defer></script>
 
 </body>
 </html>
