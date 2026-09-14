@@ -1656,6 +1656,7 @@
   /* ═══════ AI Vision (OpenRouter: GPT Image 2 & MiniMax H3 Max) ═══════ */
   var aiKeys = db.aiKeys || {};
   var aiPhotoRefB64 = null, aiPhotoAspect = '1:1';
+  var aiPhotoAspectSel = '3:4', aiVideoAspectSel = '3:4';
   var aiVideoRefB64 = null;
   var currentAiSubTab = 'home';
   var currentGalleryFilter = 'all';
@@ -2010,7 +2011,7 @@
   }
 
   // ═══════════════ Camera Aesthetic & Quality Selector (iPhone Textures) ═══════════════
-  var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphonex'; // Default to iPhone X as requested
+  var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphone16pro'; // Default to Cinematic (second style)
 
   var IPHONE_TEXTURE_PROMPTS = {
     iphonex: {
@@ -2024,19 +2025,19 @@
     },
     iphone16pro: {
       key: 'iphone16pro',
-      label: 'Cinematic',
+      label: 'HD',
       badge: 'iPhone 16 Pro',
       qualityParam: 'low',
-      hint: 'Flagship Clarity (Low ~$0.006)',
+      hint: 'HD (Low ~$0.006)',
       modifier: ', shot on iPhone 16 Pro Max 48MP camera, 24mm f/1.78 lens, Apple Photonic Engine processing, Smart HDR 5, ultra-clean sharp focus, crisp optical clarity, natural skin micro-textures, true-to-life modern Apple color science, balanced highlights, clean shadows, premium commercial smartphone photography, high resolution candid portrait',
       videoModifier: 'Shot on iPhone 16 Pro Max 4K 60fps HDR video, Apple Action Mode stabilization, crisp optical clarity, Photonic Engine true-to-life color rendering, subtle handheld movement, natural skin detail, premium smartphone footage'
     },
     iphone7: {
       key: 'iphone7',
-      label: 'Film Snapshot',
+      label: 'Texture',
       badge: 'iPhone 7',
       qualityParam: 'low',
-      hint: 'Vintage Grain Snapshot (Low ~$0.006)',
+      hint: 'Texture (Low ~$0.006)',
       modifier: ', shot on Apple iPhone 7 back camera, 28mm f/1.8 lens, authentic everyday snapshot, candid casual photography, subtle sensor noise, soft digital grain, natural slightly warm Apple color science, realistic raw dynamic range, unedited camera roll photo, slight motion blur, casual authentic lighting, no oversaturation, no artificial HDR halo, nostalgic mobile photography aesthetic',
       videoModifier: 'Shot on Apple iPhone 7 1080p video, 28mm lens, authentic early smartphone video look, subtle digital grain, warm nostalgic Apple color tones, casual handheld movement, raw snapshot video'
     }
@@ -2220,6 +2221,25 @@
   });
   setCameraQuality(currentCameraQuality);
 
+  // Aspect Ratio selectors (Photo & Video), default 3:4
+  [['#aiPanelPhoto .ai-aspect-btn', function (v) { aiPhotoAspectSel = v; }],
+   ['#aiPanelVideo .ai-aspect-btn', function (v) { aiVideoAspectSel = v; }]
+  ].forEach(function (pair) {
+    var selector = pair[0], setter = pair[1];
+    var btns = Array.prototype.slice.call(document.querySelectorAll(selector));
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btns.forEach(function (b) {
+          b.classList.remove('active');
+          b.setAttribute('aria-checked', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-checked', 'true');
+        setter(this.getAttribute('data-aspect'));
+      });
+    });
+  });
+
   // Helper to translate raw technical errors/safety blocks into human-readable guidance
   function formatFriendlyAiError(rawErr, kind) {
     var str = String(rawErr || '');
@@ -2228,9 +2248,9 @@
     // 1. Sensitive/Safety/Moderation Policy Violations
     if (lower.indexOf('sensitive') !== -1 || lower.indexOf('safety') !== -1 || lower.indexOf('moderation') !== -1 || lower.indexOf('nsfw') !== -1 || lower.indexOf('content policy') !== -1 || lower.indexOf('blocked') !== -1) {
       if (kind === 'video') {
-        return 'Safety Moderation Notice: Video prompt or reference photo triggered the content safety policy. Please try a natural personal selfie or refine your prompt.';
+        return 'Content Filter: This video prompt was blocked by the content safety policy. The wording may read as suggestive or sensitive. Try a natural, non-suggestive scene description instead, e.g. "beach vacation fashion, natural light, cinematic", and avoid wording that describes body exposure or revealing attire.';
       }
-      return 'Safety Moderation Notice: Portrait prompt or reference photo triggered the content safety policy. Please avoid celebrity likenesses or sensitive imagery and retry.';
+      return 'Content Filter: This portrait prompt was blocked by the content safety policy. Avoid words that describe physical attraction, body exposure, or revealing attire (e.g. sexy, bikini, nude, revealing). Try neutral styling instead, e.g. "fashion portrait, beach vacation aesthetic, natural light".';
     }
 
     // 2. Face / Portrait detection or aspect ratio issues
@@ -2310,9 +2330,11 @@
 
     [5, 6, 10].forEach(function (d) {
       var descEl = $('#aiDesc' + d + 's');
-      if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + 'Real likeness & stereo audio';
-      if (d === 6) descEl.textContent = 'Elegant motion · Smoother transition';
-      if (d === 10) descEl.textContent = 'Extended story · Rich detail & full motion';
+      if (descEl) {
+        if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + 'Real likeness & stereo audio';
+        if (d === 6) descEl.textContent = 'Elegant motion · Smoother transition';
+        if (d === 10) descEl.textContent = 'Extended story · Rich detail & full motion';
+      }
     });
 
     var hint = $('#aiVideoDurationHint');
@@ -2467,7 +2489,7 @@
         quality: cameraInfo.qualityParam,
         quality_mode: currentCameraQuality,
         image: aiPhotoRefB64 || undefined,
-        aspect_ratio: hasRefImage ? (aiPhotoAspect || '1:1') : '1:1'
+        aspect_ratio: aiPhotoAspectSel || '3:4'
       };
       if (userKey) photoPayload.openrouterKey = userKey;
 
@@ -2533,7 +2555,7 @@
           image: srcInput || undefined,
           duration: dur,
           resolution: res,
-          aspect_ratio: (aiPhotoAspect === '16:9' || aiPhotoAspect === '4:3') ? '16:9' : '9:16'
+          aspect_ratio: aiVideoAspectSel || '3:4'
         };
         if (userKey) videoPayload.openrouterKey = userKey;
 
