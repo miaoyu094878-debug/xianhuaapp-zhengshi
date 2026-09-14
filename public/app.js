@@ -2230,7 +2230,7 @@
       if (kind === 'video') {
         return 'Content Filter: This video prompt was blocked by the content safety policy. The wording may read as suggestive or sensitive. Try a natural, non-suggestive scene description instead, e.g. "beach vacation fashion, natural light, cinematic", and avoid wording that describes body exposure or revealing attire.';
       }
-      return 'Content Filter: This portrait prompt was blocked by the content safety policy. Avoid words that describe physical attraction, body exposure, or revealing attire (e.g. 性感 / 裸体 / bikini / revealing). Try neutral styling instead, e.g. "fashion portrait, beach vacation aesthetic, natural light".';
+      return 'Content Filter: This portrait prompt was blocked by the content safety policy. Avoid words that describe physical attraction, body exposure, or revealing attire (e.g. sexy, bikini, nude, revealing). Try neutral styling instead, e.g. "fashion portrait, beach vacation aesthetic, natural light".';
     }
 
     // 2. Face / Portrait detection or aspect ratio issues
