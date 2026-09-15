@@ -2330,11 +2330,9 @@
 
     [5, 6, 10].forEach(function (d) {
       var descEl = $('#aiDesc' + d + 's');
-      if (descEl) {
-        if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + 'Real likeness & stereo audio';
-        if (d === 6) descEl.textContent = 'Elegant motion · Smoother transition';
-        if (d === 10) descEl.textContent = 'Extended story · Rich detail & full motion';
-      }
+      if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + 'Real likeness & stereo audio';
+      if (d === 6) descEl.textContent = 'Elegant motion · Smoother transition';
+      if (d === 10) descEl.textContent = 'Extended story · Rich detail & full motion';
     });
 
     var hint = $('#aiVideoDurationHint');

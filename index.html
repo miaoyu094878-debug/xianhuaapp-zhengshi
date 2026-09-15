@@ -1245,6 +1245,81 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: var(--text-soft);
 }
 
+.ai-duration-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .ai-duration-selector {
+    grid-template-columns: 1fr;
+  }
+}
+.ai-duration-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+  font-family: inherit;
+}
+.ai-duration-card:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+  transform: translateY(-1px);
+}
+.ai-duration-card.active {
+  border-color: #8b5cf6;
+  background: color-mix(in srgb, #8b5cf6 10%, var(--surface-2));
+  box-shadow: 0 0 0 1px #8b5cf6, 0 4px 14px color-mix(in srgb, #8b5cf6 20%, transparent);
+}
+.ai-dur-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.ai-dur-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+}
+.ai-badge-ultra-low {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.ai-badge-standard {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+.ai-badge-extended {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+.ai-dur-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.ai-dur-desc {
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+
 .ai-action-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3718,10 +3793,52 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- 3 · Camera Cinematics -->
+              <!-- 3 · Video Resolution & Duration Selector -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">3 · Camera Cinematics</label>
+                  <label class="ai-field-title">3 · Video Resolution & Duration</label>
+                  <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth</span>
+                </div>
+
+                <!-- Resolution Selector (480p vs 768p) -->
+                <div class="ai-resolution-tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:10px;">
+                  <button type="button" class="ai-res-btn active" id="aiRes480p" data-res="480p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
+                    <span>🟢 480p Eco Smooth</span>
+                  </button>
+                  <button type="button" class="ai-res-btn" id="aiRes768p" data-res="768p" style="flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-muted);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s ease;">
+                    <span>🎬 768p Cinema HD</span>
+                  </button>
+                </div>
+
+                <div class="ai-duration-selector" role="radiogroup" aria-label="Video Duration Options">
+                  <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-standard">Recommended · 5s</span>
+                    </div>
+                    <div class="ai-dur-title">5s Standard Shot</div>
+                    <div class="ai-dur-desc" id="aiDesc5s">Top recommendation · Real likeness & stereo audio</div>
+                  </button>
+                  <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-extended">Fluid Motion · 6s</span>
+                    </div>
+                    <div class="ai-dur-title">6s Fluid Shot</div>
+                    <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · Smoother transition</div>
+                  </button>
+                  <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
+                    <div class="ai-dur-top">
+                      <span class="ai-dur-badge ai-badge-ultra-low">Extended · 10s</span>
+                    </div>
+                    <div class="ai-dur-title">10s Extended Scene</div>
+                    <div class="ai-dur-desc" id="aiDesc10s">Extended story · Rich detail & full motion</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 4 · Camera Cinematics -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">4 · Camera Cinematics</label>
                   <span id="aiVideoQualityHint" class="ai-char-counter">Handheld Cinematics</span>
                 </div>
                 <div class="ai-quality-selector" role="radiogroup" aria-label="Video Camera Texture">
@@ -3740,10 +3857,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- 4 · Aspect Ratio -->
+              <!-- 5 · Aspect Ratio -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">4 · Aspect Ratio</label>
+                  <label class="ai-field-title">5 · Aspect Ratio</label>
                 </div>
                 <div class="ai-aspect-selector" role="radiogroup" aria-label="Video Aspect Ratio">
                   <button type="button" class="ai-aspect-btn" data-aspect="9:16" role="radio" aria-checked="false">9:16</button>
