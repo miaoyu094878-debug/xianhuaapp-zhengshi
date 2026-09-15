@@ -2294,7 +2294,7 @@
 
   /* Video Quality & Duration Selector (MiniMax H3 Max) */
   var currentVideoDuration = (db && db.videoDuration && [5, 6, 10].indexOf(db.videoDuration) !== -1) ? db.videoDuration : 5;
-  var currentVideoResolution = (db && db.videoResolution && ['480p', '768p'].indexOf(db.videoResolution) !== -1) ? db.videoResolution : '480p';
+  var currentVideoResolution = '480p'; // 分辨率已固定为 480p，不再提供 UI 选择
 
   var VIDEO_PRICING = {
     '480p': {
