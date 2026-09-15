@@ -2333,11 +2333,6 @@
     var durVal = $('#aiDurSliderValue');
     if (durVal) durVal.textContent = currentVideoDuration + 's';
 
-    var hint = $('#aiVideoDurationHint');
-    if (hint) {
-      hint.textContent = p.hintPrefix + ' · ' + currentVideoDuration + 's';
-    }
-
     var btnVideoSub = $('#aiBtnVideo .ai-btn-sub');
     if (btnVideoSub) {
       btnVideoSub.textContent = currentVideoDuration + 's · ' + currentVideoResolution;
