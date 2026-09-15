@@ -2293,7 +2293,7 @@
   }
 
   /* Video Quality & Duration Selector (MiniMax H3 Max) */
-  var currentVideoDuration = (db && db.videoDuration && [5, 6, 10].indexOf(db.videoDuration) !== -1) ? db.videoDuration : 5;
+  var currentVideoDuration = (db && db.videoDuration && db.videoDuration >= 5 && db.videoDuration <= 10) ? db.videoDuration : 5;
   var currentVideoResolution = '480p'; // 分辨率已固定为 480p，不再提供 UI 选择
 
   var VIDEO_PRICING = {
@@ -2328,12 +2328,10 @@
       btn768.style.color = !is480 ? '#8b5cf6' : 'var(--text-muted)';
     }
 
-    [5, 6, 10].forEach(function (d) {
-      var descEl = $('#aiDesc' + d + 's');
-      if (d === 5) descEl.textContent = (currentVideoResolution === '480p' ? 'Recommended · ' : 'Cinema HD · ') + 'Real likeness & stereo audio';
-      if (d === 6) descEl.textContent = 'Elegant motion · Smoother transition';
-      if (d === 10) descEl.textContent = 'Extended story · Rich detail & full motion';
-    });
+    var slider = $('#aiDurationSlider');
+    if (slider) slider.value = currentVideoDuration;
+    var durVal = $('#aiDurSliderValue');
+    if (durVal) durVal.textContent = currentVideoDuration + 's';
 
     var hint = $('#aiVideoDurationHint');
     if (hint) {
@@ -2358,23 +2356,12 @@
   }
 
   function setVideoDuration(sec) {
-    sec = parseInt(sec, 10) || 5;
-    if ([5, 6, 10].indexOf(sec) === -1) sec = 5;
+    sec = Math.min(10, Math.max(5, parseInt(sec, 10) || 5));
     currentVideoDuration = sec;
     if (db) {
       db.videoDuration = sec;
       save();
     }
-
-    [5, 6, 10].forEach(function (d) {
-      var card = $('#aiDur' + d + 's');
-      if (card) {
-        var isActive = d === sec;
-        card.classList.toggle('active', isActive);
-        card.setAttribute('aria-checked', isActive ? 'true' : 'false');
-      }
-    });
-
     updateVideoPricingUI();
   }
 
@@ -2387,12 +2374,12 @@
     $('#aiRes720p').addEventListener('click', function () { setVideoResolution('768p'); });
   }
 
-  [5, 6, 10].forEach(function (d) {
-    var card = $('#aiDur' + d + 's');
-    if (card) {
-      card.addEventListener('click', function () { setVideoDuration(d); });
-    }
-  });
+  var durationSlider = $('#aiDurationSlider');
+  if (durationSlider) {
+    durationSlider.addEventListener('input', function () {
+      setVideoDuration(parseInt(durationSlider.value, 10));
+    });
+  }
 
   setVideoResolution(currentVideoResolution);
   setVideoDuration(currentVideoDuration);

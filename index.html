@@ -1245,79 +1245,45 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   color: var(--text-soft);
 }
 
-.ai-duration-selector {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-@media (max-width: 640px) {
-  .ai-duration-selector {
-    grid-template-columns: 1fr;
-  }
-}
-.ai-duration-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 12px;
+.ai-duration-slider-wrap {
+  padding: 14px 16px 12px;
   border: 1.5px solid var(--border);
+  border-radius: 12px;
   background: var(--surface-2);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text);
-  font-family: inherit;
 }
-.ai-duration-card:hover {
-  border-color: var(--border-strong);
-  background: var(--surface-hover);
-  transform: translateY(-1px);
-}
-.ai-duration-card.active {
-  border-color: #8b5cf6;
-  background: color-mix(in srgb, #8b5cf6 10%, var(--surface-2));
-  box-shadow: 0 0 0 1px #8b5cf6, 0 4px 14px color-mix(in srgb, #8b5cf6 20%, transparent);
-}
-.ai-dur-top {
+.ai-duration-slider-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
-.ai-dur-badge {
-  font-size: 10.5px;
+.ai-dur-slider-value {
+  font-size: 22px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 999px;
-  letter-spacing: 0.2px;
-}
-.ai-badge-ultra-low {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.35);
-}
-.ai-badge-standard {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.35);
-}
-.ai-badge-extended {
-  background: rgba(139, 92, 246, 0.15);
-  color: #8b5cf6;
-  border: 1px solid rgba(139, 92, 246, 0.35);
-}
-.ai-dur-title {
-  font-size: 13px;
-  font-weight: 600;
   color: var(--text);
-  margin-bottom: 2px;
 }
-.ai-dur-desc {
+.ai-dur-slider-hint {
   font-size: 10.5px;
-  line-height: 1.4;
   color: var(--text-soft);
+}
+.ai-duration-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ai-dur-slider-min,
+.ai-dur-slider-max {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.ai-duration-slider {
+  flex: 1;
+  width: 100%;
+  height: 28px;
+  accent-color: #8b5cf6;
+  cursor: pointer;
 }
 
 .ai-action-grid {
@@ -3800,28 +3766,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <span id="aiVideoDurationHint" class="ai-char-counter">480p Smooth</span>
                 </div>
 
-                <div class="ai-duration-selector" role="radiogroup" aria-label="Video Duration Options">
-                  <button type="button" class="ai-duration-card active" id="aiDur5s" data-duration="5" role="radio" aria-checked="true">
-                    <div class="ai-dur-top">
-                      <span class="ai-dur-badge ai-badge-standard">Recommended · 5s</span>
-                    </div>
-                    <div class="ai-dur-title">5s Standard Shot</div>
-                    <div class="ai-dur-desc" id="aiDesc5s">Top recommendation · Real likeness & stereo audio</div>
-                  </button>
-                  <button type="button" class="ai-duration-card" id="aiDur6s" data-duration="6" role="radio" aria-checked="false">
-                    <div class="ai-dur-top">
-                      <span class="ai-dur-badge ai-badge-extended">Fluid Motion · 6s</span>
-                    </div>
-                    <div class="ai-dur-title">6s Fluid Shot</div>
-                    <div class="ai-dur-desc" id="aiDesc6s">Elegant motion · Smoother transition</div>
-                  </button>
-                  <button type="button" class="ai-duration-card" id="aiDur10s" data-duration="10" role="radio" aria-checked="false">
-                    <div class="ai-dur-top">
-                      <span class="ai-dur-badge ai-badge-ultra-low">Extended · 10s</span>
-                    </div>
-                    <div class="ai-dur-title">10s Extended Scene</div>
-                    <div class="ai-dur-desc" id="aiDesc10s">Extended story · Rich detail & full motion</div>
-                  </button>
+                <div class="ai-duration-slider-wrap">
+                  <div class="ai-duration-slider-head">
+                    <span class="ai-dur-slider-value" id="aiDurSliderValue">5s</span>
+                    <span class="ai-dur-slider-hint">Drag to adjust</span>
+                  </div>
+                  <div class="ai-duration-slider-row">
+                    <span class="ai-dur-slider-min">5s</span>
+                    <input type="range" id="aiDurationSlider" class="ai-duration-slider" min="5" max="10" step="1" value="5" aria-label="Video Duration (seconds)" />
+                    <span class="ai-dur-slider-max">10s</span>
+                  </div>
                 </div>
               </div>
 
