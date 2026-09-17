@@ -186,6 +186,23 @@
     b.addEventListener('click', function () { goTab(b.dataset.tab); });
   });
 
+  /* ═══════ Subscriptions / Pricing (UI preview only) ═══════ */
+  function setBillingMode(mode) {
+    var btns = $$('.plans-toggle-btn');
+    btns.forEach(function (b) { b.classList.toggle('active', b.dataset.billing === mode); });
+    $$('#tab-plans [data-price]').forEach(function (el) { el.hidden = el.dataset.price !== mode; });
+    $$('#tab-plans [data-note]').forEach(function (el) { el.hidden = el.dataset.note !== mode; });
+  }
+  $$('.plans-toggle-btn').forEach(function (b) {
+    b.addEventListener('click', function () { setBillingMode(b.dataset.billing); });
+  });
+  $$('#tab-plans .plan-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var label = btn.dataset.plan === 'pro' ? 'Pro (Bloom)' : 'Free (Begin)';
+      alert('Thanks for exploring ' + label + '! Payment & activation are coming soon. This is a UI preview only.');
+    });
+  });
+
   /* ═══════ Dashboard ═══════ */
   function renderToday() {
     var now = new Date();
