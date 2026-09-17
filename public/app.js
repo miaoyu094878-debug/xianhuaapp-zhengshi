@@ -186,6 +186,13 @@
     b.addEventListener('click', function () { goTab(b.dataset.tab); });
   });
 
+  /* ═══════ Brand → back to landing site ═══════ */
+  var brandHome = 'landing.html';
+  $$('.ds-brand, .brand').forEach(function (br) {
+    br.style.cursor = 'pointer';
+    br.addEventListener('click', function () { window.location.href = brandHome; });
+  });
+
   /* ═══════ Subscriptions / Pricing (UI preview only) ═══════ */
   function setBillingMode(mode) {
     var btns = $$('.plans-toggle-btn');
