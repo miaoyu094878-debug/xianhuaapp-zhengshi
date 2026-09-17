@@ -1,4 +1,4 @@
-# Luminara — 部署与商业化路线图
+# Alyema — 部署与商业化路线图
 
 > 面向海外市场的显化（manifestation）工具 PWA。本文档说明如何把它从「本地 demo」变成「可赚钱的线上产品」。
 

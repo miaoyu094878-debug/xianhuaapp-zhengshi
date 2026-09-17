@@ -1,4 +1,4 @@
-/* Luminara — Manifest Your Reality */
+/* Alyema — Manifest Your Reality */
 (function () {
   'use strict';
   if (window.__LUMINARA_APP_INITIALIZED__) return;
