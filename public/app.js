@@ -1427,24 +1427,6 @@
     });
   }
 
-  // Instant Preset Manifestation Experience (无需等待直接聆听)
-  if ($('#fsInstantPresetPlayBtn')) {
-    $('#fsInstantPresetPlayBtn').addEventListener('click', function () {
-      var presetData = {
-        title: 'Desire Realized · Peace & Abundance',
-        affirmation: 'I am resting in serenity and abundance in this moment.',
-        story: 'Right now, everything you desire has already appeared in your present reality, and you are gently immersed in calm and abundance.',
-        sensoryAnchor: 'Gently place your right hand over your heart, feel its steady warm beat, and smile at yourself.',
-        frequency: '528Hz',
-        mood: 'calm'
-      };
-      renderFsStoryUI(presetData);
-      setTimeout(function () {
-        playFsManifestation(false);
-      }, 300);
-    });
-  }
-
   // Voice Audition Laboratory (调试选拔实验室)
   var auditionAudioSource = null;
   if ($('#fsVoice')) {
