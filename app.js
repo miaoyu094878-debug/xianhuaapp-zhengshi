@@ -71,7 +71,7 @@
   /* ═══════ Data Layer ═══════ */
   var KEY = 'manifest_data_v1';
   var defaults = {
-    goals: [], gratitude: {}, affirmFavs: [], affirmCustom: [],
+    goals: [], affirmFavs: [], affirmCustom: [],
     vision: [], activeDays: [], meditationMin: 0, saved: [],
     profile: { name: '', area: '', desire: '' }
   };
@@ -225,9 +225,6 @@
     $('#statStreak').textContent = streak();
     $('#statGoals').textContent = db.goals.filter(function (g) { return !g.done; }).length;
     $('#statMeditation').textContent = db.meditationMin;
-
-    var g = db.gratitude[todayStr()];
-    $('#glanceGratitude').textContent = g && g.length ? g.length + ' blessing' + (g.length > 1 ? 's' : '') + ' recorded ✿' : 'Write 3 things you\'re grateful for';
   }
 
   /* ═══════ Goals ═══════ */
@@ -365,35 +362,6 @@
     swipeOut('skip', function () { swipeQueue.pop(); renderSwipe(); });
   });
   $('#swipeReset').addEventListener('click', function () { initSwipe(); });
-
-  /* ═══════ Gratitude Journal ═══════ */
-  var gratInputs = $$('.grat-input');
-  $('#gratForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var items = gratInputs.map(function (i) { return i.value.trim(); }).filter(Boolean);
-    if (!items.length) return;
-    db.gratitude[todayStr()] = items;
-    gratInputs.forEach(function (i) { i.value = ''; });
-    markActive(); save(); renderGrat(); renderToday();
-  });
-  function renderGrat() {
-    var wrap = $('#gratHistory');
-    wrap.innerHTML = '';
-    var days = Object.keys(db.gratitude).sort().reverse();
-    if (!days.length) { wrap.appendChild(el('div', 'empty', 'Your gratitude journal awaits ✿')); return; }
-    days.slice(0, 14).forEach(function (day) {
-      var card = el('div', 'card glass');
-      card.appendChild(el('div', 'meta', day + (day === todayStr() ? ' · Today' : '')));
-      db.gratitude[day].forEach(function (g) {
-        var p = el('div', 'title', '✿  ' + g);
-        p.style.marginTop = '8px'; p.style.lineHeight = '1.6';
-        card.appendChild(p);
-      });
-      wrap.appendChild(card);
-    });
-    var tg = db.gratitude[todayStr()];
-    if (tg) gratInputs.forEach(function (inp, i) { inp.value = tg[i] || ''; });
-  }
 
   /* ═══════ Vision Board (with photo) ═══════ */
   $('#visionForm').addEventListener('submit', function (e) {
@@ -4914,7 +4882,7 @@
   });
 
   /* ═══════ Init ═══════ */
-  renderToday(); renderGoals(); renderAffirm(); renderGrat(); renderVision(); renderMedTime();
+  renderToday(); renderGoals(); renderAffirm(); renderVision(); renderMedTime();
   initSwipe();
   maybeShowQuiz();
 })();
