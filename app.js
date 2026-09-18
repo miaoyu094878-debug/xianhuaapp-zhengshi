@@ -676,7 +676,7 @@
       var label = $('#fsAmbLabel');
       if (label) {
         var txt = this.options[this.selectedIndex].text.split('·')[0].trim();
-        label.textContent = '🎵 ' + txt + ' 音量';
+        label.textContent = '🎵 ' + txt + ' Volume';
       }
     });
   }
@@ -742,12 +742,12 @@
 
     if (playing) {
       if (orbIcon) orbIcon.textContent = '⏸';
-      if (playBtn) playBtn.textContent = '⏸ 暂停诵读';
+      if (playBtn) playBtn.textContent = '⏸ Pause';
       if (orbPlay) orbPlay.classList.add('playing');
       if (stage) stage.classList.add('is-playing');
     } else {
       if (orbIcon) orbIcon.textContent = '▶';
-      if (playBtn) playBtn.textContent = '▶ 播放诵读';
+      if (playBtn) playBtn.textContent = '▶ Narrate';
       if (orbPlay) orbPlay.classList.remove('playing');
       if (stage) stage.classList.remove('is-playing');
     }
@@ -934,9 +934,9 @@
     var badge = $('#fsVoiceStatusBadge');
     if (badge) {
       if (idx === 0) {
-        badge.textContent = fsState.hasEverPlayedStory ? '🎵 疗愈频率与天籁导引就绪中...' : '🎵 疗愈频率先行沉浸中 (即将开启人声导引)...';
+        badge.textContent = fsState.hasEverPlayedStory ? '🎵 Healing frequency & guided voice ready...' : '🎵 Immersing in healing frequency (voice guidance starting soon)...';
       } else {
-        badge.textContent = '⏳ 正在准备天籁导引声线...';
+        badge.textContent = '⏳ Preparing the guided voice...';
       }
       badge.style.opacity = '1';
     }
@@ -946,42 +946,42 @@
       if (selectedVoice.startsWith('qwen:')) {
         var qVoice = selectedVoice.replace('qwen:', '');
         var qVoiceMap = {
-          'longanlingxin': '灵心 (温润共情·细腻治愈女声)',
-          'longanyuanfei': '远妃 (端庄温婉·从容知性女声)',
-          'longanlingxi': '灵犀 (灵动甜美·可爱亲切女声)',
-          'longanxiaoxin': '小欣 (亲切轻柔·自然元气女声)',
-          'longanfengyue': '风月 (自然舒缓·明媚治愈女声)',
-          'longanhuan_v3.6': '欢欢 (轻柔自然·清澈伴读女声)',
-          'longjielidou_v3.6': '杰利豆 (萌动元气·可爱甜美女声)',
-          'loongeva_v3.6': 'Eva (典雅知性·从容温婉女声)'
+          'longanlingxin': 'Lingxin (Warm empathetic · gentle healing voice)',
+          'longanyuanfei': 'Yuanfei (Graceful · poised & refined voice)',
+          'longanlingxi': 'Lingxi (Vivid sweet · warm friendly voice)',
+          'longanxiaoxin': 'Xiaoxin (Gentle soft · natural vibrant voice)',
+          'longanfengyue': 'Fengyue (Natural soothing · bright healing voice)',
+          'longanhuan_v3.6': 'Huanhuan (Soft natural · clear reading voice)',
+          'longjielidou_v3.6': 'Jielidou (Playful vibrant · lovely sweet voice)',
+          'loongeva_v3.6': 'Eva (Elegant poised · refined gentle voice)'
         };
         var qName = qVoiceMap[qVoice] || qVoice;
-        badge.textContent = '💫 Qwen 3.0 TTS · ' + qName + ' 诵读中...';
+        badge.textContent = '💫 Qwen 3.0 TTS · ' + qName + ' narrating...';
       } else if (selectedVoice.startsWith('openrouter:')) {
         var orVoiceName = selectedVoice.replace('openrouter:', '');
-        badge.textContent = '🌸 OpenRouter Gemini 3.1 TTS · ' + orVoiceName + ' 诵读中...';
+        badge.textContent = '🌸 OpenRouter Gemini 3.1 TTS · ' + orVoiceName + ' narrating...';
       } else if (selectedVoice === 'Zephyr') {
-        badge.textContent = '✨ Zephyr · 空灵清澈天籁女声 (AI 顶级神经网络原声) 诵读中...';
+        badge.textContent = '✨ Zephyr · ethereal crystal-clear voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Kore') {
-        badge.textContent = '🌸 Kore · 温柔治愈抚慰女声 (AI 顶级神经网络原声) 诵读中...';
+        badge.textContent = '🌸 Kore · gentle soothing voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Aoede') {
-        badge.textContent = '🎵 Aoede · 灵动婉转抒情女声 (AI 顶级神经网络原声) 诵读中...';
+        badge.textContent = '🎵 Aoede · lyrical expressive voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Puck') {
-        badge.textContent = '🌿 Puck · 温暖从容和煦男声 (AI 顶级神经网络原声) 诵读中...';
+        badge.textContent = '🌿 Puck · warm serene male voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Charon') {
-        badge.textContent = '🌌 Charon · 深邃沉静磁性男声 (AI 顶级神经网络原声) 诵读中...';
+        badge.textContent = '🌌 Charon · deep magnetic male voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Fenrir') {
-        badge.textContent = '⚡ Fenrir · 笃定自信赋能男声 (AI 顶级神经网络原声) 诵读中...';
+        badge.textContent = '⚡ Fenrir · confident empowering male voice (AI neural native) narrating...';
       } else if (selectedVoice.startsWith('af_') || selectedVoice.startsWith('bf_')) {
-        badge.textContent = '🌸 纯正母语女声诵读中...';
+        badge.textContent = '🌸 Native female voice narrating...';
       } else if (selectedVoice.startsWith('zf_') || selectedVoice.indexOf('kokoro') !== -1) {
-        badge.textContent = '🎀 柔和中文女声 (Kokoro 82M) 诵读中...';
+        badge.textContent = '🎀 Soft Mandarin voice (Kokoro 82M) narrating...';
       } else if (selectedVoice === 'fish-audio/s2.1-pro-free:free' || selectedVoice.indexOf('fish-audio') !== -1) {
-        badge.textContent = '🐟 Fish Audio 拟真声音诵读中...';
+        badge.textContent = '🐟 Fish Audio natural voice narrating...';
       } else if (selectedVoice.length >= 15) {
-        badge.textContent = '🌟 专属定制拟真声音诵读中...';
+        badge.textContent = '🌟 Custom lifelike voice narrating...';
       } else {
-        badge.textContent = '✨ AI 顶级多模态神经网络诵读中...';
+        badge.textContent = '✨ AI neural multimodal narration...';
       }
       badge.style.opacity = '1';
     }
@@ -989,12 +989,12 @@
     async function speakParagraph(pIdx) {
       if (pIdx >= paragraphs.length || !fsState.isPlaying) {
         // Voice ended: keep ambient playing for 3 more seconds before stopping
-        if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+        if (badge) badge.textContent = '✨ Guidance complete · resting in the healing afterglow (3s)...';
         fsState.outroTimer = setTimeout(function () {
           if (!fsState.isPlaying) return;
           stopFsAmbient(false);
           updateFsPlaybackUI(false);
-          if (badge) badge.textContent = '✨ 显化诵读已圆满完成';
+          if (badge) badge.textContent = '✨ Manifestation narration complete';
         }, 3000);
         return;
       }
@@ -1019,7 +1019,7 @@
 
       if (!audioBuf) {
         // Fallback to Web Speech if network fails or model busy
-        if (badge) badge.textContent = '📱 已转为智能自然声音';
+        if (badge) badge.textContent = '📱 Switched to smart natural voice';
         playWithWebSpeech(pIdx);
         return;
       }
@@ -1059,13 +1059,13 @@
         // 如果已经是最后一段，人声结束，背景音再延续播放 3 秒后优雅归寂
         if (pIdx + 1 >= paragraphs.length) {
           fsState.activeParagraphIdx = 0; // 【核心修复】立刻重置回第0段，保证再次点击播放时必定从头诵读人声
-          if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+          if (badge) badge.textContent = '✨ Guidance complete · resting in the healing afterglow (3s)...';
           fsState.outroTimer = setTimeout(function () {
             if (!fsState.isPlaying) return;
             stopFsAmbient(false);
             updateFsPlaybackUI(false);
             fsState.activeParagraphIdx = 0;
-            if (badge) badge.textContent = '✨ 显化诵读已圆满完成 (点击可再次播放)';
+            if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
           }, 3000);
           return;
         }
@@ -1102,7 +1102,7 @@
   // Play narration using Web Speech synthesis with gentle cadence (Fallback)
   function playWithWebSpeech(startIdx) {
     if (!('speechSynthesis' in window)) {
-      alert('您的浏览器暂不支持语音合成，但您可以静心阅读上方的显化故事。');
+      alert('Your browser doesn\'t support speech synthesis, but you can calmly read the manifestation story above.');
       return;
     }
 
@@ -1129,9 +1129,9 @@
     var badge = $('#fsVoiceStatusBadge');
     if (badge) {
       if (idx === 0) {
-        badge.textContent = '🎵 疗愈频率先行沉浸中 (2秒后开启人声导引)...';
+        badge.textContent = '🎵 Immersing in healing frequency (voice guidance in 2s)...';
       } else {
-        badge.textContent = '📱 自然语音导引中...';
+        badge.textContent = '📱 Natural voice guidance...';
       }
       badge.style.opacity = '1';
     }
@@ -1142,12 +1142,12 @@
 
     function speakNext() {
       if (idx >= paragraphs.length || !fsState.isPlaying) {
-        if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+        if (badge) badge.textContent = '✨ Guidance complete · resting in the healing afterglow (3s)...';
         fsState.outroTimer = setTimeout(function () {
           if (!fsState.isPlaying) return;
           stopFsAmbient(false);
           updateFsPlaybackUI(false);
-          if (badge) badge.textContent = '✨ 显化诵读已圆满完成';
+          if (badge) badge.textContent = '✨ Manifestation narration complete';
         }, 3000);
         return;
       }
@@ -1160,20 +1160,20 @@
       if (voice) u.voice = voice;
 
       u.onstart = function () {
-        if (badge) badge.textContent = '📱 自然语音诵读中...';
+        if (badge) badge.textContent = '📱 Natural voice narration...';
       };
 
       u.onend = function () {
         idx++;
         if (idx >= paragraphs.length) {
           fsState.activeParagraphIdx = 0; // 重置归零
-          if (badge) badge.textContent = '✨ 导引圆满完成 · 沉浸在余韵疗愈中 (3秒)...';
+          if (badge) badge.textContent = '✨ Guidance complete · resting in the healing afterglow (3s)...';
           fsState.outroTimer = setTimeout(function () {
             if (!fsState.isPlaying) return;
             stopFsAmbient(false);
             updateFsPlaybackUI(false);
             fsState.activeParagraphIdx = 0;
-            if (badge) badge.textContent = '✨ 显化诵读已圆满完成 (点击可再次播放)';
+            if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
           }, 3000);
           return;
         }
@@ -1277,9 +1277,9 @@
   // Render Story into UI
   function renderFsStoryUI(data) {
     fsState.storyData = data;
-    $('#fsSceneTitle').textContent = data.title || '✨ 现时显化之境';
-    $('#fsAffirmBadge').textContent = data.affirmation || '我已完全安住在丰盛与宁静之中';
-    $('#fsAnchorDesc').textContent = data.sensoryAnchor || '轻轻将手放在心口，感受温热平稳的心跳，对自己微笑。';
+    $('#fsSceneTitle').textContent = data.title || '✨ Realm of Present Reality';
+    $('#fsAffirmBadge').textContent = data.affirmation || 'I am fully resting in abundance and peace';
+    $('#fsAnchorDesc').textContent = data.sensoryAnchor || 'Gently rest your hand on your heart, feel its warm steady beat, and smile at yourself.';
 
     var rawStory = data.story || '';
     var paragraphs = rawStory.split(/\n+/).map(function (p) { return p.trim(); }).filter(Boolean);
@@ -1317,7 +1317,7 @@
       var raw = $('#fsDesire').value.trim();
       var desire = raw || (db.profile && db.profile.desire) || '';
       if (!desire) {
-        alert('请输入你想要显化实现的心愿或目标 ✨');
+        alert('Please enter the desire or goal you want to manifest ✨');
         $('#fsDesire').focus();
         return;
       }
@@ -1331,7 +1331,7 @@
       var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
       var name = (db.profile && db.profile.name) || '';
       var hasChinese = /[\u4e00-\u9fa5]/.test(desire);
-      var detectedLanguage = hasChinese ? 'Chinese (中文)' : 'English';
+      var detectedLanguage = hasChinese ? 'Chinese' : 'English';
 
       try {
         var res = await callUnifiedApi('story', {
@@ -1404,15 +1404,15 @@
     $('#fsCopyText').addEventListener('click', function () {
       if (!fsState.storyData) return;
       var text = '✨ ' + (fsState.storyData.title || '') + '\n\n' +
-                 '✦ 肯定语：' + (fsState.storyData.affirmation || '') + '\n\n' +
+                 '✦ Affirmation: ' + (fsState.storyData.affirmation || '') + '\n\n' +
                  (fsState.storyData.story || '') + '\n\n' +
-                 '⚓ 身体锚点：' + (fsState.storyData.sensoryAnchor || '');
+                 '⚓ Body anchor: ' + (fsState.storyData.sensoryAnchor || '');
       navigator.clipboard.writeText(text).then(function () {
         var orig = $('#fsCopyText').textContent;
-        $('#fsCopyText').textContent = '✓ 已复制到剪贴板';
+        $('#fsCopyText').textContent = '✓ Copied to clipboard';
         setTimeout(function () { $('#fsCopyText').textContent = orig; }, 2000);
       }).catch(function () {
-        alert('文本已选定，可长按复制。');
+        alert('Text selected — long-press to copy.');
       });
     });
   }
@@ -1431,10 +1431,10 @@
   if ($('#fsInstantPresetPlayBtn')) {
     $('#fsInstantPresetPlayBtn').addEventListener('click', function () {
       var presetData = {
-        title: '心愿已成 · 宁静与丰盛',
-        affirmation: '我已安住在当下的从容与丰盛之中。',
-        story: '此时此刻，你渴望的一切已经在当下真实显现，身心沉浸在宁静与丰盛之中。',
-        sensoryAnchor: '轻轻把右手放在心口，感受平稳温热的心跳，对自己微笑。',
+        title: 'Desire Realized · Peace & Abundance',
+        affirmation: 'I am resting in serenity and abundance in this moment.',
+        story: 'Right now, everything you desire has already appeared in your present reality, and you are gently immersed in calm and abundance.',
+        sensoryAnchor: 'Gently place your right hand over your heart, feel its steady warm beat, and smile at yourself.',
         frequency: '528Hz',
         mood: 'calm'
       };
@@ -1470,7 +1470,7 @@
       var statusEl = $('#fsAuditionStatus');
       var inputEl = $('#fsTestVoiceId');
       var voiceId = (inputEl ? inputEl.value.trim() : '') || 'QJksobp1edMNvmwcG5lm';
-      var sampleText = '深吸一口气... 感受这一刻，你渴望的一切已经在当下自然显现。';
+      var sampleText = 'Take a slow, deep breath... Feel it — everything you desire is already unfolding naturally right now.';
 
       if (btn.dataset.playing === 'true') {
         if (auditionAudioSource) {
@@ -1478,14 +1478,14 @@
         }
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         btn.dataset.playing = 'false';
-        btn.innerHTML = '▶️ 试听此声音';
-        if (statusEl) statusEl.textContent = '已停止';
+        btn.innerHTML = '▶️ Preview this voice';
+        if (statusEl) statusEl.textContent = 'Stopped';
         return;
       }
 
       btn.disabled = true;
-      btn.innerHTML = '⏳ 正在调取声音...';
-      if (statusEl) statusEl.textContent = '正在合成拟真音频...';
+      btn.innerHTML = '⏳ Fetching voice...';
+      if (statusEl) statusEl.textContent = 'Synthesizing lifelike audio...';
 
       try {
         var audioBuf = await fetchParagraphAudio(sampleText, voiceId, 'calm');
@@ -1503,17 +1503,17 @@
           src.connect(fsState.audioCtx.destination);
           src.onended = function () {
             btn.dataset.playing = 'false';
-            btn.innerHTML = '▶️ 试听此声音';
-            if (statusEl) statusEl.textContent = '播放完毕';
+            btn.innerHTML = '▶️ Preview this voice';
+            if (statusEl) statusEl.textContent = 'Playback finished';
             btn.disabled = false;
           };
           auditionAudioSource = src;
           src.start(0);
 
           btn.dataset.playing = 'true';
-          btn.innerHTML = '⏹️ 停止试听';
+          btn.innerHTML = '⏹️ Stop preview';
           btn.disabled = false;
-          if (statusEl) statusEl.textContent = '正在播放 🎵';
+          if (statusEl) statusEl.textContent = 'Playing 🎵';
         } else {
           // Graceful high quality browser voice + ambient tone fallback
           if ('speechSynthesis' in window) {
@@ -1526,32 +1526,32 @@
             if (v) utt.voice = v;
             utt.onend = function () {
               btn.dataset.playing = 'false';
-              btn.innerHTML = '▶️ 试听此声音';
-              if (statusEl) statusEl.textContent = '播放完毕';
+              btn.innerHTML = '▶️ Preview this voice';
+              if (statusEl) statusEl.textContent = 'Playback finished';
               btn.disabled = false;
             };
             utt.onerror = function () {
               btn.dataset.playing = 'false';
-              btn.innerHTML = '▶️ 试听此声音';
-              if (statusEl) statusEl.textContent = '就绪';
+              btn.innerHTML = '▶️ Preview this voice';
+              if (statusEl) statusEl.textContent = 'Ready';
               btn.disabled = false;
             };
             window.speechSynthesis.speak(utt);
 
             btn.dataset.playing = 'true';
-            btn.innerHTML = '⏹️ 停止试听';
+            btn.innerHTML = '⏹️ Stop preview';
             btn.disabled = false;
-            if (statusEl) statusEl.textContent = '正在播放 🎵';
+            if (statusEl) statusEl.textContent = 'Playing 🎵';
           } else {
-            throw new Error('未获取到音频');
+            throw new Error('Audio not available');
           }
         }
       } catch (err) {
         console.error('Audition error:', err);
         btn.disabled = false;
         btn.dataset.playing = 'false';
-        btn.innerHTML = '▶️ 试听此声音';
-        if (statusEl) statusEl.textContent = '播放完毕';
+        btn.innerHTML = '▶️ Preview this voice';
+        if (statusEl) statusEl.textContent = 'Playback finished';
       }
     });
   }
