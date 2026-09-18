@@ -1,4 +1,4 @@
-/* Luminara — Manifest Service Worker */
+/* Alyema — Manifest Service Worker */
 var CACHE = 'luminara-v2026.9.6.aivision-studio-v2';
 
 self.addEventListener('install', function (e) {

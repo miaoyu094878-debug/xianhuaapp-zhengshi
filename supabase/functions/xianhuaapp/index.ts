@@ -35,7 +35,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         status: 'online',
-        service: 'Luminara Unified API Gateway',
+        service: 'Alyema Unified API Gateway',
         configuredSecrets: {
           OPENROUTER_API_KEY: hasOpenRouter,
           ELEVENLABS_API_KEY: hasElevenLabs,
@@ -177,7 +177,7 @@ Preferred Atmosphere / Mood: "${mood || 'peaceful'}"
 Target Output Language: ${targetLang}
 
 System Directive:
-You are the master voice and immersive reality architect of Luminara & Stella.
+You are the master voice and immersive reality architect of Alyema & Stella.
 Your goal is to guide the listener into a profound, hypnotic, sensory-rich, PRESENT-TENSE ("现在进行时") lived reality where their goal is ALREADY 100% manifested and being experienced RIGHT NOW.
 
 STRICT WRITING RULES:
@@ -207,7 +207,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
           'Authorization': `Bearer ${openrouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.app',
-          'X-Title': 'Luminara Manifestation'
+          'X-Title': 'Alyema Manifestation'
         },
         body: JSON.stringify({
           model: 'minimax/minimax-m3:free',
@@ -339,7 +339,7 @@ async function handleVoice(body: any): Promise<Response> {
           'Authorization': `Bearer ${effectiveOpenRouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.app',
-          'X-Title': 'Luminara'
+          'X-Title': 'Alyema'
         },
         body: JSON.stringify({
           model: targetModel,
@@ -357,7 +357,7 @@ async function handleVoice(body: any): Promise<Response> {
             'Authorization': `Bearer ${effectiveOpenRouterKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://luminara.app',
-            'X-Title': 'Luminara'
+            'X-Title': 'Alyema'
           },
           body: JSON.stringify({
             model: altModel,
@@ -408,7 +408,7 @@ async function handleVoice(body: any): Promise<Response> {
           'Authorization': `Bearer ${effectiveOpenRouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.app',
-          'X-Title': 'Luminara'
+          'X-Title': 'Alyema'
         },
         body: JSON.stringify({
           model: 'google/gemini-3.1-flash-tts-preview',
@@ -463,7 +463,7 @@ async function handleVoice(body: any): Promise<Response> {
           'Authorization': `Bearer ${effectiveOpenRouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.app',
-          'X-Title': 'Luminara'
+          'X-Title': 'Alyema'
         },
         body: JSON.stringify({
           model: 'hexgrad/kokoro-82m',
@@ -514,7 +514,7 @@ async function handleVoice(body: any): Promise<Response> {
           'Authorization': `Bearer ${effectiveOpenRouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.app',
-          'X-Title': 'Luminara'
+          'X-Title': 'Alyema'
         },
         body: JSON.stringify(payload)
       });
@@ -609,7 +609,7 @@ async function handleVoice(body: any): Promise<Response> {
           'Authorization': `Bearer ${effectiveOpenRouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.app',
-          'X-Title': 'Luminara'
+          'X-Title': 'Alyema'
         },
         body: JSON.stringify({
           model: 'google/gemini-3.1-flash-tts-preview',
@@ -840,7 +840,7 @@ async function handleVisionPhoto(body: any): Promise<Response> {
         'Authorization': `Bearer ${openrouterKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://luminara.ai',
-        'X-Title': 'Luminara'
+        'X-Title': 'Alyema'
       },
       body: JSON.stringify(reqBody)
     });
@@ -854,7 +854,7 @@ async function handleVisionPhoto(body: any): Promise<Response> {
           'Authorization': `Bearer ${openrouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.ai',
-          'X-Title': 'Luminara'
+          'X-Title': 'Alyema'
         },
         body: JSON.stringify({
           model: 'openai/gpt-image-2',
@@ -966,7 +966,7 @@ CRITICAL DIRECTIVES:
           'Authorization': `Bearer ${openrouterKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://luminara.ai',
-          'X-Title': 'Luminara'
+          'X-Title': 'Alyema'
         },
         body: JSON.stringify({
           model: model,
@@ -1107,7 +1107,7 @@ async function handleVisionVideo(body: any): Promise<Response> {
         'Authorization': `Bearer ${openrouterKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://luminara.ai',
-        'X-Title': 'Luminara'
+        'X-Title': 'Alyema'
       },
       body: JSON.stringify(reqBody)
     });
@@ -1124,7 +1124,7 @@ async function handleVisionVideo(body: any): Promise<Response> {
             'Authorization': `Bearer ${openrouterKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://luminara.ai',
-            'X-Title': 'Luminara'
+            'X-Title': 'Alyema'
           },
           body: JSON.stringify({
             model: 'minimax/hailuo-3-max',
@@ -1192,7 +1192,7 @@ async function handleVisionVideoStatus(body: any): Promise<Response> {
       headers: {
         'Authorization': `Bearer ${openrouterKey}`,
         'HTTP-Referer': 'https://luminara.ai',
-        'X-Title': 'Luminara'
+        'X-Title': 'Alyema'
       }
     });
 
@@ -1224,7 +1224,7 @@ async function handleVisionVideoStatus(body: any): Promise<Response> {
           headers: {
             'Authorization': `Bearer ${openrouterKey}`,
             'HTTP-Referer': 'https://luminara.ai',
-            'X-Title': 'Luminara'
+            'X-Title': 'Alyema'
           }
         });
 
@@ -1271,7 +1271,7 @@ async function handleVisionVideoContent(body: any): Promise<Response> {
       headers: {
         'Authorization': `Bearer ${openrouterKey}`,
         'HTTP-Referer': 'https://luminara.ai',
-        'X-Title': 'Luminara'
+        'X-Title': 'Alyema'
       }
     });
 

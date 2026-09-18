@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>Luminara — Manifest Your Reality</title>
+  <title>Alyema — Manifest Your Reality</title>
   <meta name="description" content="A dreamy manifestation tool: affirmations, gratitude journal, vision board, future-self audio & AI guidance">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#120022">
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="styles.css?v=2026.8.26.0955">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
-   Luminara — Multi-Theme Design System
+   Alyema — Multi-Theme Design System
    Themes: luminara · manifest-light · manifest-dark
    ════════════════════════════════════════════════════════════════ */
 
@@ -1243,6 +1243,47 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   font-size: 11px;
   line-height: 1.45;
   color: var(--text-soft);
+}
+
+.ai-duration-slider-wrap {
+  padding: 14px 16px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.ai-duration-slider-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.ai-dur-slider-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ai-dur-slider-hint {
+  font-size: 10.5px;
+  color: var(--text-soft);
+}
+.ai-duration-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ai-dur-slider-min,
+.ai-dur-slider-max {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.ai-duration-slider {
+  flex: 1;
+  width: 100%;
+  height: 28px;
+  accent-color: #8b5cf6;
+  cursor: pointer;
 }
 
 .ai-action-grid {
@@ -3160,7 +3201,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     <aside id="desktopSidebar" class="desktop-sidebar">
       <div class="ds-brand">
         <span class="brand-logo">✦</span>
-        <span class="brand-name">Luminara</span>
+        <span class="brand-name">Alyema</span>
       </div>
       <nav class="ds-nav">
         <button class="side-link active" data-tab="tab-today">✦ Today</button>
@@ -3183,7 +3224,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       <div class="ds-foot">
         <p class="ds-label">Theme</p>
         <div class="ds-themes">
-          <button class="ds-theme active" data-theme="luminara" title="Luminara" style="background:linear-gradient(135deg,#9a63d2,#e386b6)"></button>
+          <button class="ds-theme active" data-theme="luminara" title="Alyema" style="background:linear-gradient(135deg,#9a63d2,#e386b6)"></button>
           <button class="ds-theme" data-theme="manifest-light" title="Manifest Light" style="background:linear-gradient(135deg,#F5D9A0,#E8B86D)"></button>
           <button class="ds-theme" data-theme="manifest-dark" title="Manifest Dark" style="background:#12082a;border-color:rgba(245,217,160,.6)"></button>
           <button class="ds-theme" data-theme="prism" title="Prism White" style="background:conic-gradient(#ff6a88,#ffa751,#4fc3f7,#a78bfa,#ff6a88)"></button>
@@ -3194,7 +3235,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     <header class="app-header">
       <div class="brand">
         <span class="brand-logo">✦</span>
-        <span class="brand-name">Luminara</span>
+        <span class="brand-name">Alyema</span>
       </div>
       <button id="installBtn" class="install-btn hidden">Install</button>
     </header>
@@ -3235,7 +3276,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <div class="card glass focus-card" data-goto="tab-future">
           <div class="focus-top">
             <span class="focus-title">Living Reality 🌌</span>
-            <span class="focus-meta" id="glanceFuture">进入目标已实现的现在进行时沉浸音频</span>
+            <span class="focus-meta" id="glanceFuture">Immersive present-tense audio for your realized desire</span>
           </div>
         </div>
       </section>
@@ -3322,143 +3363,143 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
       <!-- Living Reality & Future Self (AI Voice Manifestation) -->
       <section id="tab-future" class="tab-page">
-        <div class="fs-hero-badge">✦ Stella Flow · 现时显化导引</div>
-        <h2 class="page-title">沉浸显化剧场 · Living In Reality</h2>
-        <p class="page-sub">输入你的心愿目标，AI 将带你进入【现在进行时】的沉浸感官故事，配以疗愈音频与温柔声线导引，让你身临其境、心想事成。</p>
+        <div class="fs-hero-badge">✦ Stella Flow · Present-Moment Manifestation</div>
+        <h2 class="page-title">Living In Reality · Immersive Manifestation</h2>
+        <p class="page-sub">Set your desire and the AI will guide you into a sensory rich story in the present tense — wrapped in healing audio and a gentle voice, so you feel it fully and bring it to life.</p>
 
-        <!-- Pre-loaded Instant Experience Card (未生成前即可即刻聆听) -->
+        <!-- Pre-loaded Instant Experience Card -->
         <div class="card glass" style="margin-bottom: 20px; padding: 18px 20px; border: 1px solid rgba(212, 175, 55, 0.4); background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(20,24,35,0.6) 100%); border-radius: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
             <div>
               <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #d4af37; font-weight: 700; margin-bottom: 4px;">
-                ✨ 即时体验 · 默认显化范例 (Instant Audio Experience)
+                ✨ Instant Experience · Default Manifestation
               </div>
-              <h3 style="font-size: 16px; font-weight: 600; color: #fff; margin: 0 0 6px 0;">心愿已成 · 晨曦海风与无限丰盛</h3>
+              <h3 style="font-size: 16px; font-weight: 600; color: #fff; margin: 0 0 6px 0;">Desire Realized · Dawn Breeze &amp; Boundless Abundance</h3>
               <p style="font-size: 13px; color: rgba(255,255,255,0.75); margin: 0; line-height: 1.6; max-width: 600px;">
-                “我正过着月入百万、从容自由的生活，在晨曦海风与明亮书房中创作，内心充满丰盛与宁静。”
+                “I am living a calm, abundant life with complete freedom, creating in a bright studio by the morning sea breeze, my heart full of peace.”
               </p>
             </div>
             <button type="button" id="fsInstantPresetPlayBtn" class="btn-primary" style="padding: 10px 20px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(212,175,55,0.3); border-radius: 10px; cursor: pointer;">
-              ▶ 立即聆听此范例
+              ▶ Listen Now
             </button>
           </div>
         </div>
 
         <!-- Intention & Goal Form -->
         <form id="fsForm" class="card glass form-card">
-          <label class="field-label">1 · 设定你的心愿目标 (Your Goal / Desire)</label>
-          <textarea id="fsDesire" rows="3" placeholder="例如：我正拥有一栋靠海的明亮小院，每天闻着咖啡香在微风中写作，财富丰盛自由，充满幸福与笃定..." maxlength="300"></textarea>
+          <label class="field-label">1 · Set Your Goal / Desire</label>
+          <textarea id="fsDesire" rows="3" placeholder="e.g. I am living in a bright seaside home, writing every morning with the scent of coffee in the breeze, abundant, free and deeply fulfilled..." maxlength="300"></textarea>
           
           <!-- Quick Preset Chips -->
           <div class="fs-presets-row">
-            <button type="button" class="fs-preset-btn" data-goal="我正拥有一栋依山傍海的阳光居所，每天伴着浪声醒来，身心自由，财务丰盛。">🌊 阳光海边居所</button>
-            <button type="button" class="fs-preset-btn" data-goal="我正经营着热爱的创意工作室，每一天都充满灵感，吸引着优秀的伙伴，收入丰盛。">💼 丰盛事业与财富</button>
-            <button type="button" class="fs-preset-btn" data-goal="我正与深度懂我、温柔爱护我的灵魂伴侣相伴，在充满笑声与温馨的家中共享三餐四季。">💖 甜蜜灵魂伴侣</button>
-            <button type="button" class="fs-preset-btn" data-goal="我的身体充满了蓬勃的活力与自愈力，内心情绪宁静如水，每一个细胞都健康喜悦。">🌿 身心充盈健康</button>
-            <button type="button" class="fs-preset-btn" data-goal="我已经顺利通过了所有挑战，站在梦想的舞台上，从容展现自己的才华与光芒。">🌟 自信发光与成就</button>
+            <button type="button" class="fs-preset-btn" data-goal="I am living in a sun-drenched home by the sea, waking to the sound of waves, free in body and abundant in wealth.">🌊 Sunny Seaside Home</button>
+            <button type="button" class="fs-preset-btn" data-goal="I am building a creative studio I love, filled with inspiration every day, attracting wonderful collaborators and abundant income.">💼 Thriving Career &amp; Wealth</button>
+            <button type="button" class="fs-preset-btn" data-goal="I am together with a soulmate who deeply understands and gently loves me, sharing every season of life in a home full of laughter and warmth.">💖 Sweet Soulmate</button>
+            <button type="button" class="fs-preset-btn" data-goal="My body is full of vibrant energy and self-healing power, my mind calm as still water, every cell healthy and joyful.">🌿 Vital Health &amp; Energy</button>
+            <button type="button" class="fs-preset-btn" data-goal="I have gracefully passed every challenge and stand on the stage of my dreams, confidently sharing my talent and brilliance.">🌟 Radiant Confidence &amp; Success</button>
           </div>
 
           <!-- Atmosphere, Voice & Frequency Options -->
           <div class="fs-form-options">
             <div class="fs-opt-group">
-              <label for="fsMood">氛围心境 / Atmosphere</label>
+              <label for="fsMood">🌅 Atmosphere</label>
               <select id="fsMood" class="fs-select">
-                <option value="calm">🌅 晨曦希望 (Serene Sunrise)</option>
-                <option value="ocean">🌊 蔚蓝海浪 (Ocean Horizon)</option>
-                <option value="cosmic">🌌 浩瀚星海 (Cosmic Void)</option>
-                <option value="forest">🌲 旷野松林 (Deep Forest)</option>
-                <option value="radiant">✨ 纯净丰盛 (Golden Abundance)</option>
+                <option value="calm">🌅 Serene Sunrise</option>
+                <option value="ocean">🌊 Ocean Horizon</option>
+                <option value="cosmic">🌌 Cosmic Void</option>
+                <option value="forest">🌲 Deep Forest</option>
+                <option value="radiant">✨ Golden Abundance</option>
               </select>
             </div>
             <div class="fs-opt-group">
-              <label for="fsFreq">疗愈频段 / Frequency</label>
+              <label for="fsFreq">🎵 Healing Frequency</label>
               <select id="fsFreq" class="fs-select">
-                <option value="528">528 Hz · 奇迹与DNA修复</option>
-                <option value="432">432 Hz · 宇宙共振与深度疗愈</option>
-                <option value="639">639 Hz · 心轮开启与爱意吸引</option>
-                <option value="bowl">颂钵空灵音波 (Zen Singing Bowl)</option>
-                <option value="off">静音 (No Ambient)</option>
+                <option value="528">528 Hz · Miracles &amp; DNA Repair</option>
+                <option value="432">432 Hz · Cosmic Resonance &amp; Deep Healing</option>
+                <option value="639">639 Hz · Heart Chakra &amp; Love Attraction</option>
+                <option value="bowl">Zen Singing Bowl</option>
+                <option value="off">No Ambient</option>
               </select>
             </div>
             <div class="fs-opt-group">
-              <label for="fsVoice">🎙️ 导引声线 / Guide Voice (原版官方原声 & OpenRouter 新增女声)</label>
+              <label for="fsVoice">🎙️ Guide Voice <span style="font-size: 11px; opacity: 0.7;">(Official voices &amp; OpenRouter new voices)</span></label>
               <select id="fsVoice" class="fs-select">
-                <optgroup label="🌟 顶级 AI 神经网络原声 (原版配置 · 如同真人耳畔细语 · 强烈推荐)">
-                  <option value="Zephyr" selected>✨ Zephyr · 空灵清澈女声 (天籁通透 · 呼吸感 · 默认推荐)</option>
-                  <option value="Kore">🌸 Kore · 温柔治愈女声 (温润深情 · 深度抚慰)</option>
-                  <option value="Aoede">🎵 Aoede · 灵动抒情女声 (清脆婉转 · 如歌如诗)</option>
-                  <option value="Puck">🌿 Puck · 温暖从容男声 (和煦自然 · 亲切沉静)</option>
-                  <option value="Charon">🌌 Charon · 深邃沉静男声 (磁性定心 · 深度安全感)</option>
-                  <option value="Fenrir">⚡ Fenrir · 笃定自信男声 (能量赋能 · 笃定从容)</option>
+                <optgroup label="🌟 Premium AI Neural Voices (Recommended)">
+                  <option value="Zephyr" selected>✨ Zephyr · Ethereal Clear Female (Default)</option>
+                  <option value="Kore">🌸 Kore · Gentle Healing Female</option>
+                  <option value="Aoede">🎵 Aoede · Lively Lyrical Female</option>
+                  <option value="Puck">🌿 Puck · Warm Calm Male</option>
+                  <option value="Charon">🌌 Charon · Deep Serene Male</option>
+                  <option value="Fenrir">⚡ Fenrir · Confident Grounded Male</option>
                 </optgroup>
-                <optgroup label="💫 OpenRouter: Qwen-Audio-3.0-TTS (阿里通义旗舰 · 精选中英自然情感女声)">
-                  <option value="qwen:longanlingxin">🌸 Qwen 3.0 Plus · 灵心 (温润共情·细腻治愈女声 · 强烈推荐)</option>
-                  <option value="qwen:longanyuanfei">👑 Qwen 3.0 Plus · 远妃 (端庄温婉·从容知性女声)</option>
-                  <option value="qwen:longanlingxi">✨ Qwen 3.0 Plus · 灵犀 (灵动甜美·可爱亲切女声)</option>
-                  <option value="qwen:longanxiaoxin">🎀 Qwen 3.0 Plus · 小欣 (亲切轻柔·自然元气女声)</option>
-                  <option value="qwen:longanfengyue">🍃 Qwen 3.0 · 风月 (自然舒缓·明媚治愈女声)</option>
-                  <option value="qwen:longanhuan_v3.6">🕊️ Qwen 3.0 · 欢欢 (轻柔自然·清澈伴读女声)</option>
-                  <option value="qwen:longjielidou_v3.6">🍬 Qwen 3.0 · 杰利豆 (萌动元气·可爱甜美女声)</option>
-                  <option value="qwen:loongeva_v3.6">🌙 Qwen 3.0 · Eva (典雅知性·从容温婉女声)</option>
+                <optgroup label="💫 OpenRouter: Qwen-Audio-3.0-TTS (Natural Bilingual Voices)">
+                  <option value="qwen:longanlingxin">🌸 Qwen 3.0 Plus · Lingxin (Warm Empathetic Female · Recommended)</option>
+                  <option value="qwen:longanyuanfei">👑 Qwen 3.0 Plus · Yuanfei (Graceful Refined Female)</option>
+                  <option value="qwen:longanlingxi">✨ Qwen 3.0 Plus · Lingxi (Sweet Playful Female)</option>
+                  <option value="qwen:longanxiaoxin">🎀 Qwen 3.0 Plus · Xiaoxin (Bright Genuine Female)</option>
+                  <option value="qwen:longanfengyue">🍃 Qwen 3.0 · Fengyue (Calm Soothing Female)</option>
+                  <option value="qwen:longanhuan_v3.6">🕊️ Qwen 3.0 · Huanhuan (Soft Clear Female)</option>
+                  <option value="qwen:longjielidou_v3.6">🍬 Qwen 3.0 · Jielidou (Cute Energetic Female)</option>
+                  <option value="qwen:loongeva_v3.6">🌙 Qwen 3.0 · Eva (Elegant Poised Female)</option>
                 </optgroup>
-                <optgroup label="🌸 OpenRouter: Gemini 3.1 Flash TTS (新接入 · 精选多款高拟真纯女声)">
-                  <option value="openrouter:Zephyr">🌸 OpenRouter · Zephyr (空灵清澈女声)</option>
-                  <option value="openrouter:Kore">🌸 OpenRouter · Kore (温柔治愈女声)</option>
-                  <option value="openrouter:Aoede">🌸 OpenRouter · Aoede (灵动清脆女声)</option>
-                  <option value="openrouter:Callirrhoe">🍃 OpenRouter · Callirrhoe (柔美知性女声)</option>
-                  <option value="openrouter:Despina">🕊️ OpenRouter · Despina (细腻轻柔女声)</option>
-                  <option value="openrouter:Leda">🌙 OpenRouter · Leda (典雅静谧女声)</option>
-                  <option value="openrouter:Sulafat">🕯️ OpenRouter · Sulafat (沉静入定女声)</option>
-                  <option value="openrouter:Vindemiatrix">🌌 OpenRouter · Vindemiatrix (醇厚知性女声)</option>
+                <optgroup label="🌸 OpenRouter: Gemini 3.1 Flash TTS (Realistic Voices)">
+                  <option value="openrouter:Zephyr">🌸 OpenRouter · Zephyr (Ethereal Clear Female)</option>
+                  <option value="openrouter:Kore">🌸 OpenRouter · Kore (Gentle Healing Female)</option>
+                  <option value="openrouter:Aoede">🌸 OpenRouter · Aoede (Bright Crisp Female)</option>
+                  <option value="openrouter:Callirrhoe">🍃 OpenRouter · Callirrhoe (Soft Refined Female)</option>
+                  <option value="openrouter:Despina">🕊️ OpenRouter · Despina (Delicate Gentle Female)</option>
+                  <option value="openrouter:Leda">🌙 OpenRouter · Leda (Serene Elegant Female)</option>
+                  <option value="openrouter:Sulafat">🕯️ OpenRouter · Sulafat (Calm Focused Female)</option>
+                  <option value="openrouter:Vindemiatrix">🌌 OpenRouter · Vindemiatrix (Warm Sophisticated Female)</option>
                 </optgroup>
-                <optgroup label="✨ 定制与轻量级备用声线">
-                  <option value="QJksobp1edMNvmwcG5lm">🌟 专属定制音色 (ElevenLabs ID: QJksobp1ed...)</option>
-                  <option value="zf_xiaoxiao">🎀 筱筱 · 中文柔和女声 (Kokoro 82M · 中文专用)</option>
-                  <option value="af_aoede">✨ 灵动小仙女声 (Kokoro TTS · 灵动清脆)</option>
-                  <option value="fish-audio/s2.1-pro-free:free">🐟 Fish Audio · S2.1 Pro Free (OpenRouter 免费拟真)</option>
-                  <option value="local">📱 本地系统声线 (离线兼容)</option>
+                <optgroup label="✨ Custom &amp; Lightweight Backup Voices">
+                  <option value="QJksobp1edMNvmwcG5lm">🌟 Custom Premium Voice (ElevenLabs ID: QJksobp1ed...)</option>
+                  <option value="zf_xiaoxiao">🎀 Xiaoxiao · Soft Mandarin Female (Kokoro 82M)</option>
+                  <option value="af_aoede">✨ Playful Clear Voice (Kokoro TTS)</option>
+                  <option value="fish-audio/s2.1-pro-free:free">🐟 Fish Audio · S2.1 Pro Free (OpenRouter)</option>
+                  <option value="local">📱 System Voice (Offline)</option>
                 </optgroup>
               </select>
             </div>
             <div class="fs-opt-group">
-              <label for="fsSpeed">诵读语速 / Rhythm</label>
+              <label for="fsSpeed">⏱️ Reading Rhythm</label>
               <select id="fsSpeed" class="fs-select">
-                <option value="0.85">慢节奏·深度冥想 (0.85x)</option>
-                <option value="0.95" selected>自然舒缓 (0.95x)</option>
-                <option value="1.05">轻快笃定 (1.05x)</option>
+                <option value="0.85">Slow · Deep Meditation (0.85x)</option>
+                <option value="0.95" selected>Natural &amp; Calm (0.95x)</option>
+                <option value="1.05">Brisk &amp; Confident (1.05x)</option>
               </select>
             </div>
           </div>
 
-          <!-- 调试选拔专用: 音色即时试听与实验室 -->
+          <!-- Voice Audition Lab (Select & test voices instantly) -->
           <div class="fs-voice-audition-card" style="margin-top: 14px; padding: 12px 16px; background: rgba(255,255,255,0.04); border: 1px dashed rgba(212,175,55,0.3); border-radius: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <span style="font-size: 13px; font-weight: 600; color: #d4af37; display: flex; align-items: center; gap: 6px;">
-                🎧 OpenRouter 音色试听与选拔台 <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">(支持 Qwen 3.0 灵心/远妃/风月等全系女声 与 Gemini TTS 即时试听)</span>
+                🎧 Audio Audition Lab <span style="font-size: 11px; opacity: 0.7; font-weight: normal;">(Preview Qwen 3.0, Gemini TTS &amp; more instantly)</span>
               </span>
-              <span id="fsAuditionStatus" style="font-size: 12px; color: #9bb0c1;">就绪</span>
+              <span id="fsAuditionStatus" style="font-size: 12px; color: #9bb0c1;">Ready</span>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              <input type="text" id="fsTestVoiceId" value="qwen:longanlingxin" placeholder="输入 Voice 名 (如 qwen:longanlingxin, qwen:longanyuanfei, qwen:longanfengyue, Zephyr, Kore)" style="flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13px; font-family: monospace; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: #fff;">
+              <input type="text" id="fsTestVoiceId" value="qwen:longanlingxin" placeholder="Enter a Voice name (e.g. qwen:longanlingxin, qwen:longanyuanfei, qwen:longanfengyue, Zephyr, Kore)" style="flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13px; font-family: monospace; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: #fff;">
               <button type="button" id="fsAuditionPlayBtn" class="btn-secondary" style="padding: 8px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-                ▶️ 试听此声音
+                ▶️ Preview Voice
               </button>
             </div>
             <div style="margin-top: 6px; font-size: 11px; color: rgba(255,255,255,0.45); display: flex; justify-content: space-between;">
-              <span>试听样句：“深吸一口气... 感受这一刻，你渴望的一切已经在当下自然显现。”</span>
+              <span>Sample: "Take a deep breath... feel this moment — everything you desire is already unfolding, naturally, right now."</span>
             </div>
           </div>
 
           <button type="submit" id="fsGenerateBtn" class="btn-primary" style="margin-top: 18px; width: 100%;">
-            ✦ 进入我的现在进行时现实 · Enter My Reality
+            ✦ Enter My Present-Moment Reality
           </button>
         </form>
 
         <!-- Loading State -->
         <div id="fsLoading" class="card glass hidden fs-loading-overlay">
           <div class="fs-loading-spinner"></div>
-          <p class="fs-loading-txt">正在构筑你的【现在进行时】感官世界...</p>
-          <span class="fs-loading-sub">AI 正在将你的愿望编织为当下此刻的沉浸画面与音频</span>
+          <p class="fs-loading-txt">Building your present-moment sensory world...</p>
+          <span class="fs-loading-sub">The AI is weaving your desire into an immersive scene with audio</span>
         </div>
 
         <!-- Immersive Stage & Audio Player -->
@@ -3483,9 +3524,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </div>
 
           <!-- Reality Scene Title & Affirmation -->
-          <h3 class="fs-scene-title" id="fsSceneTitle">晨曦海风中的自由书房</h3>
-          <div class="fs-voice-status-badge" id="fsVoiceStatusBadge">✨ AI 神经网络高保真真人声线</div>
-          <div class="fs-affirm-badge" id="fsAffirmBadge">我已经安住在丰盛与宁静之中</div>
+          <h3 class="fs-scene-title" id="fsSceneTitle">A Free Studio in the Morning Sea Breeze</h3>
+          <div class="fs-voice-status-badge" id="fsVoiceStatusBadge">✨ AI Neural High-Fidelity Human Voice</div>
+          <div class="fs-affirm-badge" id="fsAffirmBadge">I am resting in abundance and peace</div>
 
           <!-- Story Text (Karaoke / Highlighted Paragraphs) -->
           <div class="fs-story-card" id="fsStoryCard">
@@ -3496,29 +3537,29 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <div class="fs-anchor-box" id="fsAnchorBox">
             <span class="fs-anchor-ico">⚓</span>
             <div class="fs-anchor-text">
-              <strong>身体感官锚定 (Sensory Anchor)</strong>
-              <span id="fsAnchorDesc">轻轻将手放在心口，感受温热平稳的心跳，对自己微笑。</span>
+              <strong>Sensory Anchor</strong>
+              <span id="fsAnchorDesc">Gently place your hand on your heart, feel its warm steady beat, and smile.</span>
             </div>
           </div>
 
           <!-- Volume & Ambient Mixer -->
           <div class="fs-mixer">
             <div class="fs-mixer-item">
-              <span>🗣️ 语音音量</span>
+              <span>🗣️ Voice Volume</span>
               <input type="range" id="fsVoiceVol" min="0" max="1" step="0.05" value="1">
             </div>
             <div class="fs-mixer-item">
-              <span id="fsAmbLabel">🎵 疗愈频段音量</span>
+              <span id="fsAmbLabel">🎵 Healing Frequency Volume</span>
               <input type="range" id="fsAmbVol" min="0" max="1" step="0.05" value="0.5">
             </div>
           </div>
 
           <!-- Action Buttons -->
           <div class="fs-controls-bar">
-            <button id="fsPlayBtn" class="btn-primary fs-btn-main" type="button">▶ 播放朗读</button>
-            <button id="fsSendToWallpaper" class="fs-secondary-btn" type="button" title="将此显化语制作成锁屏壁纸">🖼️ 设为壁纸</button>
-            <button id="fsCopyText" class="fs-secondary-btn" type="button" title="复制完整故事文本">📋 复制故事</button>
-            <button id="fsNewDesire" class="fs-secondary-btn" type="button" title="更换心愿">↺ 重设目标</button>
+            <button id="fsPlayBtn" class="btn-primary fs-btn-main" type="button">▶ Play Narration</button>
+            <button id="fsSendToWallpaper" class="fs-secondary-btn" type="button" title="Turn this manifestation into a lock screen wallpaper">🖼️ Set as Wallpaper</button>
+            <button id="fsCopyText" class="fs-secondary-btn" type="button" title="Copy the full story text">📋 Copy Story</button>
+            <button id="fsNewDesire" class="fs-secondary-btn" type="button" title="Enter a new desire">↺ New Goal</button>
           </div>
         </div>
       </section>
@@ -3602,7 +3643,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
               <!-- 3 · Reference Photo -->
               <div class="ai-field-group">
-                <label class="ai-field-title">3 · Reference Photo</label>
+                <label class="ai-field-title">3 · Reference Photo (Optional)</label>
                 <input type="file" id="aiPhotoFile" accept="image/*" class="hidden">
                 <div class="ai-drop-zone" id="aiPhotoDrop">
                   <div class="ai-drop-icon">
@@ -3693,7 +3734,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <!-- 2 · Reference Photo -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">2 · Reference Photo</label>
+                  <label class="ai-field-title">2 · Reference Photo (Optional)</label>
                   <button type="button" id="aiBtnUseRecentPhoto" class="ai-btn-text-action hidden" title="Use the latest portrait created in Photo Studio as the first frame">
                     ✦ Use Latest Generated Portrait
                   </button>
@@ -3718,10 +3759,29 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- 3 · Camera Cinematics -->
+              <!-- 3 · Video Duration Selector -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">3 · Camera Cinematics</label>
+                  <label class="ai-field-title">3 · Video Duration</label>
+                </div>
+
+                <div class="ai-duration-slider-wrap">
+                  <div class="ai-duration-slider-head">
+                    <span class="ai-dur-slider-value" id="aiDurSliderValue">5s</span>
+                    <span class="ai-dur-slider-hint">Drag to adjust</span>
+                  </div>
+                  <div class="ai-duration-slider-row">
+                    <span class="ai-dur-slider-min">5s</span>
+                    <input type="range" id="aiDurationSlider" class="ai-duration-slider" min="5" max="10" step="1" value="5" aria-label="Video Duration (seconds)" />
+                    <span class="ai-dur-slider-max">10s</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4 · Camera Cinematics -->
+              <div class="ai-field-group">
+                <div class="ai-label-row">
+                  <label class="ai-field-title">4 · Camera Cinematics</label>
                   <span id="aiVideoQualityHint" class="ai-char-counter">Handheld Cinematics</span>
                 </div>
                 <div class="ai-quality-selector" role="radiogroup" aria-label="Video Camera Texture">
@@ -3740,10 +3800,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
-              <!-- 4 · Aspect Ratio -->
+              <!-- 5 · Aspect Ratio -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">4 · Aspect Ratio</label>
+                  <label class="ai-field-title">5 · Aspect Ratio</label>
                 </div>
                 <div class="ai-aspect-selector" role="radiogroup" aria-label="Video Aspect Ratio">
                   <button type="button" class="ai-aspect-btn" data-aspect="9:16" role="radio" aria-checked="false">9:16</button>
@@ -4226,9 +4286,68 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <div class="more-card" data-goto="tab-future">
             <span class="mc-ico">🌌</span>
             <span class="mc-title">Living Reality</span>
-            <span class="mc-desc">现在进行时显化剧场与导引</span>
+            <span class="mc-desc">Present-tense manifestation theatre &amp; guidance</span>
+          </div>
+          <div class="more-card" data-goto="tab-plans">
+            <span class="mc-ico">✦</span>
+            <span class="mc-title">Subscriptions</span>
+            <span class="mc-desc">Free &amp; Pro — unlock your full practice</span>
           </div>
         </div>
+      </section>
+
+      <!-- Subscriptions / Pricing -->
+      <section id="tab-plans" class="tab-page">
+        <h2 class="page-title">Subscriptions</h2>
+        <p class="page-sub">Choose the vibration that matches your practice.</p>
+
+        <div class="plans-toggle">
+          <button type="button" class="plans-toggle-btn active" data-billing="yearly">Yearly</button>
+          <button type="button" class="plans-toggle-btn" data-billing="monthly">Monthly</button>
+          <span class="plans-save">Save 33%</span>
+        </div>
+
+        <div class="plans-grid">
+          <article class="plan-card">
+            <div class="plan-badge">Free</div>
+            <h3 class="plan-name">Begin</h3>
+            <p class="plan-tag">A gentle start to your daily ritual.</p>
+            <div class="plan-price">
+              <span class="plan-amount">$0</span>
+              <span class="plan-period">forever</span>
+            </div>
+            <ul class="plan-feats">
+              <li>Daily affirmations &amp; gratitude</li>
+              <li>Desires &amp; vision board basics</li>
+              <li>Cosmic meditation timer</li>
+              <li>Manifest song essentials</li>
+            </ul>
+            <button type="button" class="plan-btn" data-plan="free">Current plan</button>
+          </article>
+
+          <article class="plan-card plan-card-featured">
+            <div class="plan-badge plan-badge-pro">Pro</div>
+            <h3 class="plan-name">Bloom</h3>
+            <p class="plan-tag">Everything unlocked, fully supported.</p>
+            <div class="plan-price">
+              <span class="plan-amount" data-price="yearly">$3.33</span>
+              <span class="plan-amount" data-price="monthly" hidden>$5</span>
+              <span class="plan-period">/ month</span>
+            </div>
+            <p class="plan-note" data-note="yearly">Billed $39.90 yearly</p>
+            <p class="plan-note" data-note="monthly" hidden>Billed monthly</p>
+            <ul class="plan-feats">
+              <li>AI Vision photo &amp; video generation</li>
+              <li>All AI guides, avatars &amp; audio</li>
+              <li>Unlimited vision boards</li>
+              <li>Cloud sync across devices</li>
+              <li>No ads, priority support</li>
+            </ul>
+            <button type="button" class="plan-btn plan-btn-cta" data-plan="pro">Upgrade to Pro</button>
+          </article>
+        </div>
+
+        <p class="plans-fineprint">Payment &amp; activation coming soon. Tap a plan to preview it.</p>
       </section>
     </main>
 
@@ -4243,7 +4362,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     <button id="themeFab" class="theme-fab" aria-label="Switch theme">✦</button>
     <div id="themePanel" class="theme-panel hidden">
       <p class="theme-panel-title">Choose a look</p>
-      <button class="theme-opt" data-theme="luminara"><span class="to-ico">✦</span><span class="to-name">Luminara</span><span class="to-desc">Dreamy lavender</span></button>
+      <button class="theme-opt" data-theme="luminara"><span class="to-ico">✦</span><span class="to-name">Alyema</span><span class="to-desc">Dreamy lavender</span></button>
       <button class="theme-opt" data-theme="manifest-light"><span class="to-ico">☀</span><span class="to-name">Manifest Light</span><span class="to-desc">Liquid gold & glass</span></button>
       <button class="theme-opt" data-theme="manifest-dark"><span class="to-ico">🌙</span><span class="to-name">Manifest Dark</span><span class="to-desc">Cosmic nebula</span></button>
       <button class="theme-opt" data-theme="prism"><span class="to-ico">◈</span><span class="to-name">Prism White</span><span class="to-desc">Iridescent white</span></button>
@@ -4254,7 +4373,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
     <div id="quizModal" class="quiz-modal hidden">
       <div class="quiz-card glass">
         <div class="quiz-step" data-step="1">
-          <h3>Welcome to Luminara ✦</h3>
+          <h3>Welcome to Alyema ✦</h3>
           <p class="quiz-q">Let's make this truly yours. What should we call you?</p>
           <input id="qName" type="text" placeholder="Your name" maxlength="20">
           <button class="btn-primary q-next">Continue</button>
