@@ -3604,7 +3604,7 @@
     '♥ Saved':    { ico: '💗', label: 'My Saved' }
   };
   // Order of the 6 featured chips (Freedom → replaced by user's saved affirmations)
-  var WP_CHIP_KEYS = ['Abundance', 'Love', 'Career', 'Wellness', 'Growth', '♥ Saved'];
+  var WP_CHIP_KEYS = ['♥ Saved', 'Abundance', 'Love', 'Career', 'Wellness', 'Growth'];
   function renderWpRefs() {
     var inspoBox = $('#wpInspoList');
     var favBox = $('#wpRefFavs');
