@@ -3601,12 +3601,19 @@
     'Career':     { ico: '🔥', label: 'Success & Confidence' },
     'Wellness':   { ico: '🌿', label: 'Vitality & Peace' },
     'Growth':     { ico: '✨', label: 'Becoming Myself' },
-    'Freedom':    { ico: '🕊️', label: 'Freedom & Ease' }
+    '♥ Saved':    { ico: '💗', label: 'My Saved' }
   };
+  // Order of the 6 featured chips (Freedom → replaced by user's saved affirmations)
+  var WP_CHIP_KEYS = ['Abundance', 'Love', 'Career', 'Wellness', 'Growth', '♥ Saved'];
   function renderWpRefs() {
     var inspoBox = $('#wpInspoList');
     var favBox = $('#wpRefFavs');
     if (!inspoBox && !favBox) return;
+
+    // Favorite affirmations (from Affirm tab: favorited + custom)
+    var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); })
+      .concat((db.affirmCustom || []).filter(function (t) { return t && t.trim(); }));
+    favs = favs.filter(function (t, i) { return favs.indexOf(t) === i; });
 
     // Inspiration Categories — compact chips each with a small fold control
     if (inspoBox) {
@@ -3617,37 +3624,49 @@
         foldBox.innerHTML = '';
         var meta = INSPO_META[cat] || { ico: '✦', label: cat };
         var hd = el('div', 'wp-inspo-fold-hd');
-        hd.textContent = meta.ico + ' ' + meta.label + ' · ' + cat;
+        hd.textContent = meta.ico + ' ' + meta.label;
         foldBox.appendChild(hd);
-        AFFIRMATIONS[cat].forEach(function (t) {
-          var item = el('button', 'wp-ref-item');
-          item.type = 'button';
-          var label = el('span', 'wp-ref-text', t);
-          var use = el('span', 'wp-ref-use', 'Use');
-          item.appendChild(label);
-          item.appendChild(use);
-          item.addEventListener('click', function () { selectRefAffirmation(t); });
-          foldBox.appendChild(item);
-        });
+        var isSaved = (cat === '♥ Saved');
+        var list = isSaved ? favs : (AFFIRMATIONS[cat] || []);
+        if (list.length === 0) {
+          var empty = el('p', 'wp-ref-empty', 'Nothing saved yet.');
+          foldBox.appendChild(empty);
+        } else {
+          list.forEach(function (t) {
+            var item = el('button', 'wp-ref-item');
+            item.type = 'button';
+            var label = el('span', 'wp-ref-text', t);
+            var use = el('span', 'wp-ref-use', 'Use');
+            item.appendChild(label);
+            item.appendChild(use);
+            item.addEventListener('click', function () { selectRefAffirmation(t); });
+            foldBox.appendChild(item);
+          });
+        }
         foldBox.classList.remove('hidden');
         activeFold = cat;
       }
       var activeFold = null;
-      Object.keys(AFFIRMATIONS).forEach(function (cat) {
+      WP_CHIP_KEYS.forEach(function (cat) {
         var meta = INSPO_META[cat] || { ico: '✦', label: cat };
         var group = el('span', 'wp-inspo-chip-group');
         var chip = el('button', 'wp-sug-btn wp-inspo-chip');
         chip.type = 'button';
         chip.textContent = meta.ico + ' ' + meta.label;
-        // clicking the label inserts that category's first affirmation
+        // clicking the label opens its affirmations (or the saved list)
+        // for featured categories, clicking inserts the category's first affirmation
         chip.addEventListener('click', function () {
+          if (cat === '♥ Saved') {
+            renderFold(cat);
+            return;
+          }
           var first = AFFIRMATIONS[cat][0];
           if (first) selectRefAffirmation(first);
         });
         var foldBtn = el('button', 'wp-inspo-foldbtn');
         foldBtn.type = 'button';
         foldBtn.textContent = '▾';
-        foldBtn.title = 'View ' + cat + ' affirmations';
+        foldBtn.title = 'View ' + meta.label + ' affirmations';
         foldBtn.addEventListener('click', function (e) {
           e.stopPropagation();
           if (activeFold === cat) {
@@ -3664,9 +3683,6 @@
     }
 
     // My Saved Affirmations (from Affirm tab: favorited + custom)
-    var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); })
-      .concat((db.affirmCustom || []).filter(function (t) { return t && t.trim(); }));
-    favs = favs.filter(function (t, i) { return favs.indexOf(t) === i; });
     var countEl = $('#wpRefFavsCount');
     var emptyEl = $('#wpRefFavsEmpty');
     if (favBox) {
