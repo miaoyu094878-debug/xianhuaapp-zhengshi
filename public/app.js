@@ -3570,20 +3570,17 @@
     var favBox = $('#wpRefFavs');
     if (!inspoBox && !favBox) return;
 
-    // Inspiration Categories — one collapsible row per library category
+    // Inspiration Categories — compact chips each with a small fold control
     if (inspoBox) {
       inspoBox.innerHTML = '';
-      Object.keys(AFFIRMATIONS).forEach(function (cat) {
+      var foldBox = $('#wpInspoFold');
+      function renderFold(cat) {
+        if (!foldBox) return;
+        foldBox.innerHTML = '';
         var meta = INSPO_META[cat] || { ico: '✦', label: cat };
-        var row = el('div', 'wp-inspo-row');
-        var head = el('button', 'wp-inspo-head');
-        head.type = 'button';
-        var headLabel = el('span', 'wp-inspo-head-label', meta.ico + ' ' + meta.label + ' · ' + cat);
-        var chev = el('span', 'wp-inspo-chev', '▶');
-        head.appendChild(headLabel);
-        head.appendChild(chev);
-        var body = el('div', 'wp-inspo-body');
-        body.hidden = true;
+        var hd = el('div', 'wp-inspo-fold-hd');
+        hd.textContent = meta.ico + ' ' + meta.label + ' · ' + cat;
+        foldBox.appendChild(hd);
         AFFIRMATIONS[cat].forEach(function (t) {
           var item = el('button', 'wp-ref-item');
           item.type = 'button';
@@ -3592,18 +3589,39 @@
           item.appendChild(label);
           item.appendChild(use);
           item.addEventListener('click', function () { selectRefAffirmation(t); });
-          body.appendChild(item);
+          foldBox.appendChild(item);
         });
-        head.addEventListener('click', function () {
-          var open = body.hidden;
-          body.hidden = !open;
-          head.classList.toggle('open', open);
-          head.setAttribute('aria-expanded', open ? 'true' : 'false');
-          chev.textContent = open ? '▼' : '▶';
+        foldBox.classList.remove('hidden');
+        activeFold = cat;
+      }
+      var activeFold = null;
+      Object.keys(AFFIRMATIONS).forEach(function (cat) {
+        var meta = INSPO_META[cat] || { ico: '✦', label: cat };
+        var group = el('span', 'wp-inspo-chip-group');
+        var chip = el('button', 'wp-sug-btn wp-inspo-chip');
+        chip.type = 'button';
+        chip.textContent = meta.ico + ' ' + meta.label;
+        // clicking the label inserts that category's first affirmation
+        chip.addEventListener('click', function () {
+          var first = AFFIRMATIONS[cat][0];
+          if (first) selectRefAffirmation(first);
         });
-        row.appendChild(head);
-        row.appendChild(body);
-        inspoBox.appendChild(row);
+        var foldBtn = el('button', 'wp-inspo-foldbtn');
+        foldBtn.type = 'button';
+        foldBtn.textContent = '▾';
+        foldBtn.title = 'View ' + cat + ' affirmations';
+        foldBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (activeFold === cat) {
+            if (foldBox) { foldBox.innerHTML = ''; foldBox.classList.add('hidden'); }
+            activeFold = null;
+            return;
+          }
+          renderFold(cat);
+        });
+        group.appendChild(chip);
+        group.appendChild(foldBtn);
+        inspoBox.appendChild(group);
       });
     }
 
