@@ -3547,7 +3547,7 @@
     });
   });
 
-  /* ---- Affirmation Reference Browser (Favorites + Library) ---- */
+  /* ---- Affirmation Inspiration Categories (collapsible) + My Saved ---- */
   function selectRefAffirmation(text) {
     syncAffirmationText(text);
     // Bring focus back to the live editor so the change is visible / editable.
@@ -3558,11 +3558,56 @@
       try { live.select(); } catch (e) {}
     }
   }
-  function renderRefAffirmations() {
+  var INSPO_META = {
+    'Abundance': { ico: '🌟', label: 'Abundance & Joy' },
+    'Love':       { ico: '💖', label: 'Pure Love' },
+    'Career':     { ico: '🔥', label: 'Success & Confidence' },
+    'Wellness':   { ico: '🌿', label: 'Vitality & Peace' },
+    'Growth':     { ico: '✨', label: 'Becoming Myself' }
+  };
+  function renderWpRefs() {
+    var inspoBox = $('#wpInspoList');
     var favBox = $('#wpRefFavs');
-    var libBox = $('#wpRefLib');
-    if (!favBox && !libBox) return;
-    // Favorites (directly from the Affirm tab's saved affirmations)
+    if (!inspoBox && !favBox) return;
+
+    // Inspiration Categories — one collapsible row per library category
+    if (inspoBox) {
+      inspoBox.innerHTML = '';
+      Object.keys(AFFIRMATIONS).forEach(function (cat) {
+        var meta = INSPO_META[cat] || { ico: '✦', label: cat };
+        var row = el('div', 'wp-inspo-row');
+        var head = el('button', 'wp-inspo-head');
+        head.type = 'button';
+        var headLabel = el('span', 'wp-inspo-head-label', meta.ico + ' ' + meta.label + ' · ' + cat);
+        var chev = el('span', 'wp-inspo-chev', '▶');
+        head.appendChild(headLabel);
+        head.appendChild(chev);
+        var body = el('div', 'wp-inspo-body');
+        body.hidden = true;
+        AFFIRMATIONS[cat].forEach(function (t) {
+          var item = el('button', 'wp-ref-item');
+          item.type = 'button';
+          var label = el('span', 'wp-ref-text', t);
+          var use = el('span', 'wp-ref-use', 'Use');
+          item.appendChild(label);
+          item.appendChild(use);
+          item.addEventListener('click', function () { selectRefAffirmation(t); });
+          body.appendChild(item);
+        });
+        head.addEventListener('click', function () {
+          var open = body.hidden;
+          body.hidden = !open;
+          head.classList.toggle('open', open);
+          head.setAttribute('aria-expanded', open ? 'true' : 'false');
+          chev.textContent = open ? '▼' : '▶';
+        });
+        row.appendChild(head);
+        row.appendChild(body);
+        inspoBox.appendChild(row);
+      });
+    }
+
+    // My Saved Affirmations (from Affirm tab: favorited + custom)
     var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); })
       .concat((db.affirmCustom || []).filter(function (t) { return t && t.trim(); }));
     favs = favs.filter(function (t, i) { return favs.indexOf(t) === i; });
@@ -3583,69 +3628,9 @@
     }
     if (countEl) countEl.textContent = favs.length;
     if (emptyEl) emptyEl.classList.toggle('hidden', favs.length > 0);
-    // Library grouped by category (collapsible, collapsed by default)
-    var libCount = 0;
-    if (libBox) {
-      libBox.innerHTML = '';
-      Object.keys(AFFIRMATIONS).forEach(function (cat) {
-        var group = el('div', 'wp-ref-catgroup');
-        var head = el('button', 'wp-ref-cathead');
-        head.type = 'button';
-        head.setAttribute('aria-expanded', 'false');
-        var catName = el('span', 'wp-ref-cat-title', cat);
-        var chev = el('span', 'wp-ref-catchev', '▶');
-        head.appendChild(catName);
-        head.appendChild(chev);
-        var body = el('div', 'wp-ref-catbody');
-        body.hidden = true;
-        AFFIRMATIONS[cat].forEach(function (t) {
-          libCount++;
-          var item = el('button', 'wp-ref-item');
-          item.type = 'button';
-          var label = el('span', 'wp-ref-text', t);
-          var use = el('span', 'wp-ref-use', 'Use');
-          item.appendChild(label);
-          item.appendChild(use);
-          item.addEventListener('click', function () { selectRefAffirmation(t); });
-          body.appendChild(item);
-        });
-        head.addEventListener('click', function () {
-          var open = body.hidden;
-          body.hidden = !open;
-          head.classList.toggle('open', open);
-          head.setAttribute('aria-expanded', open ? 'true' : 'false');
-          chev.textContent = open ? '▼' : '▶';
-        });
-        group.appendChild(head);
-        group.appendChild(body);
-        libBox.appendChild(group);
-      });
-    }
-    var libCountEl = $('#wpRefLibCount');
-    if (libCountEl) libCountEl.textContent = libCount;
   }
-  if ($('#wpRefCollapse')) {
-    $('#wpRefCollapse').addEventListener('click', function () {
-      var panel = $('#wpRefCollapse').closest ? $('#wpRefCollapse').closest('.wp-ref-panel') : null;
-      if (!panel) panel = document.querySelector('.wp-ref-panel');
-      panel.classList.toggle('wp-ref-hidden');
-      $('#wpRefCollapse').textContent = panel.classList.contains('wp-ref-hidden') ? 'Show' : 'Hide';
-    });
-  }
-  if ($('#wpRefFillAll')) {
-    $('#wpRefFillAll').addEventListener('click', function () {
-      var pool = WP_QUOTES.concat(Object.keys(AFFIRMATIONS).reduce(function (a, c) {
-        return a.concat(AFFIRMATIONS[c]);
-      }, []));
-      var q = pool[Math.floor(Math.random() * pool.length)];
-      selectRefAffirmation(q);
-    });
-  }
-  renderRefAffirmations();
-  // Re-render favorites whenever the dashboard visits the wallpaper tab, so newly saved
-  // affirmations from the Affirm tab are reflected without a full reload.
-  if (window.__wpRefreshRef) {} // no-op guard
-  window.renderWpRefs = renderRefAffirmations;
+  renderWpRefs();
+  window.renderWpRefs = renderWpRefs;
 
   if ($('#wpGestureHint')) {
     $('#wpGestureHint').style.cursor = 'pointer';
