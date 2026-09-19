@@ -1874,6 +1874,8 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 }
 .wp-inspo-chip {
   margin: 0;
+  overflow: visible;
+  text-overflow: clip;
 }
 .wp-inspo-foldbtn {
   flex-shrink: 0;
