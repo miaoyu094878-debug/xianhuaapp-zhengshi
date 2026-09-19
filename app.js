@@ -139,6 +139,13 @@
       'I have the power to create the life of my dreams.',
       'I live in the present moment, peaceful and powerful.',
       'The Universe always has my back.'
+    ],
+    'Freedom': [
+      'I am free to live the life I truly desire.',
+      'I release all limits and claim my freedom.',
+      'Every choice I make moves me closer to liberation.',
+      'I am unshackled from doubt and fear.',
+      'My future is open, bright, and mine to design.'
     ]
   };
   var QUOTES = [
@@ -3563,7 +3570,8 @@
     'Love':       { ico: '💖', label: 'Pure Love' },
     'Career':     { ico: '🔥', label: 'Success & Confidence' },
     'Wellness':   { ico: '🌿', label: 'Vitality & Peace' },
-    'Growth':     { ico: '✨', label: 'Becoming Myself' }
+    'Growth':     { ico: '✨', label: 'Becoming Myself' },
+    'Freedom':    { ico: '🕊️', label: 'Freedom & Ease' }
   };
   function renderWpRefs() {
     var inspoBox = $('#wpInspoList');
