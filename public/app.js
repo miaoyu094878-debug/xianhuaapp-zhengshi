@@ -322,6 +322,20 @@
   function renderAffirm() {
     var wrap = $('#affirmList');
     wrap.innerHTML = '';
+    // Helper: send an affirmation to the Wallpaper Studio and jump there.
+    function sendToWallpaper(text) {
+      if (typeof syncAffirmationText === 'function') syncAffirmationText(text, 'affirm');
+      goTab('tab-wallpaper');
+      window.scrollTo(0, 0);
+    }
+    // Helper: build a "make wallpaper" button on each affirmation row.
+    function wpBtn(text) {
+      var b = el('button', 'icon-btn wp-to-wallpaper', '🖼');
+      b.title = 'Make wallpaper';
+      b.setAttribute('aria-label', 'Make wallpaper');
+      b.addEventListener('click', function (e) { e.stopPropagation(); sendToWallpaper(text); });
+      return b;
+    }
     if (db.affirmCustom && db.affirmCustom.length) {
       wrap.appendChild(el('div', 'list-head', 'My affirmations'));
       db.affirmCustom.forEach(function (text) {
@@ -335,7 +349,7 @@
           if (i !== -1) db.affirmCustom.splice(i, 1);
           save(); renderAffirm(); initSwipe();
         });
-        item.appendChild(mid); item.appendChild(delBtn);
+        item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
         wrap.appendChild(item);
       });
       wrap.appendChild(el('div', 'list-sep', ''));
@@ -352,7 +366,7 @@
         if (i === -1) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
         save(); renderAffirm();
       });
-      item.appendChild(mid); item.appendChild(favBtn);
+      item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(favBtn);
       wrap.appendChild(item);
     });
   }
@@ -378,7 +392,19 @@
       return;
     }
     var card = el('div', 'swipe-card');
-    card.innerHTML = '<div class="sc-text">' + swipeQueue[swipeQueue.length - 1] + '</div><div class="sc-hint">♥ save · ✕ skip</div>';
+    card.innerHTML = '<div class="sc-text">' + swipeQueue[swipeQueue.length - 1] + '</div>';
+    var row = el('div', 'sc-actions');
+    var wallBtn = el('button', 'swipe-to-wallpaper', '🖼 Make wallpaper');
+    wallBtn.type = 'button';
+    wallBtn.addEventListener('click', function () {
+      var text = swipeQueue[swipeQueue.length - 1];
+      if (text && typeof syncAffirmationText === 'function') syncAffirmationText(text, 'affirm');
+      goTab('tab-wallpaper');
+      window.scrollTo(0, 0);
+    });
+    row.appendChild(wallBtn);
+    row.appendChild(el('span', 'sc-hint', '♥ save · ✕ skip'));
+    card.appendChild(row);
     deck.appendChild(card);
   }
   function swipeOut(dir, after) {
