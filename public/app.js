@@ -110,42 +110,48 @@
       'I am a magnet for wealth, prosperity, and abundance.',
       'I deserve to live a life of financial freedom.',
       'Abundance is my natural state of being.',
-      'I am open to receive unlimited abundance from the Universe.'
+      'I am open to receive unlimited abundance from the Universe.',
+      'Every dollar I spend returns to me multiplied.'
     ],
     'Love': [
       'I am deeply loved and cherished.',
       'My soulmate is on their way to me right now.',
       'I am worthy of a passionate, healthy, and fulfilling relationship.',
       'Love surrounds me everywhere I go.',
-      'I radiate love and attract love effortlessly.'
+      'I radiate love and attract love effortlessly.',
+      'I give and receive love with an open heart.'
     ],
     'Career': [
       'My talents are seen, valued, and rewarded.',
       'The perfect opportunity is already making its way to me.',
       'I do what I love and prosper abundantly from it.',
       'Every step I take leads me to my highest purpose.',
-      'I am confident, capable, and successful in all I do.'
+      'I am confident, capable, and successful in all I do.',
+      'Success comes to me easily and naturally every day.'
     ],
     'Wellness': [
       'Every cell in my body vibrates with energy and health.',
       'I am radiant, vibrant, and full of life force.',
       'My body heals, restores, and strengthens each day.',
       'I treat my body with love, and it loves me back.',
-      'Perfect health is my birthright.'
+      'Perfect health is my birthright.',
+      'I am in perfect balance — body, mind, and spirit.'
     ],
     'Growth': [
       'I trust myself completely and believe in my journey.',
       'Everything is unfolding perfectly for my highest good.',
       'I have the power to create the life of my dreams.',
       'I live in the present moment, peaceful and powerful.',
-      'The Universe always has my back.'
+      'The Universe always has my back.',
+      'I grow into the strongest, wisest version of myself.'
     ],
     'Freedom': [
       'I am free to live the life I truly desire.',
       'I release all limits and claim my freedom.',
       'Every choice I make moves me closer to liberation.',
       'I am unshackled from doubt and fear.',
-      'My future is open, bright, and mine to design.'
+      'My future is open, bright, and mine to design.',
+      'I let go of what no longer serves me with ease.'
     ]
   };
   var QUOTES = [
