@@ -3565,21 +3565,6 @@
     });
   }
 
-  if ($('#wpDoneEditBtn')) {
-    $('#wpDoneEditBtn').addEventListener('click', function () {
-      var ta = $('#wpText');
-      if (ta && !ta.value.trim()) {
-        syncAffirmationText(WP_QUOTES[0]);
-      }
-      if (ta) ta.blur();
-      var live = $('#wpLiveInput');
-      if (live) {
-        live.blur();
-        autoResizeLiveInput(false);
-      }
-    });
-  }
-
   if ($('#wpLiveDoneBtn')) {
     $('#wpLiveDoneBtn').addEventListener('click', function () {
       var live = $('#wpLiveInput');
