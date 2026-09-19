@@ -111,7 +111,11 @@
       'I deserve to live a life of financial freedom.',
       'Abundance is my natural state of being.',
       'I am open to receive unlimited abundance from the Universe.',
-      'Every dollar I spend returns to me multiplied.'
+      'Every dollar I spend returns to me multiplied.',
+      'I attract opportunities that bring me wealth every day.',
+      'My bank account grows steadily and effortlessly.',
+      'I am worthy of receiving all the riches life has to offer.',
+      'Prosperity flows through every area of my life.'
     ],
     'Love': [
       'I am deeply loved and cherished.',
@@ -119,7 +123,11 @@
       'I am worthy of a passionate, healthy, and fulfilling relationship.',
       'Love surrounds me everywhere I go.',
       'I radiate love and attract love effortlessly.',
-      'I give and receive love with an open heart.'
+      'I give and receive love with an open heart.',
+      'My heart is open to giving and receiving pure love.',
+      'I am a magnet for kind, honest, and loving people.',
+      'Every day my relationship becomes deeper and more beautiful.',
+      'I feel loved, safe, and fully supported.'
     ],
     'Career': [
       'My talents are seen, valued, and rewarded.',
@@ -127,7 +135,11 @@
       'I do what I love and prosper abundantly from it.',
       'Every step I take leads me to my highest purpose.',
       'I am confident, capable, and successful in all I do.',
-      'Success comes to me easily and naturally every day.'
+      'Success comes to me easily and naturally every day.',
+      'My work brings me joy, meaning, and great reward.',
+      'I am recognized and appreciated for my unique gifts.',
+      'New doors of opportunity keep opening for me.',
+      'I lead with passion and succeed with ease.'
     ],
     'Wellness': [
       'Every cell in my body vibrates with energy and health.',
@@ -135,7 +147,11 @@
       'My body heals, restores, and strengthens each day.',
       'I treat my body with love, and it loves me back.',
       'Perfect health is my birthright.',
-      'I am in perfect balance — body, mind, and spirit.'
+      'I am in perfect balance — body, mind, and spirit.',
+      'I am full of boundless, radiant, healthy energy.',
+      'My immune system is strong, calm, and resilient.',
+      'Every breath I take fills me with vitality.',
+      'I nourish my body with love and watch it thrive.'
     ],
     'Growth': [
       'I trust myself completely and believe in my journey.',
@@ -143,7 +159,11 @@
       'I have the power to create the life of my dreams.',
       'I live in the present moment, peaceful and powerful.',
       'The Universe always has my back.',
-      'I grow into the strongest, wisest version of myself.'
+      'I grow into the strongest, wisest version of myself.',
+      'I embrace change as a path to my highest self.',
+      'Every challenge is an opportunity for me to evolve.',
+      'I release old patterns and step into my power.',
+      'I am learning, growing, and becoming better every day.'
     ],
     'Freedom': [
       'I am free to live the life I truly desire.',
@@ -151,7 +171,11 @@
       'Every choice I make moves me closer to liberation.',
       'I am unshackled from doubt and fear.',
       'My future is open, bright, and mine to design.',
-      'I let go of what no longer serves me with ease.'
+      'I let go of what no longer serves me with ease.',
+      'I give myself permission to be completely free.',
+      'I break every chain that once held me back.',
+      'My life is full of limitless possibilities.',
+      'I choose freedom, peace, and joy in every moment.'
     ]
   };
   var QUOTES = [
