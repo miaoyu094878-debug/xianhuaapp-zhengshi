@@ -3633,8 +3633,7 @@
   var WP_CHIP_KEYS = ['♥ Saved', 'Abundance', 'Love', 'Career', 'Wellness', 'Growth'];
   function renderWpRefs() {
     var inspoBox = $('#wpInspoList');
-    var favBox = $('#wpRefFavs');
-    if (!inspoBox && !favBox) return;
+    if (!inspoBox) return;
 
     // Favorite affirmations (from Affirm tab: favorited + custom)
     var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); })
@@ -3707,25 +3706,6 @@
         inspoBox.appendChild(group);
       });
     }
-
-    // My Saved Affirmations (from Affirm tab: favorited + custom)
-    var countEl = $('#wpRefFavsCount');
-    var emptyEl = $('#wpRefFavsEmpty');
-    if (favBox) {
-      favBox.innerHTML = '';
-      favs.forEach(function (t) {
-        var item = el('button', 'wp-ref-item');
-        item.type = 'button';
-        var label = el('span', 'wp-ref-text', t);
-        var use = el('span', 'wp-ref-use', 'Use');
-        item.appendChild(label);
-        item.appendChild(use);
-        item.addEventListener('click', function () { selectRefAffirmation(t); });
-        favBox.appendChild(item);
-      });
-    }
-    if (countEl) countEl.textContent = favs.length;
-    if (emptyEl) emptyEl.classList.toggle('hidden', favs.length > 0);
   }
   renderWpRefs();
   window.renderWpRefs = renderWpRefs;
