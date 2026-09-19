@@ -1866,14 +1866,45 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   background: var(--accent);
   color: var(--accent-text, #fff);
 }
-.wp-ref-cat {
-  font-size: 11px;
+.wp-ref-cathead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.wp-ref-cathead:hover {
+  border-color: var(--accent);
+}
+.wp-ref-cathead.open {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+}
+.wp-ref-cat-title {
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-soft);
-  margin: 8px 0 4px;
   letter-spacing: 0.02em;
 }
-.wp-ref-cat:first-child { margin-top: 0; }
+.wp-ref-cathead.open .wp-ref-cat-title { color: var(--accent); }
+.wp-ref-catchev {
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: transform 0.2s ease;
+}
+.wp-ref-catbody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 0 6px;
+}
+.wp-ref-catbody[hidden] { display: none; }
 .wp-ref-fill {
   width: 100%;
   justify-content: center;

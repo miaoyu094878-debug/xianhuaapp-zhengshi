@@ -3583,13 +3583,21 @@
     }
     if (countEl) countEl.textContent = favs.length;
     if (emptyEl) emptyEl.classList.toggle('hidden', favs.length > 0);
-    // Library grouped by category
+    // Library grouped by category (collapsible, collapsed by default)
     var libCount = 0;
     if (libBox) {
       libBox.innerHTML = '';
       Object.keys(AFFIRMATIONS).forEach(function (cat) {
-        var catLabel = el('div', 'wp-ref-cat', cat);
-        libBox.appendChild(catLabel);
+        var group = el('div', 'wp-ref-catgroup');
+        var head = el('button', 'wp-ref-cathead');
+        head.type = 'button';
+        head.setAttribute('aria-expanded', 'false');
+        var catName = el('span', 'wp-ref-cat-title', cat);
+        var chev = el('span', 'wp-ref-catchev', '▶');
+        head.appendChild(catName);
+        head.appendChild(chev);
+        var body = el('div', 'wp-ref-catbody');
+        body.hidden = true;
         AFFIRMATIONS[cat].forEach(function (t) {
           libCount++;
           var item = el('button', 'wp-ref-item');
@@ -3599,8 +3607,18 @@
           item.appendChild(label);
           item.appendChild(use);
           item.addEventListener('click', function () { selectRefAffirmation(t); });
-          libBox.appendChild(item);
+          body.appendChild(item);
         });
+        head.addEventListener('click', function () {
+          var open = body.hidden;
+          body.hidden = !open;
+          head.classList.toggle('open', open);
+          head.setAttribute('aria-expanded', open ? 'true' : 'false');
+          chev.textContent = open ? '▼' : '▶';
+        });
+        group.appendChild(head);
+        group.appendChild(body);
+        libBox.appendChild(group);
       });
     }
     var libCountEl = $('#wpRefLibCount');
