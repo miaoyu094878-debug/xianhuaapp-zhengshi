@@ -177,6 +177,7 @@
     $$('.side-link').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
     $$('.tab-page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
     if (id === 'tab-ai-vision' && typeof setAiSubTab === 'function') setAiSubTab('home');
+    if (id === 'tab-wallpaper' && typeof window.renderWpRefs === 'function') window.renderWpRefs();
     window.scrollTo(0, 0);
   }
   $$('.mini-card, .focus-card, .more-card').forEach(function (c) {
@@ -3545,6 +3546,88 @@
       syncAffirmationText(quote);
     });
   });
+
+  /* ---- Affirmation Reference Browser (Favorites + Library) ---- */
+  function selectRefAffirmation(text) {
+    syncAffirmationText(text);
+    // Bring focus back to the live editor so the change is visible / editable.
+    var live = $('#wpLiveInput');
+    if (live) {
+      live.focus();
+      autoResizeLiveInput(true);
+      try { live.select(); } catch (e) {}
+    }
+  }
+  function renderRefAffirmations() {
+    var favBox = $('#wpRefFavs');
+    var libBox = $('#wpRefLib');
+    if (!favBox && !libBox) return;
+    // Favorites (directly from the Affirm tab's saved affirmations)
+    var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); })
+      .concat((db.affirmCustom || []).filter(function (t) { return t && t.trim(); }));
+    favs = favs.filter(function (t, i) { return favs.indexOf(t) === i; });
+    var countEl = $('#wpRefFavsCount');
+    var emptyEl = $('#wpRefFavsEmpty');
+    if (favBox) {
+      favBox.innerHTML = '';
+      favs.forEach(function (t) {
+        var item = el('button', 'wp-ref-item');
+        item.type = 'button';
+        var label = el('span', 'wp-ref-text', t);
+        var use = el('span', 'wp-ref-use', 'Use');
+        item.appendChild(label);
+        item.appendChild(use);
+        item.addEventListener('click', function () { selectRefAffirmation(t); });
+        favBox.appendChild(item);
+      });
+    }
+    if (countEl) countEl.textContent = favs.length;
+    if (emptyEl) emptyEl.classList.toggle('hidden', favs.length > 0);
+    // Library grouped by category
+    var libCount = 0;
+    if (libBox) {
+      libBox.innerHTML = '';
+      Object.keys(AFFIRMATIONS).forEach(function (cat) {
+        var catLabel = el('div', 'wp-ref-cat', cat);
+        libBox.appendChild(catLabel);
+        AFFIRMATIONS[cat].forEach(function (t) {
+          libCount++;
+          var item = el('button', 'wp-ref-item');
+          item.type = 'button';
+          var label = el('span', 'wp-ref-text', t);
+          var use = el('span', 'wp-ref-use', 'Use');
+          item.appendChild(label);
+          item.appendChild(use);
+          item.addEventListener('click', function () { selectRefAffirmation(t); });
+          libBox.appendChild(item);
+        });
+      });
+    }
+    var libCountEl = $('#wpRefLibCount');
+    if (libCountEl) libCountEl.textContent = libCount;
+  }
+  if ($('#wpRefCollapse')) {
+    $('#wpRefCollapse').addEventListener('click', function () {
+      var panel = $('#wpRefCollapse').closest ? $('#wpRefCollapse').closest('.wp-ref-panel') : null;
+      if (!panel) panel = document.querySelector('.wp-ref-panel');
+      panel.classList.toggle('wp-ref-hidden');
+      $('#wpRefCollapse').textContent = panel.classList.contains('wp-ref-hidden') ? 'Show' : 'Hide';
+    });
+  }
+  if ($('#wpRefFillAll')) {
+    $('#wpRefFillAll').addEventListener('click', function () {
+      var pool = WP_QUOTES.concat(Object.keys(AFFIRMATIONS).reduce(function (a, c) {
+        return a.concat(AFFIRMATIONS[c]);
+      }, []));
+      var q = pool[Math.floor(Math.random() * pool.length)];
+      selectRefAffirmation(q);
+    });
+  }
+  renderRefAffirmations();
+  // Re-render favorites whenever the dashboard visits the wallpaper tab, so newly saved
+  // affirmations from the Affirm tab are reflected without a full reload.
+  if (window.__wpRefreshRef) {} // no-op guard
+  window.renderWpRefs = renderRefAffirmations;
 
   if ($('#wpGestureHint')) {
     $('#wpGestureHint').style.cursor = 'pointer';

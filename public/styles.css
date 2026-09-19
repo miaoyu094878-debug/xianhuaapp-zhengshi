@@ -1768,6 +1768,122 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
   gap: 8px;
 }
 
+/* ── Affirmation Reference Browser (Favorites + Library) ── */
+.wp-ref-panel {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.wp-ref-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.wp-ref-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+.wp-ref-collapse {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.wp-ref-collapse:hover { color: var(--accent); }
+.wp-ref-block { margin-bottom: 12px; }
+.wp-ref-block-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.wp-ref-block-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.wp-ref-count {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.wp-ref-favs,
+.wp-ref-lib {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wp-ref-empty {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0;
+}
+.wp-ref-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.wp-ref-item:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.wp-ref-item .wp-ref-use {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  padding: 3px 8px;
+  border-radius: 999px;
+  opacity: 0.9;
+}
+.wp-ref-item:hover .wp-ref-use {
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+}
+.wp-ref-cat {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin: 8px 0 4px;
+  letter-spacing: 0.02em;
+}
+.wp-ref-cat:first-child { margin-top: 0; }
+.wp-ref-fill {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+.wp-ref-panel.wp-ref-hidden .wp-ref-block,
+.wp-ref-panel.wp-ref-hidden #wpRefFillAll {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .wp-preview-card {
     padding: 12px 10px 14px;

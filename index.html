@@ -4074,6 +4074,38 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
               </div>
 
+              <!-- Affirmation Reference Browser: My Favorites + Curated Library -->
+              <div class="wp-ref-panel">
+                <div class="wp-ref-hd">
+                  <span class="wp-ref-title">✦ Find Your Affirmation</span>
+                  <button id="wpRefCollapse" class="wp-ref-collapse" type="button" aria-label="Collapse affirmation reference">Hide</button>
+                </div>
+
+                <!-- My Saved / Favorited Affirmations (from Affirm tab) -->
+                <div class="wp-ref-block" id="wpRefFavsBlock">
+                  <div class="wp-ref-block-hd">
+                    <span class="wp-ref-block-title">♥ My Saved Affirmations</span>
+                    <span class="wp-ref-count" id="wpRefFavsCount">0</span>
+                  </div>
+                  <div class="wp-ref-favs" id="wpRefFavs"></div>
+                  <p class="wp-ref-empty" id="wpRefFavsEmpty">
+                    You haven't saved any affirmations yet.
+                    <a href="#" class="link-btn" data-goto="tab-affirm">Go to Affirm & keep your favorites</a>
+                  </p>
+                </div>
+
+                <!-- Curated Library grouped by category -->
+                <div class="wp-ref-block">
+                  <div class="wp-ref-block-hd">
+                    <span class="wp-ref-block-title">🌿 Browse the Library</span>
+                    <span class="wp-ref-count" id="wpRefLibCount">0</span>
+                  </div>
+                  <div class="wp-ref-lib" id="wpRefLib"></div>
+                </div>
+
+                <button id="wpRefFillAll" class="chip wp-ref-fill" type="button">🎲 Insert a random affirmation</button>
+              </div>
+
               <div class="wp-quote-actions">
                 <div class="wp-quote-actions-left">
                   <button id="wpShuffle" class="chip" type="button">🎲 Shuffle Quote</button>
