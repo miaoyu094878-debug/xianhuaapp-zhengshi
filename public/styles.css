@@ -2697,6 +2697,13 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
 /* Custom affirmations */
 .list-head { font-size: 11.5px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); padding: 12px 4px 6px; }
+.affirm-head-row { display: flex; align-items: center; gap: 8px; }
+.affirm-head-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border: none; background: none; cursor: pointer;
+  color: var(--text-dim); font-size: 14px; padding: 0; border-radius: 6px; transition: 0.25s;
+}
+.affirm-head-toggle:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); transform: rotate(180deg); }
 .list-sep { border-top: 1px solid var(--border); margin: 8px 0 12px; }
 
 /* Saved inspiration */
