@@ -1822,7 +1822,18 @@
     var ok = $('#pfSaved');
     if (ok) { ok.classList.remove('hidden'); setTimeout(function () { ok.classList.add('hidden'); }, 1600); }
   });
-  if ($('#profileBtn')) $('#profileBtn').addEventListener('click', function () { goTab('tab-profile'); });
+  var _profileFromTab = null;
+  if ($('#profileBtn')) $('#profileBtn').addEventListener('click', function () {
+    var cur = null;
+    $$('.tab-page').forEach(function (p) { if (p.classList.contains('active')) cur = p.id; });
+    if (cur === 'tab-profile') {
+      goTab(_profileFromTab || 'tab-future');
+      _profileFromTab = null;
+    } else {
+      _profileFromTab = cur || 'tab-future';
+      goTab('tab-profile');
+    }
+  });
   renderProfile();
   if ($('#acctSignedIn') || $('#acctSignedOut') || $('#acctLoading')) refreshAccount();
 
