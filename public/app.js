@@ -322,6 +322,8 @@
   function renderAffirm() {
     var wrap = $('#affirmList');
     wrap.innerHTML = '';
+    var customWrap = $('#affirmCustomList');
+    if (customWrap) customWrap.innerHTML = '';
     // Helper: send an affirmation to the Wallpaper Studio and jump there.
     function sendToWallpaper(text) {
       if (typeof syncAffirmationText === 'function') syncAffirmationText(text, 'affirm');
@@ -337,7 +339,7 @@
       return b;
     }
     if (db.affirmCustom && db.affirmCustom.length) {
-      wrap.appendChild(el('div', 'list-head', 'My affirmations'));
+      customWrap.appendChild(el('div', 'list-head', 'My affirmations'));
       db.affirmCustom.forEach(function (text) {
         var item = el('div', 'list-item');
         var mid = el('div', 'grow');
@@ -350,10 +352,11 @@
           save(); renderAffirm(); initSwipe();
         });
         item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
-        wrap.appendChild(item);
+        customWrap.appendChild(item);
       });
-      wrap.appendChild(el('div', 'list-sep', ''));
     }
+    var customCount = $('#affirmCustomCount');
+    if (customCount) customCount.textContent = db.affirmCustom ? db.affirmCustom.length : 0;
     AFFIRMATIONS[curCat].forEach(function (text) {
       var fav = db.affirmFavs.indexOf(text) !== -1;
       var item = el('div', 'list-item');
@@ -369,8 +372,6 @@
       item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(favBtn);
       wrap.appendChild(item);
     });
-    var totalCount = $('#affirmCustomCount');
-    if (totalCount) totalCount.textContent = (db.affirmCustom ? db.affirmCustom.length : 0) + AFFIRMATIONS[curCat].length;
   }
 
   /* ═══════ Swipe Affirmations (Stella-style) ═══════ */
