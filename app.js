@@ -71,7 +71,7 @@
   /* ═══════ Data Layer ═══════ */
   var KEY = 'manifest_data_v1';
   var defaults = {
-    goals: [], gratitude: {}, affirmFavs: [], affirmCustom: [],
+    goals: [], affirmFavs: [], affirmCustom: [],
     vision: [], activeDays: [], meditationMin: 0, saved: [],
     profile: { name: '', area: '', desire: '' }
   };
@@ -110,35 +110,72 @@
       'I am a magnet for wealth, prosperity, and abundance.',
       'I deserve to live a life of financial freedom.',
       'Abundance is my natural state of being.',
-      'I am open to receive unlimited abundance from the Universe.'
+      'I am open to receive unlimited abundance from the Universe.',
+      'Every dollar I spend returns to me multiplied.',
+      'I attract opportunities that bring me wealth every day.',
+      'My bank account grows steadily and effortlessly.',
+      'I am worthy of receiving all the riches life has to offer.',
+      'Prosperity flows through every area of my life.'
     ],
     'Love': [
       'I am deeply loved and cherished.',
       'My soulmate is on their way to me right now.',
       'I am worthy of a passionate, healthy, and fulfilling relationship.',
       'Love surrounds me everywhere I go.',
-      'I radiate love and attract love effortlessly.'
+      'I radiate love and attract love effortlessly.',
+      'I give and receive love with an open heart.',
+      'My heart is open to giving and receiving pure love.',
+      'I am a magnet for kind, honest, and loving people.',
+      'Every day my relationship becomes deeper and more beautiful.',
+      'I feel loved, safe, and fully supported.'
     ],
     'Career': [
       'My talents are seen, valued, and rewarded.',
       'The perfect opportunity is already making its way to me.',
       'I do what I love and prosper abundantly from it.',
       'Every step I take leads me to my highest purpose.',
-      'I am confident, capable, and successful in all I do.'
+      'I am confident, capable, and successful in all I do.',
+      'Success comes to me easily and naturally every day.',
+      'My work brings me joy, meaning, and great reward.',
+      'I am recognized and appreciated for my unique gifts.',
+      'New doors of opportunity keep opening for me.',
+      'I lead with passion and succeed with ease.'
     ],
     'Wellness': [
       'Every cell in my body vibrates with energy and health.',
       'I am radiant, vibrant, and full of life force.',
       'My body heals, restores, and strengthens each day.',
       'I treat my body with love, and it loves me back.',
-      'Perfect health is my birthright.'
+      'Perfect health is my birthright.',
+      'I am in perfect balance — body, mind, and spirit.',
+      'I am full of boundless, radiant, healthy energy.',
+      'My immune system is strong, calm, and resilient.',
+      'Every breath I take fills me with vitality.',
+      'I nourish my body with love and watch it thrive.'
     ],
     'Growth': [
       'I trust myself completely and believe in my journey.',
       'Everything is unfolding perfectly for my highest good.',
       'I have the power to create the life of my dreams.',
       'I live in the present moment, peaceful and powerful.',
-      'The Universe always has my back.'
+      'The Universe always has my back.',
+      'I grow into the strongest, wisest version of myself.',
+      'I embrace change as a path to my highest self.',
+      'Every challenge is an opportunity for me to evolve.',
+      'I release old patterns and step into my power.',
+      'I am learning, growing, and becoming better every day.'
+    ],
+    'Freedom': [
+      'I am free to live the life I truly desire.',
+      'I release all limits and claim my freedom.',
+      'Every choice I make moves me closer to liberation.',
+      'I am unshackled from doubt and fear.',
+      'My future is open, bright, and mine to design.',
+      'I let go of what no longer serves me with ease.',
+      'I give myself permission to be completely free.',
+      'I break every chain that once held me back.',
+      'My life is full of limitless possibilities.',
+      'I choose freedom, peace, and joy in every moment.'
     ]
   };
   var QUOTES = [
@@ -177,6 +214,7 @@
     $$('.side-link').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
     $$('.tab-page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
     if (id === 'tab-ai-vision' && typeof setAiSubTab === 'function') setAiSubTab('home');
+    if (id === 'tab-wallpaper' && typeof window.renderWpRefs === 'function') window.renderWpRefs();
     window.scrollTo(0, 0);
   }
   $$('.mini-card, .focus-card, .more-card').forEach(function (c) {
@@ -225,9 +263,6 @@
     $('#statStreak').textContent = streak();
     $('#statGoals').textContent = db.goals.filter(function (g) { return !g.done; }).length;
     $('#statMeditation').textContent = db.meditationMin;
-
-    var g = db.gratitude[todayStr()];
-    $('#glanceGratitude').textContent = g && g.length ? g.length + ' blessing' + (g.length > 1 ? 's' : '') + ' recorded ✿' : 'Write 3 things you\'re grateful for';
   }
 
   /* ═══════ Goals ═══════ */
@@ -287,6 +322,20 @@
   function renderAffirm() {
     var wrap = $('#affirmList');
     wrap.innerHTML = '';
+    // Helper: send an affirmation to the Wallpaper Studio and jump there.
+    function sendToWallpaper(text) {
+      if (typeof syncAffirmationText === 'function') syncAffirmationText(text, 'affirm');
+      goTab('tab-wallpaper');
+      window.scrollTo(0, 0);
+    }
+    // Helper: build a "make wallpaper" button on each affirmation row.
+    function wpBtn(text) {
+      var b = el('button', 'icon-btn wp-to-wallpaper', '🖼');
+      b.title = 'Make wallpaper';
+      b.setAttribute('aria-label', 'Make wallpaper');
+      b.addEventListener('click', function (e) { e.stopPropagation(); sendToWallpaper(text); });
+      return b;
+    }
     if (db.affirmCustom && db.affirmCustom.length) {
       wrap.appendChild(el('div', 'list-head', 'My affirmations'));
       db.affirmCustom.forEach(function (text) {
@@ -300,7 +349,7 @@
           if (i !== -1) db.affirmCustom.splice(i, 1);
           save(); renderAffirm(); initSwipe();
         });
-        item.appendChild(mid); item.appendChild(delBtn);
+        item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
         wrap.appendChild(item);
       });
       wrap.appendChild(el('div', 'list-sep', ''));
@@ -317,7 +366,7 @@
         if (i === -1) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
         save(); renderAffirm();
       });
-      item.appendChild(mid); item.appendChild(favBtn);
+      item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(favBtn);
       wrap.appendChild(item);
     });
   }
@@ -343,7 +392,19 @@
       return;
     }
     var card = el('div', 'swipe-card');
-    card.innerHTML = '<div class="sc-text">' + swipeQueue[swipeQueue.length - 1] + '</div><div class="sc-hint">♥ save · ✕ skip</div>';
+    card.innerHTML = '<div class="sc-text">' + swipeQueue[swipeQueue.length - 1] + '</div>';
+    var row = el('div', 'sc-actions');
+    var wallBtn = el('button', 'swipe-to-wallpaper', '🖼 Make wallpaper');
+    wallBtn.type = 'button';
+    wallBtn.addEventListener('click', function () {
+      var text = swipeQueue[swipeQueue.length - 1];
+      if (text && typeof syncAffirmationText === 'function') syncAffirmationText(text, 'affirm');
+      goTab('tab-wallpaper');
+      window.scrollTo(0, 0);
+    });
+    row.appendChild(wallBtn);
+    row.appendChild(el('span', 'sc-hint', '♥ save · ✕ skip'));
+    card.appendChild(row);
     deck.appendChild(card);
   }
   function swipeOut(dir, after) {
@@ -365,35 +426,6 @@
     swipeOut('skip', function () { swipeQueue.pop(); renderSwipe(); });
   });
   $('#swipeReset').addEventListener('click', function () { initSwipe(); });
-
-  /* ═══════ Gratitude Journal ═══════ */
-  var gratInputs = $$('.grat-input');
-  $('#gratForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var items = gratInputs.map(function (i) { return i.value.trim(); }).filter(Boolean);
-    if (!items.length) return;
-    db.gratitude[todayStr()] = items;
-    gratInputs.forEach(function (i) { i.value = ''; });
-    markActive(); save(); renderGrat(); renderToday();
-  });
-  function renderGrat() {
-    var wrap = $('#gratHistory');
-    wrap.innerHTML = '';
-    var days = Object.keys(db.gratitude).sort().reverse();
-    if (!days.length) { wrap.appendChild(el('div', 'empty', 'Your gratitude journal awaits ✿')); return; }
-    days.slice(0, 14).forEach(function (day) {
-      var card = el('div', 'card glass');
-      card.appendChild(el('div', 'meta', day + (day === todayStr() ? ' · Today' : '')));
-      db.gratitude[day].forEach(function (g) {
-        var p = el('div', 'title', '✿  ' + g);
-        p.style.marginTop = '8px'; p.style.lineHeight = '1.6';
-        card.appendChild(p);
-      });
-      wrap.appendChild(card);
-    });
-    var tg = db.gratitude[todayStr()];
-    if (tg) gratInputs.forEach(function (inp, i) { inp.value = tg[i] || ''; });
-  }
 
   /* ═══════ Vision Board (with photo) ═══════ */
   $('#visionForm').addEventListener('submit', function (e) {
@@ -3533,21 +3565,6 @@
     });
   }
 
-  if ($('#wpDoneEditBtn')) {
-    $('#wpDoneEditBtn').addEventListener('click', function () {
-      var ta = $('#wpText');
-      if (ta && !ta.value.trim()) {
-        syncAffirmationText(WP_QUOTES[0]);
-      }
-      if (ta) ta.blur();
-      var live = $('#wpLiveInput');
-      if (live) {
-        live.blur();
-        autoResizeLiveInput(false);
-      }
-    });
-  }
-
   if ($('#wpLiveDoneBtn')) {
     $('#wpLiveDoneBtn').addEventListener('click', function () {
       var live = $('#wpLiveInput');
@@ -3577,6 +3594,106 @@
       syncAffirmationText(quote);
     });
   });
+
+  /* ---- Affirmation Inspiration Categories (collapsible) + My Saved ---- */
+  function selectRefAffirmation(text) {
+    syncAffirmationText(text);
+    // Bring focus back to the live editor so the change is visible / editable.
+    var live = $('#wpLiveInput');
+    if (live) {
+      live.focus();
+      autoResizeLiveInput(true);
+      try { live.select(); } catch (e) {}
+    }
+  }
+  var INSPO_META = {
+    'Abundance': { ico: '🌟', label: 'Abundance & Joy' },
+    'Love':       { ico: '💖', label: 'Pure Love' },
+    'Career':     { ico: '🔥', label: 'Success & Confidence' },
+    'Wellness':   { ico: '🌿', label: 'Vitality & Peace' },
+    'Growth':     { ico: '✨', label: 'Becoming Myself' },
+    '♥ Saved':    { ico: '💗', label: 'My Saved' }
+  };
+  // Order of the 6 featured chips (Freedom → replaced by user's saved affirmations)
+  var WP_CHIP_KEYS = ['♥ Saved', 'Abundance', 'Love', 'Career', 'Wellness', 'Growth'];
+  function renderWpRefs() {
+    var inspoBox = $('#wpInspoList');
+    if (!inspoBox) return;
+
+    // Favorite affirmations (from Affirm tab: favorited + custom)
+    var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); })
+      .concat((db.affirmCustom || []).filter(function (t) { return t && t.trim(); }));
+    favs = favs.filter(function (t, i) { return favs.indexOf(t) === i; });
+
+    // Inspiration Categories — compact chips each with a small fold control
+    if (inspoBox) {
+      inspoBox.innerHTML = '';
+      var foldBox = $('#wpInspoFold');
+      function renderFold(cat) {
+        if (!foldBox) return;
+        foldBox.innerHTML = '';
+        var meta = INSPO_META[cat] || { ico: '✦', label: cat };
+        var hd = el('div', 'wp-inspo-fold-hd');
+        hd.textContent = meta.ico + ' ' + meta.label;
+        foldBox.appendChild(hd);
+        var isSaved = (cat === '♥ Saved');
+        var list = isSaved ? favs : (AFFIRMATIONS[cat] || []);
+        if (list.length === 0) {
+          var empty = el('p', 'wp-ref-empty', 'Nothing saved yet.');
+          foldBox.appendChild(empty);
+        } else {
+          list.forEach(function (t) {
+            var item = el('button', 'wp-ref-item');
+            item.type = 'button';
+            var label = el('span', 'wp-ref-text', t);
+            var use = el('span', 'wp-ref-use', 'Use');
+            item.appendChild(label);
+            item.appendChild(use);
+            item.addEventListener('click', function () { selectRefAffirmation(t); });
+            foldBox.appendChild(item);
+          });
+        }
+        foldBox.classList.remove('hidden');
+        activeFold = cat;
+      }
+      var activeFold = null;
+      WP_CHIP_KEYS.forEach(function (cat) {
+        var meta = INSPO_META[cat] || { ico: '✦', label: cat };
+        var group = el('span', 'wp-inspo-chip-group');
+        var chip = el('button', 'wp-sug-btn wp-inspo-chip');
+        chip.type = 'button';
+        chip.textContent = meta.ico + ' ' + meta.label;
+        // clicking the label opens its affirmations (or the saved list)
+        // for featured categories, clicking inserts the category's first affirmation
+        chip.addEventListener('click', function () {
+          if (cat === '♥ Saved') {
+            renderFold(cat);
+            return;
+          }
+          var first = AFFIRMATIONS[cat][0];
+          if (first) selectRefAffirmation(first);
+        });
+        var foldBtn = el('button', 'wp-inspo-foldbtn');
+        foldBtn.type = 'button';
+        foldBtn.textContent = '▾';
+        foldBtn.title = 'View ' + meta.label + ' affirmations';
+        foldBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (activeFold === cat) {
+            if (foldBox) { foldBox.innerHTML = ''; foldBox.classList.add('hidden'); }
+            activeFold = null;
+            return;
+          }
+          renderFold(cat);
+        });
+        group.appendChild(chip);
+        group.appendChild(foldBtn);
+        inspoBox.appendChild(group);
+      });
+    }
+  }
+  renderWpRefs();
+  window.renderWpRefs = renderWpRefs;
 
   if ($('#wpGestureHint')) {
     $('#wpGestureHint').style.cursor = 'pointer';
@@ -4914,7 +5031,7 @@
   });
 
   /* ═══════ Init ═══════ */
-  renderToday(); renderGoals(); renderAffirm(); renderGrat(); renderVision(); renderMedTime();
+  renderToday(); renderGoals(); renderAffirm(); renderVision(); renderMedTime();
   initSwipe();
   maybeShowQuiz();
 })();

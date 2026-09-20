@@ -2134,15 +2134,9 @@ body:not(.desktop-mode) .wp-icon-action-btn .wp-btn-ico {
 
 .wp-sug-chips-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow-x: auto;
   padding: 2px 2px 6px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-}
-
-.wp-sug-chips-row::-webkit-scrollbar {
-  height: 4px;
 }
 
 .wp-sug-btn {
@@ -3207,18 +3201,17 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <button class="side-link active" data-tab="tab-today">✦ Today</button>
         <p class="ds-group">Daily Practice</p>
         <button class="side-link" data-tab="tab-affirm">❋ Affirm</button>
-        <button class="side-link" data-tab="tab-gratitude">✿ Gratitude</button>
         <p class="ds-group">Create</p>
-        <button class="side-link" data-tab="tab-goals">☆ Desires</button>
-        <button class="side-link" data-tab="tab-vision">◈ Vision Board</button>
+        <button class="side-link hidden" data-tab="tab-goals">☆ Desires</button>
+        <button class="side-link hidden" data-tab="tab-vision">◈ Vision Board</button>
         <button class="side-link" data-tab="tab-wallpaper">🖼 Wallpaper</button>
         <p class="ds-group">AI &amp; Guidance</p>
         <button class="side-link" data-tab="tab-future">🌌 Living Reality</button>
         <button class="side-link" data-tab="tab-ai-vision">🎬 AI Vision</button>
-        <button class="side-link" data-tab="tab-avatar">👤 Avatar</button>
-        <button class="side-link" data-tab="tab-meditate">◎ Breathe</button>
-        <button class="side-link" data-tab="tab-saved">🔖 Saved</button>
-        <button class="side-link" data-tab="tab-song">🎵 Manifest Song</button>
+        <button class="side-link hidden" data-tab="tab-avatar">👤 Avatar</button>
+        <button class="side-link hidden" data-tab="tab-meditate">◎ Breathe</button>
+        <button class="side-link hidden" data-tab="tab-saved">🔖 Saved</button>
+        <button class="side-link hidden" data-tab="tab-song">🎵 Manifest Song</button>
         <button class="side-link" data-tab="tab-more">☰ More</button>
       </nav>
       <div class="ds-foot">
@@ -3266,17 +3259,24 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </div>
         </div>
 
-        <div class="card glass focus-card" data-goto="tab-gratitude">
-          <div class="focus-top">
-            <span class="focus-title">Gratitude</span>
-            <span class="focus-meta" id="glanceGratitude">Write 3 things you're grateful for</span>
-          </div>
-        </div>
-
         <div class="card glass focus-card" data-goto="tab-future">
           <div class="focus-top">
             <span class="focus-title">Living Reality 🌌</span>
             <span class="focus-meta" id="glanceFuture">Immersive present-tense audio for your realized desire</span>
+          </div>
+        </div>
+
+        <div class="card glass focus-card" data-goto="tab-wallpaper">
+          <div class="focus-top">
+            <span class="focus-title">Wallpaper 🖼</span>
+            <span class="focus-meta">Set your intention on your screen</span>
+          </div>
+        </div>
+
+        <div class="card glass focus-card" data-goto="tab-ai-vision">
+          <div class="focus-top">
+            <span class="focus-title">AI Photo &amp; Video 🎬</span>
+            <span class="focus-meta">Generate the life you want</span>
           </div>
         </div>
       </section>
@@ -3329,19 +3329,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         </div>
 
         <div id="affirmList" class="list"></div>
-      </section>
-
-      <!-- Gratitude -->
-      <section id="tab-gratitude" class="tab-page">
-        <h2 class="page-title">Gratitude Journal</h2>
-        <p class="page-sub">Gratitude is the highest frequency. What are you thankful for today?</p>
-        <form id="gratForm" class="card glass form-card">
-          <input type="text" class="grat-input" placeholder="1. I am grateful for…" maxlength="60">
-          <input type="text" class="grat-input" placeholder="2. I am grateful for…" maxlength="60">
-          <input type="text" class="grat-input" placeholder="3. I am grateful for…" maxlength="60">
-          <button type="submit" class="btn-primary">Save Gratitude ✿</button>
-        </form>
-        <div id="gratHistory" class="list"></div>
       </section>
 
       <!-- Vision Board -->
@@ -4068,17 +4055,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               </div>
               <textarea id="wpText" rows="3" maxlength="140" placeholder="Type your powerful affirmation here..." spellcheck="false"></textarea>
               
-              <!-- Quick Inspiration Chips -->
+              <!-- Inspiration Categories: compact horizontal chips, each with a small fold button -->
               <div class="wp-quote-suggestions">
-                <span class="wp-quote-sug-label">✦ Inspiration Categories:</span>
-                <div class="wp-sug-chips-row">
-                  <button class="wp-sug-btn" type="button" data-quote="I am becoming who I am meant to be">✨ Becoming Myself</button>
-                  <button class="wp-sug-btn" type="button" data-quote="I attract boundless joy, wealth, and vibrant peace">🌟 Abundance & Joy</button>
-                  <button class="wp-sug-btn" type="button" data-quote="I radiate effortless confidence and inner tranquility">🔥 Inner Confidence</button>
-                  <button class="wp-sug-btn" type="button" data-quote="Everything is working out for my highest good">🌊 Trust the Flow</button>
-                  <button class="wp-sug-btn" type="button" data-quote="My heart is peaceful, my mind is clear, my body is strong">🌿 Vitality & Peace</button>
-                  <button class="wp-sug-btn" type="button" data-quote="I am worthy of every beautiful dream in my heart">💖 Pure Worthiness</button>
-                </div>
+                <span class="wp-quote-sug-label">✦ Affirmation Suggestions</span>
+                <div id="wpInspoList" class="wp-sug-chips-row"></div>
+                <div id="wpInspoFold" class="wp-inspo-fold hidden"></div>
               </div>
 
               <div class="wp-quote-actions">
@@ -4086,9 +4067,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <button id="wpShuffle" class="chip" type="button">🎲 Shuffle Quote</button>
                   <button id="wpClearText" class="chip" type="button">🧹 Clear</button>
                 </div>
-                <div class="wp-quote-actions-right">
-                  <button id="wpDoneEditBtn" class="chip" type="button">✓ Done Editing</button>
-                </div>
+                <div class="wp-quote-actions-right"></div>
               </div>
             </div>
 
@@ -4250,11 +4229,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <span class="mc-title">Desires</span>
             <span class="mc-desc">Plant &amp; track your intentions</span>
           </div>
-          <div class="more-card" data-goto="tab-gratitude">
-            <span class="mc-ico">✿</span>
-            <span class="mc-title">Gratitude</span>
-            <span class="mc-desc">A daily thanks journal</span>
-          </div>
           <div class="more-card" data-goto="tab-vision">
             <span class="mc-ico">◈</span>
             <span class="mc-title">Vision Board</span>
@@ -4299,7 +4273,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <span class="plan-period">forever</span>
             </div>
             <ul class="plan-feats">
-              <li>Daily affirmations &amp; gratitude</li>
+              <li>Daily affirmations</li>
               <li>Desires &amp; vision board basics</li>
               <li>Cosmic meditation timer</li>
               <li>Manifest song essentials</li>
