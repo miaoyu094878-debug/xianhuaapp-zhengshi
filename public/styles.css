@@ -512,6 +512,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .cel-emoji { font-size: 22px; }
 @keyframes glowPulse { 0%,100% { box-shadow: 0 0 16px color-mix(in srgb, var(--accent3) 12%, transparent); } 50% { box-shadow: 0 0 32px color-mix(in srgb, var(--accent3) 25%, transparent); } }
 
+/* ---------- AFFIRM FOLD ---------- */
+.affirm-fold { margin-bottom: 16px; }
+.affirm-fold-head {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; box-sizing: border-box; cursor: pointer; list-style: none;
+  font-size: 14px; font-weight: 600; color: var(--text);
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px;
+  background: var(--surface-2); transition: 0.3s;
+}
+.affirm-fold-head::-webkit-details-marker { display: none; }
+.affirm-fold-head:hover { border-color: var(--accent); }
+.affirm-fold[open] .affirm-fold-head { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.affirm-fold-caret { transition: transform 0.25s; margin-right: 2px; }
+.affirm-fold[open] .affirm-fold-caret { transform: rotate(180deg); }
+.affirm-fold-count { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent); }
+.affirm-fold > .card, .affirm-fold > .list { margin-top: 0; }
+.affirm-fold > .card { border-radius: 0 0 14px 14px; border-top: 0; }
+#affirmCustomList { margin-top: 10px; }
+
 /* ---------- CHIPS ---------- */
 .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .chips.center { justify-content: center; }

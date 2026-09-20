@@ -337,7 +337,9 @@
       return b;
     }
     if (db.affirmCustom && db.affirmCustom.length) {
-      wrap.appendChild(el('div', 'list-head', 'My affirmations'));
+      var customWrap = $('#affirmCustomList');
+      customWrap.innerHTML = '';
+      customWrap.appendChild(el('div', 'list-head', 'My affirmations'));
       db.affirmCustom.forEach(function (text) {
         var item = el('div', 'list-item');
         var mid = el('div', 'grow');
@@ -350,9 +352,14 @@
           save(); renderAffirm(); initSwipe();
         });
         item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
-        wrap.appendChild(item);
+        customWrap.appendChild(item);
       });
-      wrap.appendChild(el('div', 'list-sep', ''));
+      var countEl = $('#affirmCustomCount');
+      if (countEl) countEl.textContent = db.affirmCustom.length;
+    } else {
+      $('#affirmCustomList').innerHTML = '';
+      var emptyCount = $('#affirmCustomCount');
+      if (emptyCount) emptyCount.textContent = '0';
     }
     AFFIRMATIONS[curCat].forEach(function (text) {
       var fav = db.affirmFavs.indexOf(text) !== -1;

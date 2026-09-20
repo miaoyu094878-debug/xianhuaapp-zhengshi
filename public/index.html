@@ -3315,13 +3315,21 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       <section id="tab-affirm" class="tab-page">
         <h2 class="page-title">Sacred Affirmations</h2>
         <p class="page-sub">Speak them aloud. Let the words sink into your subconscious.</p>
-        <div class="card glass form-card">
-          <label class="field-label">Your own affirmation</label>
-          <div class="form-row">
-            <input type="text" id="affirmNew" placeholder="e.g. I attract opportunities everywhere" maxlength="80">
-            <button id="affirmAdd" class="btn-primary btn-small">Add ✦</button>
+        <details class="affirm-fold" id="affirmFold" open>
+          <summary class="affirm-fold-head">
+            <svg class="affirm-fold-caret" viewBox="0 0 16 16" width="14" height="14"><path d="M3 5.5 8 10.5 13 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Your Own Affirmations</span>
+            <span class="affirm-fold-count" id="affirmCustomCount">0</span>
+          </summary>
+          <div class="card glass form-card">
+            <label class="field-label">Write your own affirmation</label>
+            <div class="form-row">
+              <input type="text" id="affirmNew" placeholder="e.g. I attract opportunities everywhere" maxlength="80">
+              <button id="affirmAdd" class="btn-primary btn-small">Add ✦</button>
+            </div>
           </div>
-        </div>
+          <div id="affirmCustomList" class="list"></div>
+        </details>
         <div class="chips" id="affirmCats"></div>
 
         <!-- Stella-style Swipe collector -->
