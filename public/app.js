@@ -1687,6 +1687,109 @@
   });
 
   /* ═══════ My Profile ═══════ */
+  // Lightweight Supabase client (auth + row gateway) via fetch — no external dep.
+  var ACCT_KEY = 'luminara_profile_v1';
+  function supabaseCfg() {
+    return {
+      url: (window.SUPABASE_URL || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_URL) || localStorage.getItem('luminara_supabase_url') || '').replace(/\/+$/, ''),
+      key: window.SUPABASE_ANON_KEY || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_ANON_KEY) || localStorage.getItem('luminara_supabase_anon_key') || ''
+    };
+  }
+  function savedSession() {
+    try { var raw = localStorage.getItem('luminara_session'); if (raw) { var s = JSON.parse(raw); if (s && s.access_token) return s; } } catch (e) {}
+    return null;
+  }
+  function setSession(s) { try { if (s) localStorage.setItem('luminara_session', JSON.stringify(s)); else localStorage.removeItem('luminara_session'); } catch (e) {} }
+
+  function acctMsg(str) { var m = $('#acctMsg'); if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); } }
+
+  // Sign up / Log in
+  async function requestToken(path, body) {
+    var cfg = supabaseCfg();
+    if (!cfg.url || !cfg.key) throw new Error('Supabase is not configured yet.');
+    var res = await fetch(cfg.url + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': cfg.key },
+      body: JSON.stringify(body)
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.error_description || data.msg || data.message || 'Request failed');
+    return data;
+  }
+  if ($('#acctSignup')) $('#acctSignup').addEventListener('click', async function () {
+    var email = ($('#acctEmail').value || '').trim();
+    var pass = $('#acctPassword').value || '';
+    if (!email || pass.length < 8) { acctMsg('Enter a valid email and a password of at least 8 characters.'); return; }
+    acctMsg('Creating account…');
+    try {
+      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: (db.profile && db.profile.name) || '' } });
+      if (d.user && d.user.identities && d.user.identities.length === 0) {
+        acctMsg('This email is already registered. Please log in instead.');
+        return;
+      }
+      if (d.session && d.session.access_token) { setSession(d.session); await seedProfile(d.session); }
+      acctMsg(d.access_token ? '' : 'Check your inbox to confirm your email, then log in.');
+      refreshAccount();
+    } catch (e) { acctMsg(e.message); }
+  });
+  if ($('#acctLogin')) $('#acctLogin').addEventListener('click', async function () {
+    var email = ($('#acctEmail').value || '').trim();
+    var pass = $('#acctPassword').value || '';
+    if (!email || !pass) { acctMsg('Enter your email and password.'); return; }
+    acctMsg('Signing in…');
+    try {
+      var d = await requestToken('/auth/v1/token?grant_type=password', { email: email, password: pass });
+      if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
+      setSession(d); await seedProfile(d);
+      refreshAccount();
+    } catch (e) { acctMsg(e.message); }
+  });
+  if ($('#acctLogout')) $('#acctLogout').addEventListener('click', async function () {
+    var s = savedSession();
+    try {
+      var cfg = supabaseCfg();
+      if (s && cfg.url) await fetch(cfg.url + '/auth/v1/logout', { method: 'POST', headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token } });
+    } catch (e) {}
+    setSession(null); refreshAccount();
+  });
+
+  // Ensure a profiles row exists for the current user (upsert)
+  async function seedProfile(session) {
+    var cfg = supabaseCfg();
+    if (!cfg.url || !cfg.key || !session) return;
+    var body = Object.assign({}, db.profile || {}, { id: session.user && session.user.id });
+    await fetch(cfg.url + '/rest/v1/profiles?on_conflict=id', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': cfg.key,
+        'Authorization': 'Bearer ' + session.access_token,
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify(body)
+    });
+  }
+
+  // Save name/area/desire: write local always, upsert to Supabase when signed in
+  async function persistProfile() {
+    var s = savedSession();
+    if (s && supabaseCfg().url && supabaseCfg().key) {
+      try {
+        await seedProfile(s);
+      } catch (e) {}
+    }
+  }
+
+  function refreshAccount() {
+    var s = savedSession();
+    if ($('#acctSignedIn')) $('#acctSignedIn').classList.toggle('hidden', !s);
+    if ($('#acctSignedOut')) $('#acctSignedOut').classList.toggle('hidden', !!s);
+    if (s && $('#acctEmailLabel')) {
+      $('#acctEmailLabel').textContent = s.user && s.user.email ? s.user.email : 'Signed in';
+    }
+    if ($('#acctLoading')) $('#acctLoading').classList.add('hidden');
+  }
+
   function renderProfile() {
     var p = db.profile && db.profile !== null ? db.profile : defaults.profile;
     var alpha = (p.name || '').trim();
@@ -1707,7 +1810,7 @@
       $$('#pfCats .chip').forEach(function (x) { x.classList.remove('active'); });
       c.classList.add('active');
       db.profile = db.profile || {}; db.profile.area = c.dataset.cat;
-      save(); renderProfile();
+      save(); renderProfile(); persistProfile();
     });
   });
   if ($('#pfSave')) $('#pfSave').addEventListener('click', function () {
@@ -1715,11 +1818,13 @@
     db.profile.name = $('#pfName').value.trim();
     db.profile.desire = $('#pfDesire').value.trim();
     save(); renderProfile(); renderToday();
+    persistProfile();
     var ok = $('#pfSaved');
     if (ok) { ok.classList.remove('hidden'); setTimeout(function () { ok.classList.add('hidden'); }, 1600); }
   });
   if ($('#profileBtn')) $('#profileBtn').addEventListener('click', function () { goTab('tab-profile'); });
   renderProfile();
+  if ($('#acctSignedIn') || $('#acctSignedOut') || $('#acctLoading')) refreshAccount();
 
   /* ═══════ Theme Switcher ═══════ */
   var THEME_KEY = 'luminara_theme_v1';
