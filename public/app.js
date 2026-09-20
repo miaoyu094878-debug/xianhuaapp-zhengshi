@@ -1686,6 +1686,41 @@
     renderToday();
   });
 
+  /* ═══════ My Profile ═══════ */
+  function renderProfile() {
+    var p = db.profile && db.profile !== null ? db.profile : defaults.profile;
+    var alpha = (p.name || '').trim();
+    if ($('#pfName')) $('#pfName').value = alpha;
+    if ($('#pfDesire')) $('#pfDesire').value = (p.desire || '').trim();
+    if ($('#profileName')) $('#profileName').textContent = alpha || 'Your Name';
+    if ($('#profileArea')) {
+      if (p.area) $('#profileArea').textContent = p.area + ' · Primary focus';
+      else $('#profileArea').textContent = 'Tap edit below to personalize';
+    }
+    if ($('#profileMono')) $('#profileMono').textContent = alpha ? alpha.charAt(0).toUpperCase() : '✦';
+    if ($('#pfCats')) {
+      $$('#pfCats .chip').forEach(function (c) { c.classList.toggle('active', c.dataset.cat === p.area); });
+    }
+  }
+  $$('#pfCats .chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      $$('#pfCats .chip').forEach(function (x) { x.classList.remove('active'); });
+      c.classList.add('active');
+      db.profile = db.profile || {}; db.profile.area = c.dataset.cat;
+      save(); renderProfile();
+    });
+  });
+  if ($('#pfSave')) $('#pfSave').addEventListener('click', function () {
+    db.profile = db.profile || {};
+    db.profile.name = $('#pfName').value.trim();
+    db.profile.desire = $('#pfDesire').value.trim();
+    save(); renderProfile(); renderToday();
+    var ok = $('#pfSaved');
+    if (ok) { ok.classList.remove('hidden'); setTimeout(function () { ok.classList.add('hidden'); }, 1600); }
+  });
+  if ($('#profileBtn')) $('#profileBtn').addEventListener('click', function () { goTab('tab-profile'); });
+  renderProfile();
+
   /* ═══════ Theme Switcher ═══════ */
   var THEME_KEY = 'luminara_theme_v1';
   var THEMES = ['luminara', 'manifest-light', 'manifest-dark', 'prism', 'ios'];

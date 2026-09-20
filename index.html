@@ -3210,6 +3210,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <p class="ds-group">AI &amp; Guidance</p>
         <button class="side-link" data-tab="tab-future">🌌 Living Reality</button>
         <button class="side-link" data-tab="tab-ai-vision">🎬 AI Vision</button>
+        <button class="side-link" data-tab="tab-profile">👤 My Profile</button>
         <button class="side-link hidden" data-tab="tab-avatar">👤 Avatar</button>
         <button class="side-link hidden" data-tab="tab-meditate">◎ Breathe</button>
         <button class="side-link hidden" data-tab="tab-saved">🔖 Saved</button>
@@ -3232,7 +3233,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <span class="brand-logo">✦</span>
         <span class="brand-name">Alyema</span>
       </div>
-      <button id="installBtn" class="install-btn hidden">Install</button>
+      <div class="header-actions">
+        <button id="installBtn" class="install-btn hidden">Install</button>
+        <button id="profileBtn" class="header-profile" aria-label="My Profile">👤</button>
+      </div>
     </header>
 
     <main>
@@ -4210,10 +4214,47 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </section>
 
       <!-- More / Practice Hub -->
+      <section id="tab-profile" class="tab-page">
+        <h2 class="page-title">My Profile</h2>
+        <p class="page-sub">Your personal details help Alyema shape your daily ritual.</p>
+
+        <div class="card glass profile-card">
+          <div class="profile-head">
+            <div class="profile-mono" id="profileMono">✦</div>
+            <div class="profile-head-txt">
+              <p class="profile-name" id="profileName">Your Name</p>
+              <p class="profile-area" id="profileArea">Tap edit below to personalize</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card glass form-card">
+          <label class="field-label">Your name</label>
+          <input id="pfName" type="text" placeholder="What should we call you?" maxlength="20">
+          <label class="field-label">Primary life area</label>
+          <div class="chips center" id="pfCats">
+            <button class="chip" data-cat="Abundance">💎 Abundance</button>
+            <button class="chip" data-cat="Love">💖 Love</button>
+            <button class="chip" data-cat="Career">⭐ Purpose</button>
+            <button class="chip" data-cat="Wellness">🌙 Wellness</button>
+            <button class="chip" data-cat="Growth">🌱 Growth</button>
+          </div>
+          <label class="field-label">What are you manifesting?</label>
+          <textarea id="pfDesire" rows="3" placeholder="e.g. I wake up free, fulfilled, and deeply loved" maxlength="160"></textarea>
+          <button id="pfSave" class="btn-primary" type="button">Save Profile ✦</button>
+          <p class="pf-saved hidden" id="pfSaved">Saved ✓</p>
+        </div>
+      </section>
+
       <section id="tab-more" class="tab-page">
         <h2 class="page-title">Your Practice</h2>
         <p class="page-sub">Everything else, gathered in one calm place.</p>
         <div class="more-grid">
+          <div class="more-card" data-goto="tab-profile">
+            <span class="mc-ico">👤</span>
+            <span class="mc-title">My Profile</span>
+            <span class="mc-desc">Your name, focus &amp; desires</span>
+          </div>
           <div class="more-card" data-goto="tab-ai-vision">
             <span class="mc-ico">🎬</span>
             <span class="mc-title">AI Vision</span>
