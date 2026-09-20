@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 
@@ -781,6 +782,22 @@ const SUPABASE_GATEWAY_URL = process.env.SUPABASE_URL
   ? (process.env.SUPABASE_URL.replace(/\/+$/, '') + '/functions/v1/xianhuaapp')
   : 'https://bnxjwnvsmiqofbjiknwf.supabase.co/functions/v1/xianhuaapp';
 
+/* Public (anon) Supabase credentials — safe for the browser, RLS-protected */
+const SUPABASE_PROJECT_URL = (process.env.SUPABASE_URL || 'https://bnxjwnvsmiqofbjiknwf.supabase.co').replace(/\/+$/, '');
+const SUPABASE_ANON_PUB_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJueGp3bnZzbWlxb2ZiamlrbndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NjE4NDUsImV4cCI6MjEwMjQzNzg0NX0.iggm8MViLJFsYoEFFL4ryoClFqrtB3MS9_15Yk6xi-o';
+
+/* Serve the app HTML with Supabase config injected (works on every device) */
+let _appHtmlCache = null;
+function sendAppHtml(req, res) {
+  if (!_appHtmlCache) {
+    const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+    const inject = '<script>window.SUPABASE_URL=' + JSON.stringify(SUPABASE_PROJECT_URL) + ';window.SUPABASE_ANON_KEY=' + JSON.stringify(SUPABASE_ANON_PUB_KEY) + ';</script>';
+    _appHtmlCache = html.replace('<head>', '<head>\n  ' + inject);
+  }
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(_appHtmlCache);
+}
+
 function getValidOpenRouterKey(req, customKey) {
   const k = req.headers['x-openrouter-key'] || customKey || process.env.OPENROUTER_API_KEY;
   if (typeof k === 'string' && k.trim() && (k.startsWith('sk-or-') || k.startsWith('sk-ant-') || (k.startsWith('sk-') && !k.startsWith('AIza')))) {
@@ -1489,10 +1506,13 @@ app.get('/api/ai/vision/video/content/:jobId', async (req, res) => {
 // Config Endpoint: Exposes client-safe environment variables (e.g. Supabase URL)
 app.get('/api/config', (req, res) => {
   res.json({
-    supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
+    supabaseUrl: SUPABASE_PROJECT_URL,
+    supabaseAnonKey: SUPABASE_ANON_PUB_KEY
   });
 });
+
+// App entry points — inject Supabase config into the HTML (before static middleware)
+app.get(['/index.html', '/app', '/index'], sendAppHtml);
 
 // Legacy backward-compatible endpoints
 app.post('/api/manifest-story', async (req, res) => {
@@ -1548,14 +1568,12 @@ app.get('/landing.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-app.get('/index.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/index.html', sendAppHtml);
 
 // Generic catch-all for SPA paths without file extension
 app.get('*', (req, res) => {
   if (!path.extname(req.path)) {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    sendAppHtml(req, res);
   } else {
     res.status(404).send('Not found');
   }
