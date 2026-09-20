@@ -322,6 +322,8 @@
   function renderAffirm() {
     var wrap = $('#affirmList');
     wrap.innerHTML = '';
+    var customSection = $('#affirmCustomSection');
+    customSection.innerHTML = '';
     // Helper: send an affirmation to the Wallpaper Studio and jump there.
     function sendToWallpaper(text) {
       if (typeof syncAffirmationText === 'function') syncAffirmationText(text, 'affirm');
@@ -337,7 +339,25 @@
       return b;
     }
     if (db.affirmCustom && db.affirmCustom.length) {
-      wrap.appendChild(el('div', 'list-head', 'My affirmations'));
+      // Section title with a small fold (chevron) toggle control.
+      var headRow = el('div', 'list-head affirm-head-row', '');
+      var headTitle = el('span', '', 'My Affirmations');
+      var toggle = el('button', 'affirm-head-toggle', '▾');
+      toggle.setAttribute('aria-label', 'Toggle my affirmations');
+      toggle.type = 'button';
+      headRow.appendChild(headTitle);
+      headRow.appendChild(toggle);
+
+      var customList = el('div', 'list');
+      customList.id = 'affirmCustomList';
+
+      var expanded = true;
+      toggle.addEventListener('click', function () {
+        expanded = !expanded;
+        customList.style.display = expanded ? '' : 'none';
+        toggle.textContent = expanded ? '▾' : '▸';
+      });
+
       db.affirmCustom.forEach(function (text) {
         var item = el('div', 'list-item');
         var mid = el('div', 'grow');
@@ -350,9 +370,11 @@
           save(); renderAffirm(); initSwipe();
         });
         item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
-        wrap.appendChild(item);
+        customList.appendChild(item);
       });
-      wrap.appendChild(el('div', 'list-sep', ''));
+
+      customSection.appendChild(headRow);
+      customSection.appendChild(customList);
     }
     AFFIRMATIONS[curCat].forEach(function (text) {
       var fav = db.affirmFavs.indexOf(text) !== -1;
