@@ -2710,7 +2710,8 @@ html.device-desktop .hero-quote, html.device-desktop .dm-text { font-size: 17px;
 html.device-desktop #tab-today .hero-stats { grid-column: 2; grid-row: 1 / 4; margin: 0; display: flex; flex-direction: column; gap: 16px; }
 html.device-desktop .stat { display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; }
 html.device-desktop .stat-num { font-size: 30px; }
-html.device-desktop #tab-today .focus-card { display: inline-block; vertical-align: top; width: calc(33.333% - 12px); margin-right: 16px; margin-bottom: 0; }
+html.device-desktop #tab-today .focus-card { display: inline-block; vertical-align: top; width: calc(50% - 12px); margin-right: 24px; margin-bottom: 16px; }
+html.device-desktop #tab-today .focus-card:nth-child(2n) { margin-right: 0; }
 
 /* ── Grids ── */
 html.device-desktop .more-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
@@ -2890,7 +2891,8 @@ html.device-desktop #tab-today .hero-stats { grid-column: 2; grid-row: 1 / 4; ma
 html.device-desktop .stat { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.85); border: 1px solid var(--border); border-radius: 12px; padding: 13px 16px; box-shadow: none; }
 html.device-desktop .stat-num { font-size: 24px; }
 html.device-desktop .stat-label { font-size: 11px; }
-html.device-desktop #tab-today .focus-card { display: inline-block; vertical-align: top; width: calc(33.333% - 12px); margin-right: 16px; margin-bottom: 0; }
+html.device-desktop #tab-today .focus-card { display: inline-block; vertical-align: top; width: calc(50% - 12px); margin-right: 24px; margin-bottom: 16px; }
+html.device-desktop #tab-today .focus-card:nth-child(2n) { margin-right: 0; }
 
 /* Grids & two-column pages */
 html.device-desktop .more-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
@@ -3277,6 +3279,13 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <div class="focus-top">
             <span class="focus-title">AI Photo &amp; Video 🎬</span>
             <span class="focus-meta">Generate the life you want</span>
+          </div>
+        </div>
+
+        <div class="card glass focus-card" data-goto="tab-affirm">
+          <div class="focus-top">
+            <span class="focus-title">Affirmations ✦</span>
+            <span class="focus-meta">Sacred words to raise your frequency</span>
           </div>
         </div>
       </section>
