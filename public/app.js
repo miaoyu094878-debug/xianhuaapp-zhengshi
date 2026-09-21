@@ -385,8 +385,11 @@
       favBtn.title = fav ? 'Unfavorite' : 'Favorite';
       favBtn.addEventListener('click', function () {
         var i = db.affirmFavs.indexOf(text);
-        if (i === -1) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
+        var was = i !== -1;
+        if (!was) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
         save(); renderAffirm();
+        syncFav(text, curCat, false, !was);
+        logUsage('affirm', was ? 'unfavorite' : 'favorite', { text: text, category: curCat });
       });
       item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(favBtn);
       wrap.appendChild(item);
@@ -442,10 +445,13 @@
       swipeQueue.pop();
       if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
       save(); renderSwipe(); renderAffirm();
+      if (text) { syncFav(text, '', false, true); logUsage('affirm', 'save', { text: text }); }
     });
   });
   $('#swipeSkip').addEventListener('click', function () {
+    var text = swipeQueue[swipeQueue.length - 1];
     swipeOut('skip', function () { swipeQueue.pop(); renderSwipe(); });
+    if (text) logUsage('affirm', 'view', { text: text });
   });
   $('#swipeReset').addEventListener('click', function () { initSwipe(); });
 
@@ -1887,6 +1893,48 @@
     });
   }
 
+  // Generic best-effort usage logger. Empty-ops when signed out or unconfigured.
+  async function logUsage(feature, action, detail) {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key) return;
+    try {
+      var body = {
+        user_id: (s.user && s.user.id) || null,
+        feature: feature || '',
+        action: action || 'use'
+      };
+      if (detail) body.detail = detail;
+      await fetch(cfg.url + '/rest/v1/usages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token },
+        body: JSON.stringify(body)
+      });
+    } catch (e) { console.warn('logUsage:', e); }
+  }
+
+  // Sync a favorited affirmation into the affirmations table (upsert) or remove it.
+  async function syncFav(text, category, isCustom, favorited) {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key || !text) return;
+    var user_id = s.user && s.user.id;
+    if (!user_id) return;
+    try {
+      if (favorited) {
+        var body = { user_id: user_id, text: text, category: category || '', is_custom: !!isCustom };
+        await fetch(cfg.url + '/rest/v1/affirmations?on_conflict=user_id,text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify(body)
+        });
+      } else {
+        await fetch(cfg.url + '/rest/v1/affirmations?user_id=eq.' + encodeURIComponent(user_id) + '&text=' + encodeURIComponent('eq.' + text), {
+          method: 'DELETE',
+          headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token }
+        });
+      }
+    } catch (e) { console.warn('syncFav:', e); }
+  }
+
   function acctMsg(str) { var m = $('#acctMsg'); if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); } }
 
   // Sign up / Log in
@@ -2895,6 +2943,7 @@
           url: data.url
         });
         save();
+        logUsage('ai_vision', 'photo', { prompt: prompt, quality: currentCameraQuality, aspect: photoPayload.aspect_ratio || '3:4' });
         aiStatus('✦ Portrait generated with ' + cameraInfo.label + '! View and download below.', 'success');
         updateUseRecentPhotoBtn();
         renderAiResults();
@@ -2975,6 +3024,7 @@
               url: videoUrl
             });
             save();
+            logUsage('ai_vision', 'video', { prompt: prompt, duration: dur, resolution: res, quality: currentCameraQuality, aspect: videoPayload.aspect_ratio || '3:4' });
             var readyMsg = '▶ Cinematic video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
             aiStatus(readyMsg, 'success');
             renderAiResults();
@@ -4674,6 +4724,10 @@
     setTimeout(function () {
       a.remove();
     }, 800);
+
+    // 4. Best-effort usage record
+    var wpTextVal = ($('#wpText') && $('#wpText').value || '').trim();
+    logUsage('wallpaper', 'export', { text: wpTextVal, ratio: wpState.ratio, tone: wpState.tone });
   }
 
   var wpExportBtn = $('#wpExport');
