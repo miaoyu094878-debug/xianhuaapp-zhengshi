@@ -312,9 +312,11 @@
   $('#affirmAdd').addEventListener('click', function () {
     var t = $('#affirmNew').value.trim();
     if (!t) return;
-    if (db.affirmCustom.indexOf(t) === -1) db.affirmCustom.push(t);
+    var isNew = db.affirmCustom.indexOf(t) === -1;
+    if (isNew) db.affirmCustom.push(t);
     $('#affirmNew').value = '';
     save(); renderAffirm(); initSwipe();
+    if (isNew) syncAffirmFav(t, true, true);
   });
   $('#affirmNew').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); $('#affirmAdd').click(); }
@@ -368,6 +370,7 @@
           var i = db.affirmCustom.indexOf(text);
           if (i !== -1) db.affirmCustom.splice(i, 1);
           save(); renderAffirm(); initSwipe();
+          syncAffirmFav(text, true, false);
         });
         item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
         customList.appendChild(item);
@@ -388,8 +391,7 @@
         var was = i !== -1;
         if (!was) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
         save(); renderAffirm();
-        syncFav(text, curCat, false, !was);
-        logUsage('affirm', was ? 'unfavorite' : 'favorite', { text: text, category: curCat });
+        syncAffirmFav(text, false, !was);
       });
       item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(favBtn);
       wrap.appendChild(item);
@@ -445,13 +447,12 @@
       swipeQueue.pop();
       if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
       save(); renderSwipe(); renderAffirm();
-      if (text) { syncFav(text, '', false, true); logUsage('affirm', 'save', { text: text }); }
+      if (text) syncAffirmFav(text, false, true);
     });
   });
   $('#swipeSkip').addEventListener('click', function () {
     var text = swipeQueue[swipeQueue.length - 1];
     swipeOut('skip', function () { swipeQueue.pop(); renderSwipe(); });
-    if (text) logUsage('affirm', 'view', { text: text });
   });
   $('#swipeReset').addEventListener('click', function () { initSwipe(); });
 
@@ -1893,46 +1894,55 @@
     });
   }
 
-  // Generic best-effort usage logger. Empty-ops when signed out or unconfigured.
-  async function logUsage(feature, action, detail) {
+  // Write a record row to any of the user's existing tables (best-effort).
+  // Tables: affirm_favs, affirm_custom, wallpapers, visions. Empty-ops when signed out.
+  async function pushRow(table, body, method) {
     var s = savedSession(), cfg = supabaseCfg();
     if (!s || !cfg.url || !cfg.key) return;
+    var user_id = (s.user && s.user.id) || null;
+    if (!user_id) return;
     try {
-      var body = {
-        user_id: (s.user && s.user.id) || null,
-        feature: feature || '',
-        action: action || 'use'
-      };
-      if (detail) body.detail = detail;
-      await fetch(cfg.url + '/rest/v1/usages', {
-        method: 'POST',
+      var payload = Object.assign({}, body, { user_id: user_id });
+      await fetch(cfg.url + '/rest/v1/' + table, {
+        method: method || 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token },
-        body: JSON.stringify(body)
+        body: JSON.stringify(payload)
       });
-    } catch (e) { console.warn('logUsage:', e); }
+    } catch (e) { console.warn('pushRow(' + table + '):', e); }
   }
 
-  // Sync a favorited affirmation into the affirmations table (upsert) or remove it.
-  async function syncFav(text, category, isCustom, favorited) {
+  // Affirm favorites point to existing table affirm_favs (insert) / affirm_custom (custom).
+  async function syncAffirmFav(text, isCustom, favorited) {
+    if (!text) return;
     var s = savedSession(), cfg = supabaseCfg();
-    if (!s || !cfg.url || !cfg.key || !text) return;
-    var user_id = s.user && s.user.id;
+    if (!s || !cfg.url || !cfg.key) return;
+    var user_id = (s.user && s.user.id) || null;
     if (!user_id) return;
     try {
       if (favorited) {
-        var body = { user_id: user_id, text: text, category: category || '', is_custom: !!isCustom };
-        await fetch(cfg.url + '/rest/v1/affirmations?on_conflict=user_id,text', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-          body: JSON.stringify(body)
-        });
+        await pushRow(isCustom ? 'affirm_custom' : 'affirm_favs', { text: text });
       } else {
-        await fetch(cfg.url + '/rest/v1/affirmations?user_id=eq.' + encodeURIComponent(user_id) + '&text=' + encodeURIComponent('eq.' + text), {
+        var table = isCustom ? 'affirm_custom' : 'affirm_favs';
+        await fetch(cfg.url + '/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=' + encodeURIComponent('eq.' + text), {
           method: 'DELETE',
           headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token }
         });
       }
-    } catch (e) { console.warn('syncFav:', e); }
+    } catch (e) { console.warn('syncAffirmFav:', e); }
+  }
+
+  // AI Vision uses existing table visions.
+  async function logVision(v, url) {
+    var body = {
+      kind: v.kind || '',
+      prompt: v.prompt || '',
+      status: 'completed',
+      image_url: v.kind === 'photo' ? (url || '') : '',
+      video_url: v.kind === 'video' ? (url || '') : '',
+      aspect_ratio: v.aspect || '',
+      duration: v.duration || 0
+    };
+    await pushRow('visions', body);
   }
 
   function acctMsg(str) { var m = $('#acctMsg'); if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); } }
@@ -2943,7 +2953,7 @@
           url: data.url
         });
         save();
-        logUsage('ai_vision', 'photo', { prompt: prompt, quality: currentCameraQuality, aspect: photoPayload.aspect_ratio || '3:4' });
+        logVision({ kind: 'photo', prompt: prompt, aspect: photoPayload.aspect_ratio || '3:4' }, data.url);
         aiStatus('✦ Portrait generated with ' + cameraInfo.label + '! View and download below.', 'success');
         updateUseRecentPhotoBtn();
         renderAiResults();
@@ -3024,7 +3034,7 @@
               url: videoUrl
             });
             save();
-            logUsage('ai_vision', 'video', { prompt: prompt, duration: dur, resolution: res, quality: currentCameraQuality, aspect: videoPayload.aspect_ratio || '3:4' });
+            logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' }, videoUrl);
             var readyMsg = '▶ Cinematic video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
             aiStatus(readyMsg, 'success');
             renderAiResults();
@@ -4725,9 +4735,9 @@
       a.remove();
     }, 800);
 
-    // 4. Best-effort usage record
+    // 4. Best-effort usage record (existing table wallpapers)
     var wpTextVal = ($('#wpText') && $('#wpText').value || '').trim();
-    logUsage('wallpaper', 'export', { text: wpTextVal, ratio: wpState.ratio, tone: wpState.tone });
+    pushRow('wallpapers', { prompt: wpTextVal, style: wpState.tone || '', image_url: '' });
   }
 
   var wpExportBtn = $('#wpExport');
