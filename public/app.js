@@ -312,9 +312,11 @@
   $('#affirmAdd').addEventListener('click', function () {
     var t = $('#affirmNew').value.trim();
     if (!t) return;
-    if (db.affirmCustom.indexOf(t) === -1) db.affirmCustom.push(t);
+    var isNew = db.affirmCustom.indexOf(t) === -1;
+    if (isNew) db.affirmCustom.push(t);
     $('#affirmNew').value = '';
     save(); renderAffirm(); initSwipe();
+    if (isNew) syncAffirmFav(t, true, true);
   });
   $('#affirmNew').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); $('#affirmAdd').click(); }
@@ -368,6 +370,7 @@
           var i = db.affirmCustom.indexOf(text);
           if (i !== -1) db.affirmCustom.splice(i, 1);
           save(); renderAffirm(); initSwipe();
+          syncAffirmFav(text, true, false);
         });
         item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
         customList.appendChild(item);
@@ -385,8 +388,10 @@
       favBtn.title = fav ? 'Unfavorite' : 'Favorite';
       favBtn.addEventListener('click', function () {
         var i = db.affirmFavs.indexOf(text);
-        if (i === -1) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
+        var was = i !== -1;
+        if (!was) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
         save(); renderAffirm();
+        syncAffirmFav(text, false, !was);
       });
       item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(favBtn);
       wrap.appendChild(item);
@@ -442,9 +447,11 @@
       swipeQueue.pop();
       if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
       save(); renderSwipe(); renderAffirm();
+      if (text) syncAffirmFav(text, false, true);
     });
   });
   $('#swipeSkip').addEventListener('click', function () {
+    var text = swipeQueue[swipeQueue.length - 1];
     swipeOut('skip', function () { swipeQueue.pop(); renderSwipe(); });
   });
   $('#swipeReset').addEventListener('click', function () { initSwipe(); });
@@ -524,6 +531,7 @@
     currentUtterance: null,
     activeParagraphIdx: 0,
     paragraphs: [],
+    lrKey: null,
     highlightTimer: null
   };
 
@@ -1121,6 +1129,9 @@
             fsState.activeParagraphIdx = 0;
             if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
           }, 3000);
+          // Whole-story voice cache: once the full per-paragraph playback finishes, upload a
+          // concatenated single file to Supabase Storage so the next play hits cache & skips TTS.
+          collectAndUploadStoryAudio();
           return;
         }
 
@@ -1360,14 +1371,78 @@
     // Auto-scroll into view smoothly
     $('#fsPlayer').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Begin immersive playback
-    playFsManifestation(true);
+    // Whole-story voice cache (Living Reality): if a single file already exists in
+    // Supabase Storage for this desire+voice+mood, play it directly (no per-paragraph
+    // TTS calls => saves generation cost). Otherwise play per-paragraph and upload later.
+    var voiceSelect = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
+    var moodC = $('#fsMood') ? $('#fsMood').value : 'calm';
+    var fsKey = lrHash((data.title || '') + '|' + (data.story || '') + '|' + voiceSelect + '|' + moodC);
+    fsState.lrKey = fsKey;
+    fetchVoiceSession(fsKey).then(function (wholeBuf) {
+      if (wholeBuf && fsState.paragraphs && fsState.paragraphs.length) {
+        playWholeStory(wholeBuf, fsKey);
+      } else {
+        playFsManifestation(true);
+      }
+    }).catch(function () {
+      playFsManifestation(true);
+    });
+  }
+
+  // Play a single recorded whole-story audio buffer (from cache), then upload-can
+  function playWholeStory(buf, fsKey) {
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    startFsAmbient(freq, 1.0);
+    fsState.isPlaying = true;
+    updateFsPlaybackUI(true);
+    $('#fsStoryBody').querySelectorAll('.fs-story-p').forEach(function (el) { el.classList.add('lit'); });
+
+    if (!fsState.audioCtx) {
+      fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+    }
+    if (fsState.audioCtx.state === 'suspended') fsState.audioCtx.resume();
+
+    var source = fsState.audioCtx.createBufferSource();
+    source.buffer = buf;
+    var voiceGain = fsState.audioCtx.createGain();
+    var voiceVolVal = parseFloat($('#fsVoiceVol') ? $('#fsVoiceVol').value : 1.0);
+    if (isNaN(voiceVolVal) || voiceVolVal < 0) voiceVolVal = 1.0;
+    voiceGain.gain.setValueAtTime(voiceVolVal, fsState.audioCtx.currentTime);
+    fsState.voiceGainNode = voiceGain;
+    var speedVal = parseFloat($('#fsSpeed') ? $('#fsSpeed').value : 0.95);
+    source.playbackRate.value = speedVal;
+    source.connect(voiceGain);
+    voiceGain.connect(fsState.audioCtx.destination);
+
+    fsState.currentAudioSource = source;
+    startFsAmbient(freq, 0.4);
+
+    source.onended = function () {
+      if (!fsState.isPlaying) return;
+      fsState.isPlaying = false;
+      fsState.activeParagraphIdx = 0;
+      var badge = $('#fsVoiceStatusBadge');
+      if (badge) badge.textContent = '✨ Guidance complete · resting in the healing afterglow (3s)...';
+      fsState.outroTimer = setTimeout(function () {
+        stopFsAmbient(false);
+        updateFsPlaybackUI(false);
+        if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
+      }, 3000);
+    };
+    source.start(0);
   }
 
   // Form Submit: Call Gemini API /api/manifest-story
   if ($('#fsForm')) {
     $('#fsForm').addEventListener('submit', async function (e) {
       e.preventDefault();
+      // Forced sign-in: Living Reality voice requires an authenticated user
+      if (!savedSession()) {
+        alert('Please sign in to use Living Reality \'s guided voice ✨');
+        goTab('tab-profile');
+        window.scrollTo(0, 0);
+        return;
+      }
       var raw = $('#fsDesire').value.trim();
       var desire = raw || (db.profile && db.profile.desire) || '';
       if (!desire) {
@@ -1699,7 +1774,176 @@
     try { var raw = localStorage.getItem('luminara_session'); if (raw) { var s = JSON.parse(raw); if (s && s.access_token) return s; } } catch (e) {}
     return null;
   }
+
+  /* ═══════ Voice Storage (Supabase Storage) ═══════ */
+  var LR_BUCKET = 'lrv-audio';
+  function lrHash(str) {
+    if (!str) return 'empty';
+    var h = 5381, i, c;
+    for (i = 0; i < str.length; i++) { c = str.charCodeAt(i); h = ((h << 5) + h) ^ c; }
+    return (h >>> 0).toString(36);
+  }
+  // Concatenate decoded AudioBuffers into a single decoded buffer ready to encode
+  function concatBuffers(list) {
+    if (!list || !list.length) return null;
+    var totalLen = 0, ch = list[0].numberOfChannels, sr = list[0].sampleRate, i, j;
+    for (i = 0; i < list.length; i++) totalLen += list[i].length;
+    var out = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(ch, totalLen, sr);
+    var dest = out.createBuffer(ch, totalLen, sr);
+    var t = 0;
+    for (i = 0; i < list.length; i++) {
+      var b = list[i];
+      for (j = 0; j < ch; j++) {
+        var srcData = b.getChannelData(j);
+        var dstData = dest.getChannelData(j);
+        for (var k = 0; k < srcData.length; k++) dstData[t + k] = srcData[k];
+      }
+      t += b.length;
+    }
+    return dest;
+  }
+  // Encode an AudioBuffer to a 16-bit PCM WAV Blob
+  function audioBufferToWav(buf) {
+    var ch = buf.numberOfChannels, sr = buf.sampleRate, len = buf.length;
+    var numSamples = len * ch, buffer = new ArrayBuffer(44 + numSamples * 2), view = new DataView(buffer);
+    function writeString(offset, str) {
+      for (var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    }
+    writeString(0, 'RIFF'); view.setUint32(4, 36 + numSamples * 2, true); writeString(8, 'WAVE');
+    writeString(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+    view.setUint16(22, ch, true); view.setUint32(24, sr, true);
+    view.setUint32(28, sr * ch * 2, true); view.setUint16(32, ch * 2, true); view.setUint16(34, 16, true);
+    writeString(36, 'data'); view.setUint32(40, numSamples * 2, true);
+    var offset = 44;
+    for (var i = 0; i < ch; i++) {
+      var data = buf.getChannelData(i);
+      for (var j = 0; j < data.length; j++) {
+        var s = Math.max(-1, Math.min(1, data[j]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return new Blob([buffer], { type: 'audio/wav' });
+  }
+  // Upload a Blob to {userId}/{key}.wav then insert usage row
+  async function uploadVoiceSession(childrenBufs, key, meta) {
+    var session = savedSession(), cfg = supabaseCfg();
+    if (!session || !cfg.url || !cfg.key) return false;
+    try {
+      var merged = concatBuffers(childrenBufs);
+      if (!merged) return false;
+      var wav = audioBufferToWav(merged);
+      var uid_ = (session.user && session.user.id) || 'anon';
+      var path = uid_ + '/' + key + '.wav';
+      var up = await fetch(cfg.url + '/storage/v1/object/' + LR_BUCKET + '/' + path, {
+        method: 'POST',
+        headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + session.access_token, 'x-upsert': 'true', 'Content-Type': 'audio/wav' },
+        body: wav
+      });
+      if (!up.ok) return false;
+      // Usage record
+      var body = {
+        user_id: uid_, scenario: meta.scenario || '', voice: meta.voice || '',
+        frequency: meta.frequency || '', duration_sec: Math.round(merged.duration || 0)
+      };
+      await fetch(cfg.url + '/rest/v1/listening_sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + session.access_token },
+        body: JSON.stringify(body)
+      });
+      return true;
+    } catch (e) { console.warn('uploadVoiceSession:', e); return false; }
+  }
+  // Download a cached full-story WAV and decode to AudioBuffer; returns AudioBuffer|null
+  async function fetchVoiceSession(key, audioCtx) {
+    var session = savedSession(), cfg = supabaseCfg();
+    if (!session || !cfg.url || !cfg.key) return null;
+    var uid_ = (session.user && session.user.id) || 'anon';
+    var path = uid_ + '/' + key + '.wav';
+    try {
+      var res = await fetch(cfg.url + '/storage/v1/object/' + LR_BUCKET + '/' + path, {
+        headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + session.access_token }
+      });
+      if (!res.ok) return null;
+      var ab = await res.arrayBuffer();
+      var ctx = audioCtx || ((window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext || window.webkitAudioContext)() : null);
+      if (!ctx) return null;
+      return await ctx.decodeAudioData(ab);
+    } catch (e) { console.warn('fetchVoiceSession:', e); return null; }
+  }
   function setSession(s) { try { if (s) localStorage.setItem('luminara_session', JSON.stringify(s)); else localStorage.removeItem('luminara_session'); } catch (e) {} }
+
+  // Gather story's per-paragraph cached buffers and upload a single concatenated WAV
+  function collectAndUploadStoryAudio() {
+    var paragraphs = fsState.paragraphs || [];
+    if (!paragraphs.length || !fsState.lrKey) return;
+    var voiceKey = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
+    var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
+    var buffers = [];
+    paragraphs.forEach(function (text) {
+      var b = pcmAudioCache[voiceKey + ':' + (mood || 'calm') + ':' + text];
+      if (b) buffers.push(b);
+    });
+    if (buffers.length !== paragraphs.length) return; // incomplete -> don't cache a broken file
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    uploadVoiceSession(buffers, fsState.lrKey, {
+      scenario: (fsState.storyData && fsState.storyData.title) || '',
+      voice: voiceKey,
+      frequency: freq,
+      duration_sec: 0
+    });
+  }
+
+  // Write a record row to any of the user's existing tables (best-effort).
+  // Tables: affirm_favs, affirm_custom, wallpapers, visions. Empty-ops when signed out.
+  async function pushRow(table, body, method) {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key) return;
+    var user_id = (s.user && s.user.id) || null;
+    if (!user_id) return;
+    try {
+      var payload = Object.assign({}, body, { user_id: user_id });
+      await fetch(cfg.url + '/rest/v1/' + table, {
+        method: method || 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) { console.warn('pushRow(' + table + '):', e); }
+  }
+
+  // Affirm favorites point to existing table affirm_favs (insert) / affirm_custom (custom).
+  async function syncAffirmFav(text, isCustom, favorited) {
+    if (!text) return;
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key) return;
+    var user_id = (s.user && s.user.id) || null;
+    if (!user_id) return;
+    try {
+      if (favorited) {
+        await pushRow(isCustom ? 'affirm_custom' : 'affirm_favs', { text: text });
+      } else {
+        var table = isCustom ? 'affirm_custom' : 'affirm_favs';
+        await fetch(cfg.url + '/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=' + encodeURIComponent('eq.' + text), {
+          method: 'DELETE',
+          headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token }
+        });
+      }
+    } catch (e) { console.warn('syncAffirmFav:', e); }
+  }
+
+  // AI Vision uses existing table visions.
+  async function logVision(v, url) {
+    var body = {
+      kind: v.kind || '',
+      prompt: v.prompt || '',
+      status: 'completed',
+      image_url: v.kind === 'photo' ? (url || '') : '',
+      video_url: v.kind === 'video' ? (url || '') : '',
+      aspect_ratio: v.aspect || '',
+      duration: v.duration || 0
+    };
+    await pushRow('visions', body);
+  }
 
   function acctMsg(str) { var m = $('#acctMsg'); if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); } }
 
@@ -1822,7 +2066,18 @@
     var ok = $('#pfSaved');
     if (ok) { ok.classList.remove('hidden'); setTimeout(function () { ok.classList.add('hidden'); }, 1600); }
   });
-  if ($('#profileBtn')) $('#profileBtn').addEventListener('click', function () { goTab('tab-profile'); });
+  var _profileFromTab = null;
+  if ($('#profileBtn')) $('#profileBtn').addEventListener('click', function () {
+    var cur = null;
+    $$('.tab-page').forEach(function (p) { if (p.classList.contains('active')) cur = p.id; });
+    if (cur === 'tab-profile') {
+      goTab(_profileFromTab || 'tab-future');
+      _profileFromTab = null;
+    } else {
+      _profileFromTab = cur || 'tab-future';
+      goTab('tab-profile');
+    }
+  });
   renderProfile();
   if ($('#acctSignedIn') || $('#acctSignedOut') || $('#acctLoading')) refreshAccount();
 
@@ -2698,6 +2953,7 @@
           url: data.url
         });
         save();
+        logVision({ kind: 'photo', prompt: prompt, aspect: photoPayload.aspect_ratio || '3:4' }, data.url);
         aiStatus('✦ Portrait generated with ' + cameraInfo.label + '! View and download below.', 'success');
         updateUseRecentPhotoBtn();
         renderAiResults();
@@ -2778,6 +3034,7 @@
               url: videoUrl
             });
             save();
+            logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' }, videoUrl);
             var readyMsg = '▶ Cinematic video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
             aiStatus(readyMsg, 'success');
             renderAiResults();
@@ -4477,6 +4734,10 @@
     setTimeout(function () {
       a.remove();
     }, 800);
+
+    // 4. Best-effort usage record (existing table wallpapers)
+    var wpTextVal = ($('#wpText') && $('#wpText').value || '').trim();
+    pushRow('wallpapers', { prompt: wpTextVal, style: wpState.tone || '', image_url: '' });
   }
 
   var wpExportBtn = $('#wpExport');
