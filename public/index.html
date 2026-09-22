@@ -593,6 +593,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .qdot { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); transition: 0.3s; }
 .qdot.active { background: var(--accent); width: 18px; border-radius: 999px; }
 
+/* ---------- SIGN-IN / SIGN-UP MODAL ---------- */
+.lm-title { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 22px; margin-bottom: 6px; color: var(--text); }
+#loginModal .quiz-card { text-align: center; }
+#loginModal input { text-align: center; }
+.lm-actions { display: flex; gap: 10px; margin-top: 4px; }
+.lm-actions .btn-primary, .lm-actions .chip { flex: 1; text-align: center; margin: 0; text-transform: none; }
+.lm-close { margin-top: 12px; width: 100%; text-align: center; }
+#loginModal .acct-hint { margin-top: 10px; font-size: 12px; color: var(--text-soft); min-height: 14px; }
+
 /* ---------- STANDALONE / SCROLLBAR ---------- */
 @media (display-mode: standalone) { .app-header { padding-top: max(22px, env(safe-area-inset-top)); } }
 ::-webkit-scrollbar { width: 4px; }
@@ -4442,6 +4451,22 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </div>
     </div>
 
+    <!-- Sign-in / Sign-up Modal (gates feature usage, not browsing) -->
+    <div id="loginModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Sign in or sign up">
+      <div class="quiz-card glass">
+        <h3 class="lm-title">Sign in to continue ✦</h3>
+        <p class="quiz-q" id="lmIntro">Create an account (or log in) to generate &amp; save your creations.</p>
+        <input id="lmEmail" type="email" placeholder="Your email" maxlength="120">
+        <input id="lmPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
+        <div class="lm-actions">
+          <button id="lmSignup" class="btn-primary" type="button">Sign up</button>
+          <button id="lmLogin" class="chip" type="button">Log in</button>
+        </div>
+        <p class="acct-hint hidden" id="lmMsg"></p>
+        <button class="chip lm-close" id="lmClose" type="button">Maybe later</button>
+      </div>
+    </div>
+
     <!-- Wallpaper Full Screen Immersive Preview Modal -->
     <div id="wpFullscreenModal" class="wp-fs-modal hidden" role="dialog" aria-modal="true" aria-label="Wallpaper Fullscreen Preview">
       <div class="wp-fs-backdrop" id="wpFsBackdrop"></div>
@@ -4531,7 +4556,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260920profile" defer></script>
+  <script src="app.js?v=20260922gate" defer></script>
 
 </body>
 </html>
