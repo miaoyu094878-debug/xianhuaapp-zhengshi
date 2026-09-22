@@ -1797,6 +1797,16 @@
   }
   if ($('#lmClose')) $('#lmClose').addEventListener('click', closeLoginModal);
   if (loginModal) loginModal.addEventListener('click', function (e) { if (e.target === loginModal) closeLoginModal(); });
+  var lmTogglePw = $('#lmTogglePw');
+  if (lmTogglePw) lmTogglePw.addEventListener('click', function () {
+    var pw = $('#lmPassword');
+    if (!pw) return;
+    var showing = pw.type === 'text';
+    pw.type = showing ? 'password' : 'text';
+    lmTogglePw.textContent = showing ? '👁' : '🙈';
+    lmTogglePw.setAttribute('aria-pressed', showing ? 'false' : 'true');
+    pw.focus();
+  });
   if ($('#lmSignup')) $('#lmSignup').addEventListener('click', async function () {
     var email = ($('#lmEmail').value || '').trim();
     var pass = $('#lmPassword').value || '';

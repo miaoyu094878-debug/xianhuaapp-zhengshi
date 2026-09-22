@@ -606,6 +606,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .lm-close { margin-top: 12px; width: 100%; text-align: center; }
 #loginModal .acct-hint { margin-top: 10px; font-size: 12px; color: var(--text-soft); min-height: 14px; }
 
+/* Password show/hide toggle */
+.pw-field { position: relative; margin-bottom: 0; }
+.pw-field input { padding-right: 44px; width: 100%; }
+.pw-toggle {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 6px; border-radius: 8px;
+  color: var(--text-dim); opacity: 0.8; transition: 0.25s;
+}
+.pw-toggle:hover { color: var(--accent); opacity: 1; }
+.pw-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 /* ---------- STANDALONE / SCROLLBAR ---------- */
 @media (display-mode: standalone) { .app-header { padding-top: max(22px, env(safe-area-inset-top)); } }
 ::-webkit-scrollbar { width: 4px; }
@@ -4461,7 +4473,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <h3 class="lm-title">Sign in to continue ✦</h3>
         <p class="quiz-q" id="lmIntro">Create an account (or log in) to generate &amp; save your creations.</p>
         <input id="lmEmail" type="email" placeholder="Your email" maxlength="120">
-        <input id="lmPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
+        <div class="pw-field">
+          <input id="lmPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
+          <button id="lmTogglePw" class="pw-toggle" type="button" aria-label="Toggle password visibility" aria-pressed="false">👁</button>
+        </div>
         <div class="lm-actions">
           <button id="lmSignup" class="btn-primary" type="button">Sign up</button>
           <button id="lmLogin" class="chip" type="button">Log in</button>
