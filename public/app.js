@@ -1810,10 +1810,12 @@
   if ($('#lmSignup')) $('#lmSignup').addEventListener('click', async function () {
     var email = ($('#lmEmail').value || '').trim();
     var pass = $('#lmPassword').value || '';
+    var name = ($('#lmName') && $('#lmName').value || '').trim() || (db.profile && db.profile.name) || '';
     if (!email || pass.length < 8) { lmMsg('Enter a valid email and a password of at least 8 characters.'); return; }
+    if (name) { db.profile = db.profile || {}; db.profile.name = name; save(); }
     lmMsg('Creating account…');
     try {
-      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: (db.profile && db.profile.name) || '' } });
+      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: name } });
       if (d.user && d.user.identities && d.user.identities.length === 0) { lmMsg('This email is already registered. Please log in instead.'); return; }
       if (d.session && d.session.access_token) { setSession(d.session); await seedProfile(d.session); }
       if (d.access_token) { closeLoginModal(); }
