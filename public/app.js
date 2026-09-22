@@ -310,6 +310,7 @@
     catsWrap.appendChild(b);
   });
   $('#affirmAdd').addEventListener('click', function () {
+    if (!requireLogin('Sign in to add your own affirmations ✦')) return;
     var t = $('#affirmNew').value.trim();
     if (!t) return;
     var isNew = db.affirmCustom.indexOf(t) === -1;
@@ -387,6 +388,7 @@
       var favBtn = el('button', 'icon-btn', fav ? '✦' : '✧');
       favBtn.title = fav ? 'Unfavorite' : 'Favorite';
       favBtn.addEventListener('click', function () {
+        if (!requireLogin('Sign in to favorite affirmations ✦')) return;
         var i = db.affirmFavs.indexOf(text);
         var was = i !== -1;
         if (!was) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
@@ -442,6 +444,7 @@
     setTimeout(after, 320);
   }
   $('#swipeSave').addEventListener('click', function () {
+    if (!requireLogin('Sign in to save affirmations ♥')) return;
     var text = swipeQueue[swipeQueue.length - 1];
     swipeOut('save', function () {
       swipeQueue.pop();
@@ -1436,13 +1439,8 @@
   if ($('#fsForm')) {
     $('#fsForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      // Forced sign-in: Living Reality voice requires an authenticated user
-      if (!savedSession()) {
-        alert('Please sign in to use Living Reality \'s guided voice ✨');
-        goTab('tab-profile');
-        window.scrollTo(0, 0);
-        return;
-      }
+      // Gate: browsing is free, but generating voice requires an account
+      if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
       var raw = $('#fsDesire').value.trim();
       var desire = raw || (db.profile && db.profile.desire) || '';
       if (!desire) {
@@ -1774,6 +1772,58 @@
     try { var raw = localStorage.getItem('luminara_session'); if (raw) { var s = JSON.parse(raw); if (s && s.access_token) return s; } } catch (e) {}
     return null;
   }
+
+  /* ═══════ Sign-in gate (browse freely, login only when using a feature) ═══════ */
+  var loginModal = $('#loginModal');
+  function lmMsg(str) {
+    var m = $('#lmMsg');
+    if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); }
+  }
+  function openLoginModal(intro) {
+    if (!loginModal) return;
+    if (intro && $('#lmIntro')) $('#lmIntro').textContent = intro;
+    lmMsg('');
+    loginModal.classList.remove('hidden');
+  }
+  function closeLoginModal() {
+    if (!loginModal) return;
+    loginModal.classList.add('hidden');
+    lmMsg('');
+  }
+  function requireLogin(intro) {
+    if (savedSession()) return true;
+    openLoginModal(intro);
+    return false;
+  }
+  if ($('#lmClose')) $('#lmClose').addEventListener('click', closeLoginModal);
+  if (loginModal) loginModal.addEventListener('click', function (e) { if (e.target === loginModal) closeLoginModal(); });
+  if ($('#lmSignup')) $('#lmSignup').addEventListener('click', async function () {
+    var email = ($('#lmEmail').value || '').trim();
+    var pass = $('#lmPassword').value || '';
+    if (!email || pass.length < 8) { lmMsg('Enter a valid email and a password of at least 8 characters.'); return; }
+    lmMsg('Creating account…');
+    try {
+      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: (db.profile && db.profile.name) || '' } });
+      if (d.user && d.user.identities && d.user.identities.length === 0) { lmMsg('This email is already registered. Please log in instead.'); return; }
+      if (d.session && d.session.access_token) { setSession(d.session); await seedProfile(d.session); }
+      if (d.access_token) { closeLoginModal(); }
+      else { lmMsg('Check your inbox to confirm your email, then log in.'); }
+      refreshAccount();
+    } catch (e) { lmMsg(e.message); }
+  });
+  if ($('#lmLogin')) $('#lmLogin').addEventListener('click', async function () {
+    var email = ($('#lmEmail').value || '').trim();
+    var pass = $('#lmPassword').value || '';
+    if (!email || !pass) { lmMsg('Enter your email and password.'); return; }
+    lmMsg('Signing in…');
+    try {
+      var d = await requestToken('/auth/v1/token?grant_type=password', { email: email, password: pass });
+      if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
+      setSession(d); await seedProfile(d);
+      closeLoginModal();
+      refreshAccount();
+    } catch (e) { lmMsg(e.message); }
+  });
 
   /* ═══════ Voice Storage (Supabase Storage) ═══════ */
   var LR_BUCKET = 'lrv-audio';
@@ -2887,6 +2937,8 @@
   }
 
   function aiGenerate(kind) {
+    // Gate: generating photos/videos requires an account (browsing the studio is free)
+    if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
     var prompt = '';
     if (kind === 'photo') {
       var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
@@ -4714,6 +4766,8 @@
   }
 
   function triggerWallpaperExport() {
+    // Gate: exporting/saving a wallpaper requires an account
+    if (!requireLogin('Sign in to save & download your wallpaper ✨')) return;
     // 1. Render clean canvas without UI selection boxes or handles
     renderWallpaper(true);
     var cnv = $('#wpCanvas');
