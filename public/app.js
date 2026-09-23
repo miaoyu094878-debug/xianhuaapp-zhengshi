@@ -1772,6 +1772,48 @@
     try { var raw = localStorage.getItem('luminara_session'); if (raw) { var s = JSON.parse(raw); if (s && s.access_token) return s; } } catch (e) {}
     return null;
   }
+  // Silent token refresh: exchange refresh_token for a fresh access_token.
+  // Rotation is enabled on this project, so the response carries a NEW refresh_token
+  // which must be persisted — setSession stores the whole response.
+  var _refreshInFlight = null;
+  async function refreshSession() {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !s.refresh_token || !cfg.url || !cfg.key) return null;
+    if (_refreshInFlight) return await _refreshInFlight;
+    _refreshInFlight = (async function () {
+      try {
+        var res = await fetch(cfg.url + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': cfg.key },
+          body: JSON.stringify({ refresh_token: s.refresh_token })
+        });
+        if (!res.ok) { setSession(null); refreshAccount(); return null; }
+        var d = await res.json();
+        if (!d || !d.access_token) { setSession(null); refreshAccount(); return null; }
+        setSession(d);
+        return d;
+      } catch (e) { return null; }
+      finally { _refreshInFlight = null; }
+    })();
+    return await _refreshInFlight;
+  }
+  // Supabase request that transparently refreshes an expired token once and retries.
+  async function sbFetch(path, options) {
+    var cfg = supabaseCfg(), s = savedSession(), opts = options || {};
+    if (!cfg.url) return new Response('', { status: 500 });
+    function withAuth(token) {
+      var h = Object.assign({}, opts.headers || {});
+      if (cfg.key) h['apikey'] = cfg.key;
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      return Object.assign({}, opts, { headers: h });
+    }
+    var res = await fetch(cfg.url + path, withAuth(s && s.access_token));
+    if (res.status === 401) {
+      var fresh = await refreshSession();
+      if (fresh && fresh.access_token) res = await fetch(cfg.url + path, withAuth(fresh.access_token));
+    }
+    return res;
+  }
 
   /* ═══════ Sign-in gate (browse freely, login only when using a feature) ═══════ */
   var loginModal = $('#loginModal');
@@ -1897,9 +1939,9 @@
       var wav = audioBufferToWav(merged);
       var uid_ = (session.user && session.user.id) || 'anon';
       var path = uid_ + '/' + key + '.wav';
-      var up = await fetch(cfg.url + '/storage/v1/object/' + LR_BUCKET + '/' + path, {
+      var up = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + path, {
         method: 'POST',
-        headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + session.access_token, 'x-upsert': 'true', 'Content-Type': 'audio/wav' },
+        headers: { 'x-upsert': 'true', 'Content-Type': 'audio/wav' },
         body: wav
       });
       if (!up.ok) return false;
@@ -1908,9 +1950,9 @@
         user_id: uid_, scenario: meta.scenario || '', voice: meta.voice || '',
         frequency: meta.frequency || '', duration_sec: Math.round(merged.duration || 0)
       };
-      await fetch(cfg.url + '/rest/v1/listening_sessions', {
+      await sbFetch('/rest/v1/listening_sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + session.access_token },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       return true;
@@ -1923,9 +1965,7 @@
     var uid_ = (session.user && session.user.id) || 'anon';
     var path = uid_ + '/' + key + '.wav';
     try {
-      var res = await fetch(cfg.url + '/storage/v1/object/' + LR_BUCKET + '/' + path, {
-        headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + session.access_token }
-      });
+      var res = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + path, {});
       if (!res.ok) return null;
       var ab = await res.arrayBuffer();
       var ctx = audioCtx || ((window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext || window.webkitAudioContext)() : null);
@@ -1965,9 +2005,9 @@
     if (!user_id) return;
     try {
       var payload = Object.assign({}, body, { user_id: user_id });
-      await fetch(cfg.url + '/rest/v1/' + table, {
+      await sbFetch('/rest/v1/' + table, {
         method: method || 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
     } catch (e) { console.warn('pushRow(' + table + '):', e); }
@@ -1985,9 +2025,8 @@
         await pushRow(isCustom ? 'affirm_custom' : 'affirm_favs', { text: text });
       } else {
         var table = isCustom ? 'affirm_custom' : 'affirm_favs';
-        await fetch(cfg.url + '/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=' + encodeURIComponent('eq.' + text), {
-          method: 'DELETE',
-          headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token }
+        await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=' + encodeURIComponent('eq.' + text), {
+          method: 'DELETE'
         });
       }
     } catch (e) { console.warn('syncAffirmFav:', e); }
@@ -2064,12 +2103,10 @@
     var cfg = supabaseCfg();
     if (!cfg.url || !cfg.key || !session) return;
     var body = Object.assign({}, db.profile || {}, { id: session.user && session.user.id });
-    await fetch(cfg.url + '/rest/v1/profiles?on_conflict=id', {
+    await sbFetch('/rest/v1/profiles?on_conflict=id', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': cfg.key,
-        'Authorization': 'Bearer ' + session.access_token,
         'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
       body: JSON.stringify(body)
