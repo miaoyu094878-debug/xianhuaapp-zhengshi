@@ -2515,16 +2515,29 @@ html.device-desktop .side-link {
 }
 html.device-desktop .side-link:hover { background: var(--surface-2); color: var(--text); }
 html.device-desktop .side-link.active { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-weight: 500; }
-html.device-desktop .ds-foot { padding: 14px 10px 0; border-top: 1px solid var(--border); }
-html.device-desktop .ds-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 10px; }
-html.device-desktop .ds-themes { display: flex; gap: 12px; }
-html.device-desktop .ds-theme { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: var(--shadow-card); transition: 0.2s; }
-html.device-desktop .ds-theme:hover { transform: scale(1.12); }
-html.device-desktop .ds-theme.active { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+html.device-desktop .ds-foot { padding: 12px 4px 0; border-top: 1px solid var(--border); }
+html.device-desktop .ds-user {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 9px 10px; border: none; border-radius: 11px;
+  background: transparent; cursor: pointer; text-align: left; transition: 0.2s;
+}
+html.device-desktop .ds-user:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+html.device-desktop .ds-user.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+html.device-desktop .ds-user-avatar {
+  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cta-grad); color: #fff; font-size: 15px; font-weight: 600;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+html.device-desktop .ds-user-txt { display: flex; flex-direction: column; min-width: 0; }
+html.device-desktop .ds-user-name { font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.device-desktop .ds-user-sub { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Hide mobile-only chrome on desktop */
-html.device-desktop .app-header, html.device-desktop .tab-bar,
-html.device-desktop .theme-fab, html.device-desktop .theme-panel { display: none; }
+html.device-desktop .app-header, html.device-desktop .tab-bar { display: none; }
+/* Theme switcher moves to the bottom-right corner on desktop */
+html.device-desktop .theme-fab { right: 28px; bottom: 28px; }
+html.device-desktop .theme-panel { right: 28px; bottom: 92px; }
 
 /* ── Main content area ── */
 html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }
@@ -2687,7 +2700,6 @@ html.device-desktop .side-link::before {
 html.device-desktop .side-link:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--text); }
 html.device-desktop .side-link.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-weight: 500; }
 html.device-desktop .side-link.active::before { background: var(--accent); }
-html.device-desktop .ds-theme { width: 22px; height: 22px; border-width: 2px; }
 
 /* Cleaner content */
 html.device-desktop .tab-page.active { max-width: 1140px; margin: 0 auto; }
