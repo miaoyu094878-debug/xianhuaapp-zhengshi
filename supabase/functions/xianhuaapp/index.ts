@@ -550,9 +550,8 @@ async function handleVoice(body: any): Promise<Response> {
     'Fenrir': 'VR6AewLTigWG4xSOukaG'  // Arnold (笃定自信男声)
   };
 
-  // 优先用 voiceName 查 voiceMap；只有非预置名且是真实 ElevenLabs ID(>=15位) 时才直接用 voiceId
-  const targetVoiceId = (!isOpenRouterGeminiTTS && !isKokoro && !isFishAudio && !isQwenTTS)
-    ? (voiceMap[voiceName] || voiceMap[voiceId] || (voiceId && voiceId.length >= 15 ? voiceId : null) || (voiceName && voiceName.length >= 15 ? voiceName : null))
+  const targetVoiceId = (!isOpenRouterGeminiTTS && !isKokoro && !isFishAudio)
+    ? (voiceId || voiceMap[voiceName] || (voiceName && !voiceName.startsWith('openrouter:') && voiceName.length >= 15 ? voiceName : null))
     : null;
 
   if (elevenLabsKey && targetVoiceId) {
@@ -616,18 +615,17 @@ async function handleVoice(body: any): Promise<Response> {
           model: 'google/gemini-3.1-flash-tts-preview',
           input: cleanText,
           voice: chosenVoice,
-          response_format: 'pcm'
+          response_format: 'mp3'
         })
       });
 
       if (orRes.ok) {
-        const pcmBytes = new Uint8Array(await orRes.arrayBuffer());
-        const wavBytes = pcmToWavUint8Array(pcmBytes, 24000, 1, 16);
-        const base64Audio = bufferToBase64(wavBytes);
+        const arrayBuf = await orRes.arrayBuffer();
+        const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
         return new Response(
           JSON.stringify({
             audio: base64Audio,
-            format: 'wav',
+            format: 'mp3',
             provider: 'openrouter-gemini-tts',
             model: 'google/gemini-3.1-flash-tts-preview',
             voice: chosenVoice
