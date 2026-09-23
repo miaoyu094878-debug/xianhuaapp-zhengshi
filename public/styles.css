@@ -2536,8 +2536,8 @@ html.device-desktop .ds-user-sub { font-size: 11.5px; color: var(--text-dim); wh
 /* Hide mobile-only chrome on desktop */
 html.device-desktop .app-header, html.device-desktop .tab-bar { display: none; }
 /* Theme switcher moves to the bottom-right corner on desktop */
-html.device-desktop .theme-fab { right: 28px; bottom: 28px; }
-html.device-desktop .theme-panel { right: 28px; bottom: 92px; }
+html.device-desktop .theme-fab { display: flex; right: 28px; bottom: 28px; }
+html.device-desktop .theme-panel:not(.hidden) { display: block; right: 28px; bottom: 92px; }
 
 /* ── Main content area ── */
 html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }
