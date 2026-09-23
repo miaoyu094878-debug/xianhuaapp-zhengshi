@@ -3255,21 +3255,19 @@
       var badgeTxt = '';
       var badgeClass = '';
       if (v.kind === 'video') {
-        var cameraTag = v.cameraQuality ? (' · ' + v.cameraQuality) : '';
         var videoModelLabel = '▶ Motion Video';
-        badgeTxt = videoModelLabel + cameraTag + (v.duration ? (' (' + v.duration + 's)') : '');
+        badgeTxt = videoModelLabel + (v.duration ? (' (' + v.duration + 's)') : '');
         badgeClass = 'video';
       } else if (v.source === 'free') {
         badgeTxt = '◈ Instant Draft';
         badgeClass = 'free';
-      } else {
-        badgeTxt = v.cameraQuality ? ('✦ ' + v.cameraQuality) : '✦ Portrait';
-        badgeClass = 'photo';
       }
 
       var mediaContainer = el('div', 'ai-card-media');
-      var badge = el('span', 'ai-type-pill ' + badgeClass, badgeTxt);
-      mediaContainer.appendChild(badge);
+      if (badgeTxt) {
+        var badge = el('span', 'ai-type-pill ' + badgeClass, badgeTxt);
+        mediaContainer.appendChild(badge);
+      }
 
       if (v.kind === 'photo') {
         var img = document.createElement('img');
