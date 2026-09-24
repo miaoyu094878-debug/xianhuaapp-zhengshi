@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.24.savevoicebig">
+  <link rel="stylesheet" href="styles.css?v=2026.9.24.nosideprofile">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3201,21 +3201,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 }
 .fs-secondary-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
 
-/* Save Voice — emphasized, larger call-to-action */
-#fsSaveVoice {
-  padding: 13px 26px; font-size: 14.5px; font-weight: 700; border-radius: 14px; gap: 8px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-#fsSaveVoice:hover {
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 38%, transparent);
-}
-
 /* Loading State for AI Manifestation generation */
 .fs-loading-overlay {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -3269,7 +3254,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <p class="ds-group">AI &amp; Guidance</p>
         <button class="side-link" data-tab="tab-future">🌌 Living Reality</button>
         <button class="side-link" data-tab="tab-ai-vision">🎬 AI Vision</button>
-        <button class="side-link" data-tab="tab-profile">👤 My Profile</button>
         <button class="side-link hidden" data-tab="tab-avatar">👤 Avatar</button>
         <button class="side-link hidden" data-tab="tab-meditate">◎ Breathe</button>
         <button class="side-link hidden" data-tab="tab-saved">🔖 Saved</button>
@@ -3595,18 +3579,19 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="fs-controls-bar">
-            <button id="fsPlayBtn" class="btn-primary fs-btn-main" type="button">▶ Play Narration</button>
-            <button id="fsSaveVoice" class="fs-secondary-btn" type="button" title="Save this guided voice to My Voices so you can replay it anytime">💾 Save Voice</button>
-            <button id="fsNewDesire" class="fs-secondary-btn" type="button" title="Enter a new desire">↺ New Goal</button>
-          </div>
+        </div>
+
+        <!-- Action Buttons (always visible; disabled until a guided voice exists) -->
+        <div class="fs-controls-bar" id="fsControlsBar">
+          <button id="fsSaveVoice" class="btn-primary fs-btn-main" type="button" disabled title="Save this guided voice to My Voices so you can replay it anytime">💾 Save Voice</button>
+          <button id="fsPlayBtn" class="fs-secondary-btn" type="button" disabled>▶ Play Narration</button>
+          <button id="fsNewDesire" class="fs-secondary-btn" type="button" disabled title="Enter a new desire">↺ New Goal</button>
         </div>
 
         <!-- My Voices — saved guided voices library -->
         <div class="card glass sv-card" id="svCard">
           <div class="list-head affirm-head-row">
-            <span>My Voices</span>
+            <span>🎧 My Voices</span>
             <button class="affirm-head-toggle" id="svToggle" type="button" aria-label="Toggle my voices">▾</button>
           </div>
           <p class="sv-hint">Save a guided voice once, then replay it anytime — no regeneration needed.</p>
@@ -4619,7 +4604,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260924nocopy" defer></script>
+  <script src="app.js?v=20260924nosideprofile" defer></script>
 
 </body>
 </html>
