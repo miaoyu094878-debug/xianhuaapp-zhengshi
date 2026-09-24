@@ -1520,37 +1520,6 @@
     });
   }
 
-  // Transfer to Wallpaper Studio
-  if ($('#fsSendToWallpaper')) {
-    $('#fsSendToWallpaper').addEventListener('click', function () {
-      if (!fsState.storyData) return;
-      var textToSet = fsState.storyData.affirmation || fsState.storyData.title || '';
-      if (typeof syncAffirmationText === 'function') {
-        syncAffirmationText(textToSet, 'fs');
-      }
-      goTab('tab-wallpaper');
-      window.scrollTo(0, 0);
-    });
-  }
-
-  // Copy Story to Clipboard
-  if ($('#fsCopyText')) {
-    $('#fsCopyText').addEventListener('click', function () {
-      if (!fsState.storyData) return;
-      var text = '✨ ' + (fsState.storyData.title || '') + '\n\n' +
-                 '✦ Affirmation: ' + (fsState.storyData.affirmation || '') + '\n\n' +
-                 (fsState.storyData.story || '') + '\n\n' +
-                 '⚓ Body anchor: ' + (fsState.storyData.sensoryAnchor || '');
-      navigator.clipboard.writeText(text).then(function () {
-        var orig = $('#fsCopyText').textContent;
-        $('#fsCopyText').textContent = '✓ Copied to clipboard';
-        setTimeout(function () { $('#fsCopyText').textContent = orig; }, 2000);
-      }).catch(function () {
-        alert('Text selected — long-press to copy.');
-      });
-    });
-  }
-
   // Return to Form
   if ($('#fsNewDesire')) {
     $('#fsNewDesire').addEventListener('click', function () {
