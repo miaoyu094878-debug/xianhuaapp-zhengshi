@@ -212,6 +212,7 @@
       if (more) more.classList.add('active');
     }
     $$('.side-link').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
+    $$('.ds-user').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
     $$('.tab-page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
     if (id === 'tab-ai-vision' && typeof setAiSubTab === 'function') setAiSubTab('home');
     if (id === 'tab-wallpaper' && typeof window.renderWpRefs === 'function') window.renderWpRefs();
@@ -221,6 +222,9 @@
     c.addEventListener('click', function () { goTab(c.dataset.goto); });
   });
   $$('.side-link').forEach(function (b) {
+    b.addEventListener('click', function () { goTab(b.dataset.tab); });
+  });
+  $$('.ds-user').forEach(function (b) {
     b.addEventListener('click', function () { goTab(b.dataset.tab); });
   });
 
@@ -2144,6 +2148,9 @@
       else $('#profileArea').textContent = 'Tap edit below to personalize';
     }
     if ($('#profileMono')) $('#profileMono').textContent = alpha ? alpha.charAt(0).toUpperCase() : '✦';
+    if ($('#dsUserName')) $('#dsUserName').textContent = alpha || 'Your Name';
+    if ($('#dsUserMono')) $('#dsUserMono').textContent = alpha ? alpha.charAt(0).toUpperCase() : '✦';
+    if ($('#dsUserSub')) $('#dsUserSub').textContent = p.area ? (p.area + ' · View profile') : 'View profile';
     if ($('#pfCats')) {
       $$('#pfCats .chip').forEach(function (c) { c.classList.toggle('active', c.dataset.cat === p.area); });
     }
