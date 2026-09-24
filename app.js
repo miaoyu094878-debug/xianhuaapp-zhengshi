@@ -1372,6 +1372,7 @@
 
     $('#fsLoading').classList.add('hidden');
     $('#fsPlayer').classList.remove('hidden');
+    setFsControlsEnabled(true);
 
     // Auto-scroll into view smoothly
     $('#fsPlayer').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1460,6 +1461,7 @@
 
       $('#fsPlayer').classList.add('hidden');
       $('#fsLoading').classList.remove('hidden');
+      setFsControlsEnabled(false);
       $('#fsLoading').scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
@@ -1506,6 +1508,13 @@
   }
 
   // Play / Pause Click Handlers
+  // Enable/disable the action buttons until a guided voice exists
+  function setFsControlsEnabled(on) {
+    ['fsPlayBtn', 'fsSaveVoice', 'fsNewDesire'].forEach(function (id) {
+      var b = $('#' + id);
+      if (b) b.disabled = !on;
+    });
+  }
   if ($('#fsPlayBtn')) {
     $('#fsPlayBtn').addEventListener('click', function () {
       if (fsState.isPlaying) pauseFsManifestation();
@@ -1525,6 +1534,7 @@
     $('#fsNewDesire').addEventListener('click', function () {
       stopFutureAudio();
       $('#fsPlayer').classList.add('hidden');
+      setFsControlsEnabled(false);
       $('#fsDesire').focus();
       $('#fsForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -2104,6 +2114,7 @@
     if ($('#fsLoading')) $('#fsLoading').classList.add('hidden');
     if ($('#fsPlayer')) {
       $('#fsPlayer').classList.remove('hidden');
+      setFsControlsEnabled(true);
       $('#fsPlayer').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }

@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.24.svhead">
+  <link rel="stylesheet" href="styles.css?v=2026.9.24.ctrlbar">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3595,12 +3595,13 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="fs-controls-bar">
-            <button id="fsPlayBtn" class="btn-primary fs-btn-main" type="button">▶ Play Narration</button>
-            <button id="fsSaveVoice" class="fs-secondary-btn" type="button" title="Save this guided voice to My Voices so you can replay it anytime">💾 Save Voice</button>
-            <button id="fsNewDesire" class="fs-secondary-btn" type="button" title="Enter a new desire">↺ New Goal</button>
-          </div>
+        </div>
+
+        <!-- Action Buttons (always visible; disabled until a guided voice exists) -->
+        <div class="fs-controls-bar" id="fsControlsBar">
+          <button id="fsPlayBtn" class="btn-primary fs-btn-main" type="button" disabled>▶ Play Narration</button>
+          <button id="fsSaveVoice" class="fs-secondary-btn" type="button" disabled title="Save this guided voice to My Voices so you can replay it anytime">💾 Save Voice</button>
+          <button id="fsNewDesire" class="fs-secondary-btn" type="button" disabled title="Enter a new desire">↺ New Goal</button>
         </div>
 
         <!-- My Voices — saved guided voices library -->
@@ -4619,7 +4620,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260924nocopy" defer></script>
+  <script src="app.js?v=20260924ctrlbar" defer></script>
 
 </body>
 </html>
