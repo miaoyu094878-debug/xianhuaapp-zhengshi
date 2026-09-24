@@ -3050,32 +3050,9 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 }
 .fs-secondary-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
 
-/* Save Voice — emphasized, larger call-to-action */
-#fsSaveVoice {
-  padding: 13px 26px; font-size: 14.5px; font-weight: 700; border-radius: 14px; gap: 8px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 25%, transparent);
-}
-#fsSaveVoice:hover {
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 38%, transparent);
-}
-
 /* Controls bar lives outside the player card: always visible, disabled until ready */
 #fsControlsBar { margin-top: 14px; }
 .fs-controls-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
-#fsSaveVoice:disabled {
-  color: var(--text-dim);
-  background: var(--surface-2);
-  border-color: var(--border);
-  box-shadow: none;
-  transform: none;
-}
-#fsSaveVoice:disabled:hover { background: var(--surface-2); border-color: var(--border); box-shadow: none; transform: none; }
 
 /* Loading State for AI Manifestation generation */
 .fs-loading-overlay {
