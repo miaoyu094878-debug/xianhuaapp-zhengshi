@@ -2760,6 +2760,15 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
 /* ---------- MY VOICES (saved guided voices) ---------- */
 .sv-card { padding: 18px 20px 20px; margin-top: 16px; }
+/* Make the My Voices header stand out as a section title */
+#svCard .list-head {
+  font-size: 17px; text-transform: none; letter-spacing: 0.2px;
+  font-weight: 700; color: var(--accent); padding: 4px 4px 10px; gap: 10px;
+}
+#svCard .affirm-head-toggle {
+  width: 26px; height: 26px; font-size: 17px; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
 .sv-hint { font-size: 12px; color: var(--text-soft); margin: 2px 0 10px; }
 .sv-list { display: flex; flex-direction: column; gap: 8px; }
 .sv-item {
