@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.24.profilefoot">
+  <link rel="stylesheet" href="styles.css?v=2026.9.24.savedvoices">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3583,10 +3583,22 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <!-- Action Buttons -->
           <div class="fs-controls-bar">
             <button id="fsPlayBtn" class="btn-primary fs-btn-main" type="button">▶ Play Narration</button>
+            <button id="fsSaveVoice" class="fs-secondary-btn" type="button" title="Save this guided voice to My Voices so you can replay it anytime">💾 Save Voice</button>
             <button id="fsSendToWallpaper" class="fs-secondary-btn" type="button" title="Turn this manifestation into a lock screen wallpaper">🖼️ Set as Wallpaper</button>
             <button id="fsCopyText" class="fs-secondary-btn" type="button" title="Copy the full story text">📋 Copy Story</button>
             <button id="fsNewDesire" class="fs-secondary-btn" type="button" title="Enter a new desire">↺ New Goal</button>
           </div>
+        </div>
+
+        <!-- My Voices — saved guided voices library -->
+        <div class="card glass sv-card" id="svCard">
+          <div class="list-head affirm-head-row">
+            <span>My Voices</span>
+            <button class="affirm-head-toggle" id="svToggle" type="button" aria-label="Toggle my voices">▾</button>
+          </div>
+          <p class="sv-hint">Save a guided voice once, then replay it anytime — no regeneration needed.</p>
+          <div id="svList" class="sv-list"></div>
+          <p class="sv-msg hidden" id="svMsg"></p>
         </div>
       </section>
 
@@ -4594,7 +4606,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260923tokenrefresh" defer></script>
+  <script src="app.js?v=20260924genrecord" defer></script>
 
 </body>
 </html>
