@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.23.2135">
+  <link rel="stylesheet" href="styles.css?v=2026.9.24.profilefoot">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -2730,11 +2730,9 @@ html.device-desktop .ds-user-sub { font-size: 11.5px; color: var(--text-dim); wh
 
 /* Hide mobile-only chrome on desktop */
 html.device-desktop .app-header, html.device-desktop .tab-bar { display: none; }
-/* Theme switcher moves to the bottom-right corner on desktop.
-   display is forced here (inline, always-fresh HTML) so a stale or
-   immutably-cached styles.css can never hide it. */
-html.device-desktop .theme-fab { display: flex !important; right: 28px; bottom: 28px; }
-html.device-desktop .theme-panel:not(.hidden) { display: block !important; right: 28px; bottom: 92px; }
+/* Theme switcher sits in the bottom-right corner on desktop */
+html.device-desktop .theme-fab { right: 28px; bottom: 28px; }
+html.device-desktop .theme-panel { right: 28px; bottom: 92px; }
 
 /* ── Main content area ── */
 html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }
@@ -2902,6 +2900,7 @@ html.device-desktop .side-link::before {
 html.device-desktop .side-link:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--text); }
 html.device-desktop .side-link.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-weight: 500; }
 html.device-desktop .side-link.active::before { background: var(--accent); }
+html.device-desktop .ds-theme { width: 22px; height: 22px; border-width: 2px; }
 
 /* Cleaner content */
 html.device-desktop .tab-page.active { max-width: 1140px; margin: 0 auto; }
@@ -3255,6 +3254,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <p class="ds-group">AI &amp; Guidance</p>
         <button class="side-link" data-tab="tab-future">🌌 Living Reality</button>
         <button class="side-link" data-tab="tab-ai-vision">🎬 AI Vision</button>
+        <button class="side-link" data-tab="tab-profile">👤 My Profile</button>
         <button class="side-link hidden" data-tab="tab-avatar">👤 Avatar</button>
         <button class="side-link hidden" data-tab="tab-meditate">◎ Breathe</button>
         <button class="side-link hidden" data-tab="tab-saved">🔖 Saved</button>
@@ -4594,7 +4594,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260923profiletheme" defer></script>
+  <script src="app.js?v=20260923tokenrefresh" defer></script>
 
 </body>
 </html>
