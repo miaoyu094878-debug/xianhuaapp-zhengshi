@@ -1137,9 +1137,6 @@
             fsState.activeParagraphIdx = 0;
             if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
           }, 3000);
-          // Whole-story voice cache: once the full per-paragraph playback finishes, upload a
-          // concatenated single file to Supabase Storage so the next play hits cache & skips TTS.
-          collectAndUploadStoryAudio();
           return;
         }
 
@@ -1379,13 +1376,18 @@
     // Auto-scroll into view smoothly
     $('#fsPlayer').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Whole-story voice cache (Living Reality): if a single file already exists in
-    // Supabase Storage for this desire+voice+mood, play it directly (no per-paragraph
-    // TTS calls => saves generation cost). Otherwise play per-paragraph and upload later.
+    // Whole-story voice cache (Living Reality): if a single file already exists in Supabase
+    // Storage for this desire+voice+mood (i.e. a voice the user saved before), play it
+    // directly (no per-paragraph TTS calls => saves generation cost).
     var voiceSelect = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
     var moodC = $('#fsMood') ? $('#fsMood').value : 'calm';
     var fsKey = lrHash((data.title || '') + '|' + (data.story || '') + '|' + voiceSelect + '|' + moodC);
     fsState.lrKey = fsKey;
+
+    // Usage log: record the generation only. The audio WAV is stored in Supabase Storage
+    // exclusively when the user saves the voice to My Voices.
+    recordStoryGeneration();
+
     fetchVoiceSession(fsKey).then(function (wholeBuf) {
       if (wholeBuf && fsState.paragraphs && fsState.paragraphs.length) {
         playWholeStory(wholeBuf, fsKey);
@@ -1934,8 +1936,9 @@
     }
     return new Blob([buffer], { type: 'audio/wav' });
   }
-  // Upload a Blob to {userId}/{key}.wav then insert usage row
-  async function uploadVoiceSession(childrenBufs, key, meta) {
+  // Upload the concatenated whole-story WAV to {userId}/{key}.wav.
+  // Storage is written ONLY when the user explicitly saves the voice (My Voices).
+  async function uploadVoiceSession(childrenBufs, key) {
     var session = savedSession(), cfg = supabaseCfg();
     if (!session || !cfg.url || !cfg.key) return false;
     try {
@@ -1949,18 +1952,7 @@
         headers: { 'x-upsert': 'true', 'Content-Type': 'audio/wav' },
         body: wav
       });
-      if (!up.ok) return false;
-      // Usage record
-      var body = {
-        user_id: uid_, scenario: meta.scenario || '', voice: meta.voice || '',
-        frequency: meta.frequency || '', duration_sec: Math.round(merged.duration || 0)
-      };
-      await sbFetch('/rest/v1/listening_sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      return true;
+      return up.ok;
     } catch (e) { console.warn('uploadVoiceSession:', e); return false; }
   }
   // Download a cached full-story WAV and decode to AudioBuffer; returns AudioBuffer|null
@@ -1980,25 +1972,24 @@
   }
   function setSession(s) { try { if (s) localStorage.setItem('luminara_session', JSON.stringify(s)); else localStorage.removeItem('luminara_session'); } catch (e) {} }
 
-  // Gather story's per-paragraph cached buffers and upload a single concatenated WAV
-  function collectAndUploadStoryAudio() {
-    var paragraphs = fsState.paragraphs || [];
-    if (!paragraphs.length || !fsState.lrKey) return;
-    var voiceKey = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
-    var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
-    var buffers = [];
-    paragraphs.forEach(function (text) {
-      var b = pcmAudioCache[voiceKey + ':' + (mood || 'calm') + ':' + text];
-      if (b) buffers.push(b);
-    });
-    if (buffers.length !== paragraphs.length) return; // incomplete -> don't cache a broken file
-    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
-    uploadVoiceSession(buffers, fsState.lrKey, {
-      scenario: (fsState.storyData && fsState.storyData.title) || '',
-      voice: voiceKey,
-      frequency: freq,
-      duration_sec: 0
-    });
+  // Record a generation in listening_sessions. No audio is written to Storage here —
+  // the WAV is uploaded only when the user explicitly saves the voice (My Voices).
+  async function recordStoryGeneration() {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) return;
+    try {
+      await sbFetch('/rest/v1/listening_sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: s.user.id,
+          scenario: (fsState.storyData && fsState.storyData.title) || '',
+          voice: $('#fsVoice') ? $('#fsVoice').value : '',
+          frequency: $('#fsFreq') ? $('#fsFreq').value : '',
+          duration_sec: 0
+        })
+      });
+    } catch (e) { console.warn('recordStoryGeneration:', e); }
   }
 
   /* ═══════ My Voices — saved guided voices library ═══════ */
@@ -2031,13 +2022,7 @@
       return fetchParagraphAudio(t, voiceKey, mood);
     }));
     for (var i = 0; i < buffers.length; i++) { if (!buffers[i]) return false; }
-    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
-    return await uploadVoiceSession(buffers, fsState.lrKey, {
-      scenario: (fsState.storyData && fsState.storyData.title) || '',
-      voice: voiceKey,
-      frequency: freq,
-      duration_sec: 0
-    });
+    return await uploadVoiceSession(buffers, fsState.lrKey);
   }
 
   async function saveCurrentVoice() {
