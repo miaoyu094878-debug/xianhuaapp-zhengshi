@@ -2523,8 +2523,10 @@ html.device-desktop .ds-theme:hover { transform: scale(1.12); }
 html.device-desktop .ds-theme.active { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
 
 /* Hide mobile-only chrome on desktop */
-html.device-desktop .app-header, html.device-desktop .tab-bar,
-html.device-desktop .theme-fab, html.device-desktop .theme-panel { display: none; }
+html.device-desktop .app-header, html.device-desktop .tab-bar { display: none; }
+/* Theme switcher sits in the bottom-right corner on desktop */
+html.device-desktop .theme-fab { right: 28px; bottom: 28px; }
+html.device-desktop .theme-panel { right: 28px; bottom: 92px; }
 
 /* ── Main content area ── */
 html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }

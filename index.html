@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.8.26.0955">
+  <link rel="stylesheet" href="styles.css?v=2026.9.24.themeright">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -2718,8 +2718,10 @@ html.device-desktop .ds-theme:hover { transform: scale(1.12); }
 html.device-desktop .ds-theme.active { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
 
 /* Hide mobile-only chrome on desktop */
-html.device-desktop .app-header, html.device-desktop .tab-bar,
-html.device-desktop .theme-fab, html.device-desktop .theme-panel { display: none; }
+html.device-desktop .app-header, html.device-desktop .tab-bar { display: none; }
+/* Theme switcher sits in the bottom-right corner on desktop */
+html.device-desktop .theme-fab { right: 28px; bottom: 28px; }
+html.device-desktop .theme-panel { right: 28px; bottom: 92px; }
 
 /* ── Main content area ── */
 html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }
@@ -3248,16 +3250,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <button class="side-link hidden" data-tab="tab-song">🎵 Manifest Song</button>
         <button class="side-link" data-tab="tab-more">☰ More</button>
       </nav>
-      <div class="ds-foot">
-        <p class="ds-label">Theme</p>
-        <div class="ds-themes">
-          <button class="ds-theme active" data-theme="luminara" title="Alyema" style="background:linear-gradient(135deg,#9a63d2,#e386b6)"></button>
-          <button class="ds-theme" data-theme="manifest-light" title="Manifest Light" style="background:linear-gradient(135deg,#F5D9A0,#E8B86D)"></button>
-          <button class="ds-theme" data-theme="manifest-dark" title="Manifest Dark" style="background:#12082a;border-color:rgba(245,217,160,.6)"></button>
-          <button class="ds-theme" data-theme="prism" title="Prism White" style="background:conic-gradient(#ff6a88,#ffa751,#4fc3f7,#a78bfa,#ff6a88)"></button>
-          <button class="ds-theme" data-theme="ios" title="Liquid Glass" style="background:linear-gradient(135deg,#0a84ff,#5ac8fa)"></button>
-        </div>
-      </div>
     </aside>
     <header class="app-header">
       <div class="brand">
