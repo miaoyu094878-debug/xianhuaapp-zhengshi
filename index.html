@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.24.nosideprofile">
+  <link rel="stylesheet" href="styles.css?v=2026.9.24.affirmentries">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3368,6 +3368,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <button id="affirmAdd" class="btn-primary btn-small">Add ✦</button>
           </div>
         </div>
+        <div class="affirm-quicknav" id="affirmQuickNav">
+          <button class="aq-btn" type="button" data-target="affirmFavSection">
+            <span class="aq-ico">♥</span><span class="aq-label">My Favorites</span><span class="aq-count" id="aqFavCount">0</span>
+          </button>
+          <button class="aq-btn" type="button" data-target="affirmCustomSection">
+            <span class="aq-ico">✎</span><span class="aq-label">My Own</span><span class="aq-count" id="aqOwnCount">0</span>
+          </button>
+        </div>
         <div class="chips" id="affirmCats"></div>
 
         <!-- Stella-style Swipe collector -->
@@ -3383,6 +3391,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </div>
         </div>
 
+        <div id="affirmFavSection"></div>
         <div id="affirmCustomSection"></div>
         <div id="affirmList" class="list"></div>
       </section>
@@ -4604,7 +4613,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260924nosideprofile" defer></script>
+  <script src="app.js?v=20260924affirmentries" defer></script>
 
 </body>
 </html>
