@@ -1520,19 +1520,6 @@
     });
   }
 
-  // Transfer to Wallpaper Studio
-  if ($('#fsSendToWallpaper')) {
-    $('#fsSendToWallpaper').addEventListener('click', function () {
-      if (!fsState.storyData) return;
-      var textToSet = fsState.storyData.affirmation || fsState.storyData.title || '';
-      if (typeof syncAffirmationText === 'function') {
-        syncAffirmationText(textToSet, 'fs');
-      }
-      goTab('tab-wallpaper');
-      window.scrollTo(0, 0);
-    });
-  }
-
   // Copy Story to Clipboard
   if ($('#fsCopyText')) {
     $('#fsCopyText').addEventListener('click', function () {
