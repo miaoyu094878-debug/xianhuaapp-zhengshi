@@ -540,6 +540,7 @@
     activeParagraphIdx: 0,
     paragraphs: [],
     lrKey: null,
+    playingKey: null,
     highlightTimer: null
   };
 
@@ -821,6 +822,7 @@
       if (orbPlay) orbPlay.classList.remove('playing');
       if (stage) stage.classList.remove('is-playing');
     }
+    updateSvPlayingUI();
   }
 
   function highlightParagraph(idx) {
@@ -1279,6 +1281,8 @@
   // Start / Resume Playback
   function playFsManifestation(fromBeginning) {
     if (!fsState.storyData) return;
+    // Per-paragraph TTS playback is not tied to a saved voice entry
+    fsState.playingKey = null;
 
     var totalParagraphs = (fsState.paragraphs && fsState.paragraphs.length) || 1;
     // 如果显式要求从头开始，或者已播完所有段落，必定归零重头开始
@@ -1405,6 +1409,7 @@
     var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
     startFsAmbient(freq, 1.0);
     fsState.isPlaying = true;
+    fsState.playingKey = fsKey || null;
     updateFsPlaybackUI(true);
     $('#fsStoryBody').querySelectorAll('.fs-story-p').forEach(function (el) { el.classList.add('lit'); });
 
@@ -1432,6 +1437,7 @@
       if (!fsState.isPlaying) return;
       fsState.isPlaying = false;
       fsState.activeParagraphIdx = 0;
+      updateSvPlayingUI();
       var badge = $('#fsVoiceStatusBadge');
       if (badge) badge.textContent = '✨ Guidance complete · resting in the healing afterglow (3s)...';
       fsState.outroTimer = setTimeout(function () {
@@ -2050,6 +2056,25 @@
     renderSavedVoices();
   }
 
+  // Whether a given saved voice is the one currently playing
+  function isSvPlaying(key) {
+    return !!(fsState.isPlaying && key && fsState.playingKey === key);
+  }
+
+  // Reflect playback state on the ▶ / ⏸ buttons in the My Voices list
+  function updateSvPlayingUI() {
+    var listEl = $('#svList');
+    if (!listEl) return;
+    listEl.querySelectorAll('.sv-item').forEach(function (item) {
+      var btn = item.querySelector('.sv-play');
+      if (!btn) return;
+      var on = isSvPlaying(item.getAttribute('data-key'));
+      btn.textContent = on ? '⏸' : '▶';
+      btn.title = on ? 'Stop' : 'Play this voice';
+      btn.classList.toggle('sv-playing', on);
+    });
+  }
+
   function renderSavedVoices() {
     var listEl = $('#svList');
     if (!listEl) return;
@@ -2058,6 +2083,7 @@
     if (!svRows.length) { listEl.appendChild(el('p', 'sv-empty', 'No saved voices yet. Generate one, then tap "💾 Save Voice".')); return; }
     svRows.forEach(function (row) {
       var item = el('div', 'sv-item', '');
+      item.setAttribute('data-key', row.storage_key || '');
       var info = el('div', 'sv-info', '');
       info.appendChild(el('p', 'sv-title', row.title || 'Untitled'));
       var meta = [];
@@ -2068,9 +2094,13 @@
       }
       info.appendChild(el('p', 'sv-meta', meta.join(' · ')));
       var acts = el('div', 'sv-acts', '');
-      var playBtn = el('button', 'sv-btn', '▶');
-      playBtn.type = 'button'; playBtn.title = 'Play this voice';
-      playBtn.addEventListener('click', function () { openSavedVoice(row); });
+      var playing = isSvPlaying(row.storage_key);
+      var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), playing ? '⏸' : '▶');
+      playBtn.type = 'button'; playBtn.title = playing ? 'Stop' : 'Play this voice';
+      playBtn.addEventListener('click', function () {
+        if (isSvPlaying(row.storage_key)) stopFutureAudio();
+        else openSavedVoice(row);
+      });
       var delBtn = el('button', 'sv-btn sv-del', '🗑');
       delBtn.type = 'button'; delBtn.title = 'Delete';
       delBtn.addEventListener('click', function () { deleteSavedVoice(row); });
