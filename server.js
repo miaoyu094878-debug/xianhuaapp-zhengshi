@@ -787,15 +787,20 @@ const SUPABASE_PROJECT_URL = (process.env.SUPABASE_URL || 'https://bnxjwnvsmiqof
 const SUPABASE_ANON_PUB_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJueGp3bnZzbWlxb2ZiamlrbndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NjE4NDUsImV4cCI6MjEwMjQzNzg0NX0.iggm8MViLJFsYoEFFL4ryoClFqrtB3MS9_15Yk6xi-o';
 
 /* Serve the app HTML with Supabase config injected (works on every device) */
-let _appHtmlCache = null;
+let _appHtmlCache = null; // { html, mtimeMs }
 function sendAppHtml(req, res) {
-  if (!_appHtmlCache) {
-    const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
-    const inject = '<script>window.SUPABASE_URL=' + JSON.stringify(SUPABASE_PROJECT_URL) + ';window.SUPABASE_ANON_KEY=' + JSON.stringify(SUPABASE_ANON_PUB_KEY) + ';</script>';
-    _appHtmlCache = html.replace('<head>', '<head>\n  ' + inject);
-  }
+  const htmlPath = path.join(__dirname, 'index.html');
+  try {
+    const mtimeMs = fs.statSync(htmlPath).mtimeMs;
+    if (!_appHtmlCache || _appHtmlCache.mtimeMs !== mtimeMs) {
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      const inject = '<script>window.SUPABASE_URL=' + JSON.stringify(SUPABASE_PROJECT_URL) + ';window.SUPABASE_ANON_KEY=' + JSON.stringify(SUPABASE_ANON_PUB_KEY) + ';</script>';
+      _appHtmlCache = { html: html.replace('<head>', '<head>\n  ' + inject), mtimeMs };
+    }
+  } catch (e) { /* fall through to stale cache */ }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(_appHtmlCache);
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.send(_appHtmlCache ? _appHtmlCache.html : '<!DOCTYPE html><html><body>index.html not found</body></html>');
 }
 
 function getValidOpenRouterKey(req, customKey) {
