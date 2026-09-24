@@ -201,9 +201,11 @@
   });
   function goTab(id) {
     stopFutureAudio();
+    // Sub-pages of Affirmations keep the "Affirm" nav item highlighted.
+    var navId = (id === 'tab-affirm-fav' || id === 'tab-affirm-own') ? 'tab-affirm' : id;
     var hasNav = false;
     $$('.tab-btn').forEach(function (b) {
-      var on = b.dataset.tab === id;
+      var on = b.dataset.tab === navId;
       if (on) hasNav = true;
       b.classList.toggle('active', on);
     });
@@ -211,8 +213,8 @@
       var more = $$('.tab-btn').filter(function (b) { return b.dataset.tab === 'tab-more'; })[0];
       if (more) more.classList.add('active');
     }
-    $$('.side-link').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
-    $$('.ds-user').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
+    $$('.side-link').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === navId); });
+    $$('.ds-user').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === navId); });
     $$('.tab-page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
     if (id === 'tab-ai-vision' && typeof setAiSubTab === 'function') setAiSubTab('home');
     if (id === 'tab-wallpaper' && typeof window.renderWpRefs === 'function') window.renderWpRefs();
@@ -327,22 +329,19 @@
   $('#affirmNew').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); $('#affirmAdd').click(); }
   });
-  // Quick-access entries: jump to "My Favorites" / "My Own" and expand them.
+  // Quick-access entries: open the dedicated "My Favorites" / "My Own" pages.
   if ($('#affirmQuickNav')) {
     $$('#affirmQuickNav .aq-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var sec = document.getElementById(btn.getAttribute('data-target'));
-        if (!sec) return;
-        var listEl = sec.querySelector('.list');
-        var toggle = sec.querySelector('.affirm-head-toggle');
-        if (listEl && listEl.style.display === 'none') {
-          listEl.style.display = '';
-          if (toggle) toggle.textContent = '▾';
-        }
-        sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var target = btn.getAttribute('data-target');
+        if (target) goTab(target);
       });
     });
   }
+  // Back buttons on the dedicated affirm pages.
+  $$('.affirm-back').forEach(function (btn) {
+    btn.addEventListener('click', function () { goTab(btn.getAttribute('data-back') || 'tab-affirm'); });
+  });
   function renderAffirm() {
     var wrap = $('#affirmList');
     wrap.innerHTML = '';
@@ -374,32 +373,12 @@
       (actions || []).forEach(function (a) { item.appendChild(a); });
       return item;
     }
-    // Helper: collapsible "my collection" section (title + count + chevron + list).
-    function mySection(container, listId, title, count) {
-      var headRow = el('div', 'list-head affirm-head-row', '');
-      headRow.appendChild(el('span', '', title + (count ? ' · ' + count : '')));
-      var toggle = el('button', 'affirm-head-toggle', '▾');
-      toggle.type = 'button';
-      toggle.setAttribute('aria-label', 'Toggle ' + title);
-      headRow.appendChild(toggle);
-      var listEl = el('div', 'list');
-      listEl.id = listId;
-      toggle.addEventListener('click', function () {
-        var open = listEl.style.display !== 'none';
-        listEl.style.display = open ? 'none' : '';
-        toggle.textContent = open ? '▸' : '▾';
-      });
-      container.appendChild(headRow);
-      container.appendChild(listEl);
-      return listEl;
-    }
-
     var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); });
     var customs = (db.affirmCustom || []).filter(function (t) { return t && t.trim(); });
 
-    // ── My Favorites ──
+    // ── My Favorites (dedicated page) ──
     if (favSection) {
-      var favList = mySection(favSection, 'affirmFavList', '♥ My Favorites', favs.length);
+      var favList = el('div', 'list');
       if (!favs.length) {
         favList.appendChild(el('p', 'affirm-empty', 'No favorites yet — tap ✧ on any affirmation to keep it here.'));
       } else {
@@ -415,24 +394,28 @@
           favList.appendChild(affirmRow(text, [unfavBtn]));
         });
       }
+      favSection.appendChild(favList);
     }
 
-    // ── My Own ──
-    var ownList = mySection(customSection, 'affirmCustomList', '✎ My Own', customs.length);
-    if (!customs.length) {
-      ownList.appendChild(el('p', 'affirm-empty', 'Nothing added yet — write your own affirmation in the field above.'));
-    } else {
-      customs.forEach(function (text) {
-        var delBtn = el('button', 'icon-btn', '✕');
-        delBtn.title = 'Remove';
-        delBtn.addEventListener('click', function () {
-          var i = db.affirmCustom.indexOf(text);
-          if (i !== -1) db.affirmCustom.splice(i, 1);
-          save(); renderAffirm(); initSwipe();
-          syncAffirmFav(text, true, false);
+    // ── My Own (dedicated page) ──
+    if (customSection) {
+      var ownList = el('div', 'list');
+      if (!customs.length) {
+        ownList.appendChild(el('p', 'affirm-empty', 'Nothing added yet — write your own affirmation on the Affirmations page.'));
+      } else {
+        customs.forEach(function (text) {
+          var delBtn = el('button', 'icon-btn', '✕');
+          delBtn.title = 'Remove';
+          delBtn.addEventListener('click', function () {
+            var i = db.affirmCustom.indexOf(text);
+            if (i !== -1) db.affirmCustom.splice(i, 1);
+            save(); renderAffirm(); initSwipe();
+            syncAffirmFav(text, true, false);
+          });
+          ownList.appendChild(affirmRow(text, [delBtn]));
         });
-        ownList.appendChild(affirmRow(text, [delBtn]));
-      });
+      }
+      customSection.appendChild(ownList);
     }
 
     // Counts on the quick-access entry buttons
