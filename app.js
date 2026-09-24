@@ -216,6 +216,7 @@
     $$('.tab-page').forEach(function (p) { p.classList.toggle('active', p.id === id); });
     if (id === 'tab-ai-vision' && typeof setAiSubTab === 'function') setAiSubTab('home');
     if (id === 'tab-wallpaper' && typeof window.renderWpRefs === 'function') window.renderWpRefs();
+    if (id === 'tab-future' && typeof loadSavedVoices === 'function') loadSavedVoices();
     window.scrollTo(0, 0);
   }
   $$('.mini-card, .focus-card, .more-card').forEach(function (c) {
@@ -2000,6 +2001,194 @@
     });
   }
 
+  /* ═══════ My Voices — saved guided voices library ═══════ */
+  var SV_TABLE = 'saved_voices';
+  var svRows = [];
+  var svMsgTimer = null;
+
+  function svToast(str) {
+    var m = $('#svMsg');
+    if (!m) return;
+    m.textContent = str || '';
+    m.classList.toggle('hidden', !str);
+    if (svMsgTimer) clearTimeout(svMsgTimer);
+    if (str) svMsgTimer = setTimeout(function () { m.classList.add('hidden'); }, 3200);
+  }
+
+  function setSelectIfExists(sel, val) {
+    if (!sel || !val) return;
+    var has = Array.prototype.some.call(sel.options, function (o) { return o.value === val; });
+    if (has) sel.value = val;
+  }
+
+  // Make sure the whole-story WAV exists in Storage, synthesising any missing paragraph
+  async function ensureStoryAudioUploaded() {
+    var paragraphs = fsState.paragraphs || [];
+    if (!paragraphs.length || !fsState.lrKey) return false;
+    var voiceKey = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
+    var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
+    var buffers = await Promise.all(paragraphs.map(function (t) {
+      return fetchParagraphAudio(t, voiceKey, mood);
+    }));
+    for (var i = 0; i < buffers.length; i++) { if (!buffers[i]) return false; }
+    var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    return await uploadVoiceSession(buffers, fsState.lrKey, {
+      scenario: (fsState.storyData && fsState.storyData.title) || '',
+      voice: voiceKey,
+      frequency: freq,
+      duration_sec: 0
+    });
+  }
+
+  async function saveCurrentVoice() {
+    if (!requireLogin('Sign in to save this guided voice to My Voices ✨')) return;
+    if (!fsState.storyData || !fsState.lrKey) { svToast('Generate a guided voice first.'); return; }
+    var s0 = savedSession();
+    if (!(s0 && s0.user && s0.user.id)) { svToast('Please sign in again to save.'); return; }
+    var btn = $('#fsSaveVoice');
+    var label = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '💾 Saving…'; }
+    try {
+      var ok = await ensureStoryAudioUploaded();
+      if (!ok) { svToast('Could not save the audio. Please play it once, then try again.'); return; }
+      var sd = fsState.storyData || {};
+      var row = {
+        user_id: s0.user.id,
+        title: sd.title || 'Untitled',
+        story: sd.story || '',
+        affirmation: sd.affirmation || '',
+        sensory_anchor: sd.sensoryAnchor || '',
+        voice: $('#fsVoice') ? $('#fsVoice').value : '',
+        mood: $('#fsMood') ? $('#fsMood').value : '',
+        storage_key: fsState.lrKey,
+        duration_sec: 0
+      };
+      var res = await sbFetch('/rest/v1/' + SV_TABLE + '?on_conflict=user_id,storage_key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(row)
+      });
+      if (!res.ok) { svToast('Save failed (' + res.status + '). Please try again.'); return; }
+      svToast('Saved to My Voices ✓');
+      await loadSavedVoices();
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label || '💾 Save Voice'; }
+    }
+  }
+
+  async function loadSavedVoices() {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) { svRows = []; renderSavedVoices(); return; }
+    try {
+      var res = await sbFetch('/rest/v1/' + SV_TABLE + '?user_id=eq.' + encodeURIComponent(s.user.id) + '&select=*&order=created_at.desc', {});
+      svRows = res.ok ? (await res.json()) : [];
+    } catch (e) { svRows = []; }
+    renderSavedVoices();
+  }
+
+  function renderSavedVoices() {
+    var listEl = $('#svList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (!savedSession()) { listEl.appendChild(el('p', 'sv-empty', 'Sign in to keep your guided voices here.')); return; }
+    if (!svRows.length) { listEl.appendChild(el('p', 'sv-empty', 'No saved voices yet. Generate one, then tap "💾 Save Voice".')); return; }
+    svRows.forEach(function (row) {
+      var item = el('div', 'sv-item', '');
+      var info = el('div', 'sv-info', '');
+      info.appendChild(el('p', 'sv-title', row.title || 'Untitled'));
+      var meta = [];
+      if (row.voice) meta.push(row.voice);
+      if (row.created_at) {
+        var d = new Date(row.created_at);
+        if (!isNaN(d.getTime())) meta.push(d.toLocaleDateString());
+      }
+      info.appendChild(el('p', 'sv-meta', meta.join(' · ')));
+      var acts = el('div', 'sv-acts', '');
+      var playBtn = el('button', 'sv-btn', '▶');
+      playBtn.type = 'button'; playBtn.title = 'Play this voice';
+      playBtn.addEventListener('click', function () { openSavedVoice(row); });
+      var delBtn = el('button', 'sv-btn sv-del', '🗑');
+      delBtn.type = 'button'; delBtn.title = 'Delete';
+      delBtn.addEventListener('click', function () { deleteSavedVoice(row); });
+      acts.appendChild(playBtn); acts.appendChild(delBtn);
+      item.appendChild(info); item.appendChild(acts);
+      listEl.appendChild(item);
+    });
+  }
+
+  // Load a saved voice into the player (story text + audio) without regenerating anything
+  function showSavedVoiceInPlayer(row) {
+    fsState.storyData = {
+      title: row.title || '',
+      story: row.story || '',
+      affirmation: row.affirmation || '',
+      sensoryAnchor: row.sensory_anchor || ''
+    };
+    var paragraphs = (row.story || '').split(/\n+/).map(function (p) { return p.trim(); }).filter(Boolean);
+    if (!paragraphs.length) paragraphs = [row.story || ''];
+    fsState.paragraphs = paragraphs;
+    fsState.lrKey = row.storage_key;
+    fsState.activeParagraphIdx = 0;
+
+    if ($('#fsSceneTitle')) $('#fsSceneTitle').textContent = row.title || '✨ Realm of Present Reality';
+    if ($('#fsAffirmBadge')) $('#fsAffirmBadge').textContent = row.affirmation || '';
+    if ($('#fsAnchorDesc')) $('#fsAnchorDesc').textContent = row.sensory_anchor || 'Gently rest your hand on your heart and breathe.';
+    setSelectIfExists($('#fsVoice'), row.voice);
+    setSelectIfExists($('#fsMood'), row.mood);
+
+    var body = $('#fsStoryBody');
+    if (body) {
+      body.innerHTML = '';
+      paragraphs.forEach(function (pText, i) {
+        var pEl = document.createElement('p');
+        pEl.className = 'fs-story-p';
+        pEl.textContent = pText;
+        pEl.addEventListener('click', function () { fsState.activeParagraphIdx = i; playFsManifestation(false); });
+        body.appendChild(pEl);
+      });
+    }
+    if ($('#fsLoading')) $('#fsLoading').classList.add('hidden');
+    if ($('#fsPlayer')) {
+      $('#fsPlayer').classList.remove('hidden');
+      $('#fsPlayer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  async function openSavedVoice(row) {
+    if (!requireLogin('Sign in to play your saved voices ✨')) return;
+    svToast('Loading voice…');
+    var buf = await fetchVoiceSession(row.storage_key);
+    if (!buf) { svToast('Audio not found in storage. Please generate and save it again.'); return; }
+    stopFutureAudio();
+    showSavedVoiceInPlayer(row);
+    playWholeStory(buf, row.storage_key);
+    svToast('');
+  }
+
+  async function deleteSavedVoice(row) {
+    var s = savedSession();
+    if (!s || !(s.user && s.user.id)) return;
+    if (!confirm('Remove "' + (row.title || 'this voice') + '" from My Voices?')) return;
+    try {
+      var res = await sbFetch('/rest/v1/' + SV_TABLE + '?id=eq.' + encodeURIComponent(row.id) + '&user_id=eq.' + encodeURIComponent(s.user.id), { method: 'DELETE' });
+      if (!res.ok) { svToast('Delete failed (' + res.status + ').'); return; }
+      svRows = svRows.filter(function (r) { return String(r.id) !== String(row.id); });
+      renderSavedVoices();
+      svToast('Removed from My Voices');
+    } catch (e) { svToast('Delete failed.'); }
+  }
+
+  if ($('#fsSaveVoice')) $('#fsSaveVoice').addEventListener('click', saveCurrentVoice);
+  if ($('#svToggle')) {
+    $('#svToggle').addEventListener('click', function () {
+      var listEl = $('#svList');
+      if (!listEl) return;
+      var open = listEl.style.display !== 'none';
+      listEl.style.display = open ? 'none' : '';
+      this.textContent = open ? '▸' : '▾';
+    });
+  }
+
   // Write a record row to any of the user's existing tables (best-effort).
   // Tables: affirm_favs, affirm_custom, wallpapers, visions. Empty-ops when signed out.
   async function pushRow(table, body, method) {
@@ -2135,6 +2324,7 @@
       $('#acctEmailLabel').textContent = s.user && s.user.email ? s.user.email : 'Signed in';
     }
     if ($('#acctLoading')) $('#acctLoading').classList.add('hidden');
+    if (typeof loadSavedVoices === 'function') loadSavedVoices();
   }
 
   function renderProfile() {
@@ -5563,6 +5753,7 @@
 
   /* ═══════ Init ═══════ */
   renderToday(); renderGoals(); renderAffirm(); renderVision(); renderMedTime();
+  loadSavedVoices();
   initSwipe();
   maybeShowQuiz();
 })();
