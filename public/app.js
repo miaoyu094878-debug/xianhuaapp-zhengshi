@@ -327,11 +327,29 @@
   $('#affirmNew').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); $('#affirmAdd').click(); }
   });
+  // Quick-access entries: jump to "My Favorites" / "My Own" and expand them.
+  if ($('#affirmQuickNav')) {
+    $$('#affirmQuickNav .aq-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sec = document.getElementById(btn.getAttribute('data-target'));
+        if (!sec) return;
+        var listEl = sec.querySelector('.list');
+        var toggle = sec.querySelector('.affirm-head-toggle');
+        if (listEl && listEl.style.display === 'none') {
+          listEl.style.display = '';
+          if (toggle) toggle.textContent = '▾';
+        }
+        sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+  }
   function renderAffirm() {
     var wrap = $('#affirmList');
     wrap.innerHTML = '';
     var customSection = $('#affirmCustomSection');
     customSection.innerHTML = '';
+    var favSection = $('#affirmFavSection');
+    if (favSection) favSection.innerHTML = '';
     // Helper: send an affirmation to the Wallpaper Studio and jump there.
     function sendToWallpaper(text) {
       if (typeof syncAffirmationText === 'function') syncAffirmationText(text, 'affirm');
@@ -346,30 +364,65 @@
       b.addEventListener('click', function (e) { e.stopPropagation(); sendToWallpaper(text); });
       return b;
     }
-    if (db.affirmCustom && db.affirmCustom.length) {
-      // Section title with a small fold (chevron) toggle control.
+    // Helper: one affirmation row (text + wallpaper + extra action buttons).
+    function affirmRow(text, actions) {
+      var item = el('div', 'list-item');
+      var mid = el('div', 'grow');
+      mid.appendChild(el('div', 'title', text));
+      item.appendChild(mid);
+      item.appendChild(wpBtn(text));
+      (actions || []).forEach(function (a) { item.appendChild(a); });
+      return item;
+    }
+    // Helper: collapsible "my collection" section (title + count + chevron + list).
+    function mySection(container, listId, title, count) {
       var headRow = el('div', 'list-head affirm-head-row', '');
-      var headTitle = el('span', '', 'My Affirmations');
+      headRow.appendChild(el('span', '', title + (count ? ' · ' + count : '')));
       var toggle = el('button', 'affirm-head-toggle', '▾');
-      toggle.setAttribute('aria-label', 'Toggle my affirmations');
       toggle.type = 'button';
-      headRow.appendChild(headTitle);
+      toggle.setAttribute('aria-label', 'Toggle ' + title);
       headRow.appendChild(toggle);
-
-      var customList = el('div', 'list');
-      customList.id = 'affirmCustomList';
-
-      var expanded = true;
+      var listEl = el('div', 'list');
+      listEl.id = listId;
       toggle.addEventListener('click', function () {
-        expanded = !expanded;
-        customList.style.display = expanded ? '' : 'none';
-        toggle.textContent = expanded ? '▾' : '▸';
+        var open = listEl.style.display !== 'none';
+        listEl.style.display = open ? 'none' : '';
+        toggle.textContent = open ? '▸' : '▾';
       });
+      container.appendChild(headRow);
+      container.appendChild(listEl);
+      return listEl;
+    }
 
-      db.affirmCustom.forEach(function (text) {
-        var item = el('div', 'list-item');
-        var mid = el('div', 'grow');
-        mid.appendChild(el('div', 'title', text));
+    var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); });
+    var customs = (db.affirmCustom || []).filter(function (t) { return t && t.trim(); });
+
+    // ── My Favorites ──
+    if (favSection) {
+      var favList = mySection(favSection, 'affirmFavList', '♥ My Favorites', favs.length);
+      if (!favs.length) {
+        favList.appendChild(el('p', 'affirm-empty', 'No favorites yet — tap ✧ on any affirmation to keep it here.'));
+      } else {
+        favs.forEach(function (text) {
+          var unfavBtn = el('button', 'icon-btn', '✦');
+          unfavBtn.title = 'Remove from favorites';
+          unfavBtn.addEventListener('click', function () {
+            var i = db.affirmFavs.indexOf(text);
+            if (i !== -1) db.affirmFavs.splice(i, 1);
+            save(); renderAffirm();
+            syncAffirmFav(text, false, false);
+          });
+          favList.appendChild(affirmRow(text, [unfavBtn]));
+        });
+      }
+    }
+
+    // ── My Own ──
+    var ownList = mySection(customSection, 'affirmCustomList', '✎ My Own', customs.length);
+    if (!customs.length) {
+      ownList.appendChild(el('p', 'affirm-empty', 'Nothing added yet — write your own affirmation in the field above.'));
+    } else {
+      customs.forEach(function (text) {
         var delBtn = el('button', 'icon-btn', '✕');
         delBtn.title = 'Remove';
         delBtn.addEventListener('click', function () {
@@ -378,18 +431,19 @@
           save(); renderAffirm(); initSwipe();
           syncAffirmFav(text, true, false);
         });
-        item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(delBtn);
-        customList.appendChild(item);
+        ownList.appendChild(affirmRow(text, [delBtn]));
       });
-
-      customSection.appendChild(headRow);
-      customSection.appendChild(customList);
     }
+
+    // Counts on the quick-access entry buttons
+    var favCountEl = $('#aqFavCount');
+    if (favCountEl) favCountEl.textContent = String(favs.length);
+    var ownCountEl = $('#aqOwnCount');
+    if (ownCountEl) ownCountEl.textContent = String(customs.length);
+
+    // ── Browse: built-in affirmations for the current category ──
     AFFIRMATIONS[curCat].forEach(function (text) {
       var fav = db.affirmFavs.indexOf(text) !== -1;
-      var item = el('div', 'list-item');
-      var mid = el('div', 'grow');
-      mid.appendChild(el('div', 'title', text));
       var favBtn = el('button', 'icon-btn', fav ? '✦' : '✧');
       favBtn.title = fav ? 'Unfavorite' : 'Favorite';
       favBtn.addEventListener('click', function () {
@@ -400,8 +454,7 @@
         save(); renderAffirm();
         syncAffirmFav(text, false, !was);
       });
-      item.appendChild(mid); item.appendChild(wpBtn(text)); item.appendChild(favBtn);
-      wrap.appendChild(item);
+      wrap.appendChild(affirmRow(text, [favBtn]));
     });
   }
 
