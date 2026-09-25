@@ -493,16 +493,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .acct-hint { font-size: 12px; color: var(--text-soft); margin: 10px 0 0; text-align: center; }
 .acct-empty { text-align: center; color: var(--text-soft); font-size: 13px; padding: 8px 0; }
 
-/* ---------- CREDITS ---------- */
-.credit-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin-top: 12px; padding: 10px 14px;
-  border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-strong);
-}
-.credit-label { font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-dim); }
-.credit-value { font-size: 19px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
-.credit-note { font-size: 11.5px; color: var(--text-soft); margin: 8px 2px 0; line-height: 1.5; }
-
 /* ---------- LISTS ---------- */
 .list-item {
   background: var(--surface); backdrop-filter: blur(12px);
