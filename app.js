@@ -874,60 +874,6 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  // Credits — balance display + "not enough credits" gate
-  // The server owns costs and deduction; the client only reads the balance.
-  // ══════════════════════════════════════════════════════════
-  var CHARGED_ACTIONS = {
-    'story': 1, 'manifest-story': 1, 'voice': 1, 'manifest-voice': 1,
-    'vision-photo': 1, 'photo': 1, 'vision-video': 1, 'video': 1
-  };
-  var creditBalanceCache = null;
-
-  function paintCreditBalance() {
-    var v = $('#creditValue');
-    if (!v) return;
-    v.textContent = creditBalanceCache === null ? '—' : Number(creditBalanceCache).toLocaleString();
-  }
-
-  async function fetchCreditBalance() {
-    creditBalanceCache = null;
-    if (savedSession() && supabaseCfg().url) {
-      try {
-        var res = await sbFetch('/rest/v1/rpc/credit_balance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}'
-        });
-        if (res.ok) {
-          var v = Number(await res.json());
-          if (!isNaN(v)) creditBalanceCache = v;
-        }
-      } catch (e) { /* keep '—' */ }
-    }
-    paintCreditBalance();
-    return creditBalanceCache;
-  }
-
-  function showCreditGate(msg) {
-    var m = $('#creditModal');
-    if (!m) { window.alert(msg || 'Not enough credits. Please top up to continue.'); return; }
-    if (msg && $('#creditModalMsg')) $('#creditModalMsg').textContent = msg;
-    if ($('#creditModalNote')) $('#creditModalNote').classList.add('hidden');
-    m.classList.remove('hidden');
-  }
-  function hideCreditGate() { var m = $('#creditModal'); if (m) m.classList.add('hidden'); }
-  if ($('#creditModalClose')) $('#creditModalClose').addEventListener('click', hideCreditGate);
-  if ($('#creditModalPlans')) $('#creditModalPlans').addEventListener('click', function () {
-    var note = $('#creditModalNote');
-    if (note) {
-      note.textContent = 'Subscriptions aren\'t live yet — top-ups and plans will appear here as soon as billing is switched on.';
-      note.classList.remove('hidden');
-    }
-  });
-  var creditModalEl = $('#creditModal');
-  if (creditModalEl) creditModalEl.addEventListener('click', function (e) { if (e.target === creditModalEl) hideCreditGate(); });
-
-  // ══════════════════════════════════════════════════════════
   // Unified API Gateway Client
   // Dispatches API requests to Supabase Edge Function (/functions/v1/xianhuaapp) or local /api
   // ══════════════════════════════════════════════════════════
@@ -939,17 +885,20 @@
       ? (supabaseUrl.replace(/\/+$/, '') + '/functions/v1/xianhuaapp')
       : '/api';
 
-    // 用登录用户的 access_token 作为身份凭证 —— 服务端据此校验并扣减积分
-    var sess = savedSession();
-    var userToken = (sess && sess.access_token) ? sess.access_token : '';
-
     var headers = { 'Content-Type': 'application/json' };
-    if (anonKey || userToken) {
-      headers['apikey'] = anonKey || userToken;
-      headers['Authorization'] = 'Bearer ' + (userToken || anonKey);
+    if (anonKey) {
+      headers['apikey'] = anonKey;
+      headers['Authorization'] = 'Bearer ' + anonKey;
+    }
+    var storedOrKey = localStorage.getItem('luminara_openrouter_key');
+    if (storedOrKey) {
+      headers['x-openrouter-key'] = storedOrKey;
     }
 
     var fullPayload = Object.assign({ action: action }, payload || {});
+    if (storedOrKey && !fullPayload.openrouterKey) {
+      fullPayload.openrouterKey = storedOrKey;
+    }
 
     try {
       var res = await fetch(endpoint, {
@@ -958,20 +907,13 @@
         body: JSON.stringify(fullPayload)
       });
 
-      // 402 = not enough credits: surface the gate instead of failing silently
-      if (res.status === 402) {
-        showCreditGate('You don\'t have enough credits for this yet. Top up or upgrade your plan to keep creating.');
-        return res;
-      }
-      // A charged action went through, so the balance on screen is now stale
-      if (res.ok && CHARGED_ACTIONS[action]) fetchCreditBalance();
-
-      // 401（未登录/会话过期）与 402（积分不足）绝不能降级到本地 /api，否则会绕过计费
-      if (!res.ok && res.status !== 401 && res.status !== 402 && endpoint !== '/api') {
+      if (!res.ok && endpoint !== '/api') {
         try {
+          var localHeaders = { 'Content-Type': 'application/json' };
+          if (storedOrKey) localHeaders['x-openrouter-key'] = storedOrKey;
           var localRes = await fetch('/api', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: localHeaders,
             body: JSON.stringify(fullPayload)
           });
           if (localRes.ok) return localRes;
@@ -2436,7 +2378,6 @@
       $('#acctEmailLabel').textContent = s.user && s.user.email ? s.user.email : 'Signed in';
     }
     if ($('#acctLoading')) $('#acctLoading').classList.add('hidden');
-    fetchCreditBalance();
     if (typeof loadSavedVoices === 'function') loadSavedVoices();
   }
 
@@ -2518,12 +2459,16 @@
   });
 
   /* ═══════ AI Vision (OpenRouter: GPT Image 2 & MiniMax H3 Max) ═══════ */
+  var aiKeys = db.aiKeys || {};
   var aiPhotoRefB64 = null, aiPhotoAspect = '1:1';
   var aiPhotoAspectSel = '3:4', aiVideoAspectSel = '3:4';
   var aiVideoRefB64 = null;
   var currentAiSubTab = 'home';
   var currentGalleryFilter = 'all';
 
+  function aiHasKeys() {
+    return !!(aiKeys.openrouterKey || aiKeys.key);
+  }
   function aiStatus(msg, type) {
     var pEl = $('#aiPhotoStatus');
     var vEl = $('#aiVideoStatus');
@@ -2532,6 +2477,15 @@
       if (!el) return;
       el.textContent = msg || '';
       el.className = 'ai-status-banner' + (type ? ' ' + type : '');
+    });
+  }
+  function aiKeyStateTxt() {
+    return aiHasKeys() ? 'Custom Key' : 'Supabase Cloud Key (Active)';
+  }
+  function updateKeyStateLabels() {
+    var txt = aiKeyStateTxt();
+    document.querySelectorAll('.ai-key-state-label, #aiKeyState').forEach(function (el) {
+      el.textContent = txt;
     });
   }
 
@@ -2639,6 +2593,7 @@
       aiBtnOptimize.innerHTML = '<span>⏳ Director Composing…</span>';
       aiStatus('🎬 Calling AI Director to develop cinematic shot directions…', 'running');
 
+      var userKey = aiKeys.openrouterKey || aiKeys.key || '';
       var srcInput = aiVideoRefB64 || aiPhotoRefB64;
       if (!srcInput) {
         var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
@@ -2653,6 +2608,7 @@
         camera_quality: (IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || {}).badge,
         image: srcInput || undefined
       };
+      if (userKey) optPayload.openrouterKey = userKey;
 
       callUnifiedApi('optimize-video-prompt', optPayload)
         .then(function (res) {
@@ -2814,6 +2770,49 @@
         aiStatus('✦ Set latest generated portrait as first-frame anchor!', 'success');
       }
     });
+  }
+
+  // Key Configuration Drawers & Handlers
+  function toggleKeyDrawer(drawerId, inputId) {
+    var box = $(drawerId);
+    if (!box) return;
+    box.classList.toggle('hidden');
+    if (!box.classList.contains('hidden')) {
+      var input = $(inputId);
+      if (input) input.value = aiKeys.openrouterKey || aiKeys.key || '';
+    }
+  }
+
+  function saveCustomKey(inputId, drawerId) {
+    var input = $(inputId);
+    var val = input ? input.value.trim() : '';
+    aiKeys.openrouterKey = val;
+    aiKeys.key = val;
+    db.aiKeys = aiKeys;
+    save();
+    updateKeyStateLabels();
+    aiStatus(val ? 'OpenRouter API Key saved successfully.' : 'Custom key cleared. Default system key will be used.', 'success');
+    var box = $(drawerId);
+    if (box) box.classList.add('hidden');
+  }
+
+  if ($('#aiKeyTogglePhoto')) {
+    $('#aiKeyTogglePhoto').addEventListener('click', function () { toggleKeyDrawer('#aiKeyBoxPhoto', '#aiKeyPhoto'); });
+  }
+  if ($('#aiKeySavePhoto')) {
+    $('#aiKeySavePhoto').addEventListener('click', function () { saveCustomKey('#aiKeyPhoto', '#aiKeyBoxPhoto'); });
+  }
+  if ($('#aiKeyToggleVideo')) {
+    $('#aiKeyToggleVideo').addEventListener('click', function () { toggleKeyDrawer('#aiKeyBoxVideo', '#aiKeyVideo'); });
+  }
+  if ($('#aiKeySaveVideo')) {
+    $('#aiKeySaveVideo').addEventListener('click', function () { saveCustomKey('#aiKeyVideo', '#aiKeyBoxVideo'); });
+  }
+  if ($('#aiKeyToggle')) {
+    $('#aiKeyToggle').addEventListener('click', function () { toggleKeyDrawer('#aiKeyBox', '#aiKey'); });
+  }
+  if ($('#aiKeySave')) {
+    $('#aiKeySave').addEventListener('click', function () { saveCustomKey('#aiKey', '#aiKeyBox'); });
   }
 
   // ═══════════════ Camera Aesthetic & Quality Selector (iPhone Textures) ═══════════════
@@ -3066,7 +3065,7 @@
 
     // 3. Balance or Quota exhaustion
     if (lower.indexOf('credits') !== -1 || lower.indexOf('quota') !== -1 || lower.indexOf('balance') !== -1 || lower.indexOf('402') !== -1 || lower.indexOf('insufficient') !== -1) {
-      return 'Not Enough Credits: Your Alyema credit balance is too low for this creation. Open My Profile to top up or upgrade your plan.';
+      return 'Account Balance Notice: OpenRouter API account has insufficient credits. Please top up or enter your custom key in Key Configuration above.';
     }
 
     // 4. Rate limits or Concurrent jobs
@@ -3190,7 +3189,7 @@
     return m + ':' + (r < 10 ? '0' : '') + r;
   }
 
-  function pollVideoJob(jobId, statusEl, done) {
+  function pollVideoJob(jobId, customKey, statusEl, done) {
     var tries = 0;
     var start = Date.now();
     var timer = setInterval(function () {
@@ -3198,7 +3197,8 @@
       var secs = Math.round((Date.now() - start) / 1000);
 
       callUnifiedApi('vision-video-status', {
-        jobId: jobId
+        jobId: jobId,
+        openrouterKey: customKey || undefined
       })
       .then(function (res) { return res.json(); })
       .then(function (data) {
@@ -3212,7 +3212,8 @@
           clearInterval(timer);
           var finalUrl = data.url;
           if (!finalUrl || finalUrl.startsWith('https://openrouter.ai/')) {
-            finalUrl = '/api/ai/vision/video/content/' + encodeURIComponent(jobId);
+            var query = customKey ? ('?key=' + encodeURIComponent(customKey)) : '';
+            finalUrl = '/api/ai/vision/video/content/' + encodeURIComponent(jobId) + query;
           }
           done(null, finalUrl);
         } else if (st === 'failed') {
@@ -3257,6 +3258,7 @@
       }
     }
 
+    var userKey = aiKeys.openrouterKey || aiKeys.key || '';
     var btnPhoto = $('#aiBtnPhoto');
     var btnVideo = $('#aiBtnVideo');
     if (btnPhoto) btnPhoto.disabled = true;
@@ -3276,6 +3278,7 @@
         image: aiPhotoRefB64 || undefined,
         aspect_ratio: aiPhotoAspectSel || '3:4'
       };
+      if (userKey) photoPayload.openrouterKey = userKey;
 
       callUnifiedApi('vision-photo', photoPayload)
       .then(function (res) {
@@ -3342,6 +3345,7 @@
           resolution: res,
           aspect_ratio: aiVideoAspectSel || '3:4'
         };
+        if (userKey) videoPayload.openrouterKey = userKey;
 
         callUnifiedApi('vision-video', videoPayload)
         .then(function (res) {
@@ -3356,7 +3360,7 @@
 
           var finalTag = data.directorModel ? (' · Polished by ' + data.directorModel) : directorTag;
           aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
-          pollVideoJob(jobId, $('#aiVideoStatus'), function (pollErr, videoUrl) {
+          pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
             if (btnPhoto) btnPhoto.disabled = false;
             if (btnVideo) btnVideo.disabled = false;
 
@@ -3409,6 +3413,7 @@
           camera_quality: cameraInfo.badge,
           image: srcInput || undefined
         };
+        if (userKey) optPayload.openrouterKey = userKey;
 
         callUnifiedApi('optimize-video-prompt', optPayload)
           .then(function (res) { return res.json(); })
@@ -3536,7 +3541,8 @@
           console.warn('[Video Player] Video failed to load:', v.url);
           if (v.jobId && !vid.dataset.recovering) {
             vid.dataset.recovering = 'true';
-            callUnifiedApi('vision-video-status', { jobId: v.jobId })
+            var userKey = aiKeys.openrouterKey || aiKeys.key || '';
+            callUnifiedApi('vision-video-status', { jobId: v.jobId, openrouterKey: userKey || undefined })
               .then(function (r) { return r.json(); })
               .then(function (d) {
                 if (d.url && d.url !== v.url) {
@@ -3580,7 +3586,8 @@
         syncBtn.addEventListener('click', function () {
           syncBtn.disabled = true;
           syncBtn.textContent = 'Syncing…';
-          callUnifiedApi('vision-video-status', { jobId: v.jobId })
+          var userKey = aiKeys.openrouterKey || aiKeys.key || '';
+          callUnifiedApi('vision-video-status', { jobId: v.jobId, openrouterKey: userKey || undefined })
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (d.url) {
