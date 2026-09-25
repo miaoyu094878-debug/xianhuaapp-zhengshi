@@ -18,6 +18,96 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
+// ─────────────────────────────────────────────────────────────
+// 积分（Credits）服务端校验
+// 用调用者自己的 access_token 去调 Postgres RPC，auth.uid() 在函数内生效，
+// 因此不需要 service role key，前端也无法伪造身份。
+// ─────────────────────────────────────────────────────────────
+const CREDIT_ACTIONS: Record<string, string> = {
+  'story': 'story',
+  'manifest-story': 'story',
+  'voice': 'voice',
+  'manifest-voice': 'voice',
+  'vision-photo': 'vision-photo',
+  'photo': 'vision-photo',
+  'vision-video': 'vision-video',
+  'video': 'vision-video'
+};
+
+function bearerToken(req: Request): string {
+  const h = req.headers.get('Authorization') || req.headers.get('authorization') || '';
+  return h.replace(/^Bearer\s+/i, '').trim();
+}
+
+async function creditsRpc(name: string, token: string, payload: Record<string, unknown>): Promise<Response | null> {
+  const url = Deno.env.get('SUPABASE_URL');
+  const anon = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!url || !anon) return null;
+  try {
+    return await fetch(`${url}/rest/v1/rpc/${name}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': anon,
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload || {})
+    });
+  } catch (e) {
+    console.warn('[credits] rpc failed:', name, e);
+    return null;
+  }
+}
+
+function creditError(status: number, message: string): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+// 扣减积分。成功返回 ledgerId（用于失败退款）；失败直接返回 Response 给客户端。
+async function chargeCredits(req: Request, action: string): Promise<{ ledgerId: number } | Response> {
+  const token = bearerToken(req);
+  if (!token) return creditError(401, 'Please sign in to use AI features.');
+  const res = await creditsRpc('consume_credits', token, { p_action: action });
+  if (!res) return creditError(500, 'Credit service unavailable.');
+  if (res.ok) {
+    const v = await res.json().catch(() => null);
+    return { ledgerId: Number(v) || 0 };
+  }
+  const txt = await res.text().catch(() => '');
+  // 积分表尚未初始化时不阻断功能（仅告警），避免迁移期间 AI 全线不可用
+  if (res.status === 404 || /does not exist|Could not find the function/i.test(txt)) {
+    console.warn('[credits] consume_credits missing — credits NOT enforced');
+    return { ledgerId: 0 };
+  }
+  if (res.status === 401) return creditError(401, 'Your session expired. Please sign in again.');
+  if (/insufficient_credits/i.test(txt)) {
+    return creditError(402, 'Not enough credits. Please top up to continue.');
+  }
+  return creditError(400, 'Credit check failed.');
+}
+
+async function refundCredits(req: Request, ledgerId: number) {
+  if (!ledgerId) return;
+  await creditsRpc('refund_credits', bearerToken(req), { p_ledger_id: ledgerId });
+}
+
+// 生成失败（非 2xx，或响应体里带 error）时自动退回积分
+async function settleCredits(req: Request, res: Response, ledgerId: number): Promise<Response> {
+  if (!ledgerId) return res;
+  let ok = res.ok;
+  if (ok) {
+    try {
+      const j = await res.clone().json();
+      if (j && j.error) ok = false;
+    } catch (e) { /* 非 JSON 响应视为成功 */ }
+  }
+  if (!ok) await refundCredits(req, ledgerId);
+  return res;
+}
+
 Deno.serve(async (req: Request) => {
   // 1. 处理浏览器的 OPTIONS 跨域预检请求
   if (req.method === 'OPTIONS') {
@@ -63,34 +153,43 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || url.searchParams.get('action') || url.pathname.split('/').pop() || '';
 
+    // 消耗积分的 AI 动作：先扣分，生成失败自动退回
+    const creditKey = CREDIT_ACTIONS[action];
+    let ledgerId = 0;
+    if (creditKey) {
+      const charged = await chargeCredits(req, creditKey);
+      if (charged instanceof Response) return charged;
+      ledgerId = charged.ledgerId;
+    }
+
     switch (action) {
       // ══════════════════════════════════════════════════════════
       // 模块 1: 生成第一人称沉浸式显化剧本 (OpenRouter minimax-m3 / Gemini)
       // ══════════════════════════════════════════════════════════
       case 'story':
       case 'manifest-story':
-        return await handleStory(body);
+        return await settleCredits(req, await handleStory(body), ledgerId);
 
       // ══════════════════════════════════════════════════════════
       // 模块 2: 拟真真人语音合成 TTS (ElevenLabs / Gemini Neural Voice)
       // ══════════════════════════════════════════════════════════
       case 'voice':
       case 'manifest-voice':
-        return await handleVoice(body);
+        return await settleCredits(req, await handleVoice(body), ledgerId);
 
       // ══════════════════════════════════════════════════════════
       // 模块 3: AI 目标愿景写真 (OpenRouter: openai/gpt-image-2)
       // ══════════════════════════════════════════════════════════
       case 'vision-photo':
       case 'photo':
-        return await handleVisionPhoto(body);
+        return await settleCredits(req, await handleVisionPhoto(body), ledgerId);
 
       // ══════════════════════════════════════════════════════════
       // 模块 4: AI 目标动态视频 (OpenRouter: minimax/hailuo-3-max)
       // ══════════════════════════════════════════════════════════
       case 'vision-video':
       case 'video':
-        return await handleVisionVideo(body);
+        return await settleCredits(req, await handleVisionVideo(body), ledgerId);
 
       case 'optimize-video-prompt':
       case 'optimize-prompt':
@@ -795,7 +894,7 @@ function pcmToWavUint8Array(pcm: Uint8Array, sampleRate = 24000, numChannels = 1
 // 子业务逻辑 3: AI Vision 照片生成 (OpenRouter: openai/gpt-image-2)
 // ─────────────────────────────────────────────────────────────
 async function handleVisionPhoto(body: any): Promise<Response> {
-  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
   if (!openrouterKey) {
     return new Response(
       JSON.stringify({ error: 'Please configure OPENROUTER_API_KEY in Supabase secrets or provide it in the request.' }),
@@ -1002,7 +1101,7 @@ CRITICAL DIRECTIVES:
 }
 
 async function handleOptimizeVideoPrompt(body: any): Promise<Response> {
-  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
   if (!openrouterKey) {
     return new Response(
       JSON.stringify({ error: 'Please configure OPENROUTER_API_KEY in Supabase secrets.' }),
@@ -1037,7 +1136,7 @@ async function handleOptimizeVideoPrompt(body: any): Promise<Response> {
 }
 
 async function handleVisionVideo(body: any): Promise<Response> {
-  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
   if (!openrouterKey) {
     return new Response(
       JSON.stringify({ error: 'Please configure OPENROUTER_API_KEY in Supabase secrets or provide it in the request.' }),
@@ -1181,7 +1280,7 @@ async function handleVisionVideo(body: any): Promise<Response> {
 }
 
 async function handleVisionVideoStatus(body: any): Promise<Response> {
-  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
   const jobId = body?.jobId;
   if (!jobId) {
     return new Response(JSON.stringify({ error: 'jobId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -1260,7 +1359,7 @@ async function handleVisionVideoStatus(body: any): Promise<Response> {
 }
 
 async function handleVisionVideoContent(body: any): Promise<Response> {
-  const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
+  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
   const jobId = body?.jobId;
   if (!jobId) {
     return new Response(JSON.stringify({ error: 'jobId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
