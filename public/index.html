@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.24.affirmpages">
+  <link rel="stylesheet" href="styles.css?v=2026.9.25.credits">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3276,6 +3276,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <span class="brand-name">Alyema</span>
       </div>
       <div class="header-actions">
+        <button id="walletPill" class="wallet-pill" title="AI credits &amp; subscription" aria-label="AI credits">
+          <span class="wp-ico">✦</span><span id="walletBalance">0</span>
+          <span class="wp-plan hidden" id="walletPlan">PRO</span>
+        </button>
         <button id="installBtn" class="install-btn hidden">Install</button>
         <button id="profileBtn" class="header-profile" aria-label="My Profile">👤</button>
       </div>
@@ -3540,6 +3544,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
           <button type="submit" id="fsGenerateBtn" class="btn-primary" style="margin-top: 18px; width: 100%;">
             ✦ Enter My Present-Moment Reality
+            <span class="cost-badge" id="costStory"></span>
           </button>
         </form>
 
@@ -3747,6 +3752,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <button id="aiBtnPhoto" class="ai-btn-generate ai-btn-photo" type="button">
                   <span class="ai-btn-title">✦ Generate Portrait</span>
                   <span class="ai-btn-sub">Apple Camera Aesthetic · ~15s</span>
+                  <span class="cost-badge" id="costPhoto"></span>
                 </button>
               </div>
 
@@ -3777,6 +3783,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <div style="display:flex;align-items:center;gap:10px;">
                     <button type="button" id="aiBtnOptimizePrompt" class="ai-btn-optimize-chip" title="AI Director deeply analyzes your intent and expands it into professional cinematic shot directions">
                       <span>✨ AI Director Polish</span>
+                      <span class="cost-badge" id="costOptimize"></span>
                     </button>
                   </div>
                 </div>
@@ -3883,6 +3890,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <button id="aiBtnVideo" class="ai-btn-generate ai-btn-video" type="button">
                   <span class="ai-btn-title">▶ Generate Motion Video</span>
                   <span class="ai-btn-sub">5s · 480p</span>
+                  <span class="cost-badge" id="costVideo"></span>
                 </button>
               </div>
 
@@ -4416,12 +4424,12 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       <!-- Subscriptions / Pricing -->
       <section id="tab-plans" class="tab-page">
         <h2 class="page-title">Subscriptions</h2>
-        <p class="page-sub">Choose the vibration that matches your practice.</p>
+        <p class="page-sub">Subscribe for unlimited daily practice. AI generation runs on credits.</p>
 
         <div class="plans-toggle">
           <button type="button" class="plans-toggle-btn active" data-billing="yearly">Yearly</button>
           <button type="button" class="plans-toggle-btn" data-billing="monthly">Monthly</button>
-          <span class="plans-save">Save 33%</span>
+          <span class="plans-save" id="plansSave">Save 37%</span>
         </div>
 
         <div class="plans-grid">
@@ -4434,10 +4442,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <span class="plan-period">forever</span>
             </div>
             <ul class="plan-feats">
-              <li>Daily affirmations</li>
+              <li>Dashboard, mantra &amp; day streak</li>
               <li>Desires &amp; vision board basics</li>
               <li>Cosmic meditation timer</li>
               <li>Manifest song essentials</li>
+              <li class="pf-off">Affirmations &amp; wallpapers</li>
             </ul>
             <button type="button" class="plan-btn" data-plan="free">Current plan</button>
           </article>
@@ -4447,24 +4456,63 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <h3 class="plan-name">Bloom</h3>
             <p class="plan-tag">Everything unlocked, fully supported.</p>
             <div class="plan-price">
-              <span class="plan-amount" data-price="yearly">$3.33</span>
-              <span class="plan-amount" data-price="monthly" hidden>$5</span>
+              <span class="plan-amount" data-price="yearly">$5.00</span>
+              <span class="plan-amount" data-price="monthly" hidden>$7.99</span>
               <span class="plan-period">/ month</span>
             </div>
-            <p class="plan-note" data-note="yearly">Billed $39.90 yearly</p>
+            <p class="plan-note" data-note="yearly">Billed $59.99 yearly</p>
             <p class="plan-note" data-note="monthly" hidden>Billed monthly</p>
             <ul class="plan-feats">
-              <li>AI Vision photo &amp; video generation</li>
-              <li>All AI guides, avatars &amp; audio</li>
-              <li>Unlimited vision boards</li>
+              <li><strong>Unlimited affirmations</strong></li>
+              <li><strong>Unlimited wallpapers &amp; downloads</strong></li>
               <li>Cloud sync across devices</li>
               <li>No ads, priority support</li>
+              <li class="pf-off">AI generation (credits apply)</li>
             </ul>
-            <button type="button" class="plan-btn plan-btn-cta" data-plan="pro">Upgrade to Pro</button>
+            <button type="button" class="plan-btn plan-btn-cta" data-plan="pro" id="proSubscribeBtn">Activate Pro</button>
           </article>
         </div>
 
-        <p class="plans-fineprint">Payment &amp; activation coming soon. Tap a plan to preview it.</p>
+        <p class="plans-fineprint" id="planStatusLine">You are on the Free plan.</p>
+
+        <!-- AI 积分 -->
+        <h2 class="page-title" style="margin-top:28px">AI Credits</h2>
+        <p class="page-sub">
+          Living Reality &amp; AI Vision are billed by the AI's own cost — you only pay for what is generated.
+          1 credit = $0.01. Unused credits never expire.
+        </p>
+
+        <div class="credit-wallet glass">
+          <div>
+            <span class="cw-label">Your balance</span>
+            <span class="cw-balance"><span id="cwBalance">0</span> <small>credits</small></span>
+            <span class="cw-plan" id="cwPlan">Free plan</span>
+          </div>
+          <button type="button" class="plan-btn plan-btn-cta hidden" id="cwOpenRedeem">Redeem code</button>
+        </div>
+
+        <!-- 充值渠道暂未开放：这里隐藏了积分包与兑换码入口，开放时去掉 hidden 类即可 -->
+        <div class="credit-packs hidden" id="creditPacks"><!-- 由 app.js 依据 /api 价目表渲染 --></div>
+
+        <div class="credit-price-list glass">
+          <p class="cpl-title">What each generation costs</p>
+          <ul id="creditPriceList"><!-- 由 app.js 渲染 --></ul>
+          <p class="cpl-note" id="creditMarginNote"></p>
+        </div>
+
+        <div class="redeem-box glass hidden" id="redeemBox">
+          <p class="cpl-title">Have a code?</p>
+          <div class="redeem-row">
+            <input type="text" id="redeemCodeInput" placeholder="ALYEMA-XXXX-XXXX" maxlength="40" autocomplete="off">
+            <button type="button" class="plan-btn plan-btn-cta" id="redeemApplyBtn">Redeem</button>
+          </div>
+          <p class="acct-hint hidden" id="redeemMsg"></p>
+        </div>
+
+        <p class="plans-fineprint">
+          Subscriptions and credit top-ups are not live yet — the operator can add credits or
+          Pro time to your account directly. AI generations are billed by their real model cost.
+        </p>
       </section>
     </main>
 
@@ -4535,6 +4583,26 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         </div>
         <p class="acct-hint hidden" id="lmMsg"></p>
         <button class="chip lm-close" id="lmClose" type="button">Maybe later</button>
+      </div>
+    </div>
+
+    <!-- Paywall / Top-up Modal（肯定句+壁纸需订阅；AI 生成需积分） -->
+    <div id="paywallModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Subscribe or top up">
+      <div class="quiz-card glass">
+        <h3 class="lm-title" id="pwTitle">Unlock with Pro ✦</h3>
+        <p class="quiz-q" id="pwIntro"></p>
+        <p class="pw-cost" id="pwCost"></p>
+        <div class="pw-packs hidden" id="pwPacks"></div>
+        <p class="pw-balance" id="pwBalance"></p>
+        <div class="redeem-row hidden" id="pwRedeemRow">
+          <input type="text" id="pwCodeInput" placeholder="Redeem code" maxlength="40" autocomplete="off">
+          <button type="button" class="plan-btn plan-btn-cta" id="pwRedeemBtn">Redeem</button>
+        </div>
+        <p class="acct-hint hidden" id="pwMsg"></p>
+        <div class="lm-actions">
+          <button id="pwGoPlans" class="btn-primary" type="button">See plans</button>
+          <button id="pwClose" class="chip" type="button">Close</button>
+        </div>
       </div>
     </div>
 
@@ -4627,7 +4695,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260924affirmpages" defer></script>
+  <script src="app.js?v=20260925credits" defer></script>
 
 </body>
 </html>

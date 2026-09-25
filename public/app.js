@@ -238,7 +238,7 @@
     br.addEventListener('click', function () { window.location.href = brandHome; });
   });
 
-  /* ═══════ Subscriptions / Pricing (UI preview only) ═══════ */
+  /* ═══════ Subscriptions / Pricing ═══════ */
   function setBillingMode(mode) {
     var btns = $$('.plans-toggle-btn');
     btns.forEach(function (b) { b.classList.toggle('active', b.dataset.billing === mode); });
@@ -250,10 +250,238 @@
   });
   $$('#tab-plans .plan-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var label = btn.dataset.plan === 'pro' ? 'Pro (Bloom)' : 'Free (Begin)';
-      alert('Thanks for exploring ' + label + '! Payment & activation are coming soon. This is a UI preview only.');
+      if (btn.dataset.plan === 'pro') { openPaywall('pro'); return; }
+      alert('You are on the Free plan — everything you need for a daily practice is included. Upgrade to Pro for unlimited affirmations and wallpapers.');
     });
   });
+
+  /* ══════════════════════════════════════════════════════════════
+     AI Credits & Pro subscription
+     余额与订阅状态全部由服务端返回（/api 或 Supabase Edge Function），
+     前端只负责展示、拦截与提示，绝不本地加减余额。
+     ══════════════════════════════════════════════════════════════ */
+
+  // 免费用户可浏览的肯定句条数（其余需 Pro）
+  var FREE_AFFIRM_TEASER = 3;
+
+  var creditState = {
+    loaded: false, signedIn: false,
+    balance: 0, plan: 'free', planExpiresAt: null, prices: null
+  };
+
+  /** 本地模式（未配 Supabase）用设备号作为账本主键 */
+  function deviceId() {
+    var k = 'luminara_device_id';
+    var v = null;
+    try { v = localStorage.getItem(k); } catch (e) {}
+    if (!v) {
+      v = uid() + uid();
+      try { localStorage.setItem(k, v); } catch (e) {}
+    }
+    return v;
+  }
+
+  function isPro() { return String(creditState.plan || '').toLowerCase() === 'pro'; }
+  function usd(n) { return '$' + Number(n || 0).toFixed(2); }
+
+  async function creditRequest(action, payload) {
+    var res = await callUnifiedApi(action, payload || {});
+    var data = {};
+    try { data = (await res.json()) || {}; } catch (e) { data = {}; }
+    return { res: res, data: data };
+  }
+
+  async function loadCredits() {
+    try {
+      var out = await creditRequest('credits');
+      var d = out.data || {};
+      if (d.prices) creditState.prices = d.prices;
+      creditState.signedIn = !!d.signedIn;
+      creditState.balance = Number(d.balance) || 0;
+      creditState.plan = d.plan || 'free';
+      creditState.planExpiresAt = d.plan_expires_at || null;
+    } catch (e) {
+      creditState.signedIn = false;
+    }
+    creditState.loaded = true;
+    renderCredits();
+    renderAffirm();
+    renderSwipe();
+    return creditState;
+  }
+
+  function renderCredits() {
+    // 顶部余额药丸
+    if ($('#walletBalance')) $('#walletBalance').textContent = String(creditState.balance);
+    if ($('#walletPlan')) $('#walletPlan').classList.toggle('hidden', !isPro());
+    if ($('#walletPill')) $('#walletPill').classList.toggle('low', creditState.signedIn && !isPro() && creditState.balance <= 0);
+
+    // 钱包卡
+    if ($('#cwBalance')) $('#cwBalance').textContent = String(creditState.balance);
+    var cwPlan = $('#cwPlan');
+    if (cwPlan) {
+      cwPlan.textContent = isPro()
+        ? ('Pro · until ' + fmtDay(creditState.planExpiresAt))
+        : 'Free plan';
+      cwPlan.classList.toggle('pro', isPro());
+    }
+
+    // 订阅状态行 / 按钮
+    if ($('#planStatusLine')) {
+      $('#planStatusLine').textContent = isPro()
+        ? 'Pro is active — unlimited affirmations and wallpapers.'
+        : 'You are on the Free plan. Affirmations beyond the daily taste and wallpaper downloads need Pro.';
+    }
+    var proBtn = $('#proSubscribeBtn');
+    if (proBtn) {
+      proBtn.textContent = isPro() ? 'Pro active' : 'Activate Pro';
+      proBtn.disabled = isPro();
+    }
+
+    renderPriceList();
+    updateCostBadges();
+  }
+
+  function fmtDay(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+  }
+
+  function renderPriceList() {
+    var ul = $('#creditPriceList');
+    if (!ul || !creditState.prices) return;
+    var c = creditState.prices.costs;
+    ul.innerHTML = '';
+    function row(label, pts) {
+      var li = el('li');
+      li.appendChild(el('span', null, label));
+      li.appendChild(el('b', null, pts + ' ✦'));
+      ul.appendChild(li);
+    }
+    row('Guided voice story', c.story);
+    row('Voice narration · per 100 characters', c.voicePer100Chars);
+    row('AI portrait · standard', c.visionPhoto.medium);
+    row('AI portrait · high detail', c.visionPhoto.high);
+    row('Motion video · per second (480p)', c.visionVideoPerSec['480p']);
+    row('Motion video · 5 seconds (480p)', c.visionVideo[5]);
+    row('AI Director prompt polish', c.optimizeVideoPrompt);
+    var note = $('#creditMarginNote');
+    if (note) {
+      note.textContent = 'Priced from the AI\'s real cost — 1 credit = ' + usd(creditState.prices.pointValueUsd) +
+        '. Credits never expire, and a failed generation is refunded automatically.';
+    }
+  }
+
+  function setBadge(id, pts) {
+    var el = $('#' + id);
+    if (!el) return;
+    var has = pts !== null && pts !== undefined && pts !== '' && pts !== 0;
+    el.textContent = has ? ('✦ ' + pts) : '';
+    el.classList.toggle('hidden', !has);
+  }
+
+  /** 生成按钮上的积分标价（随视频时长/分辨率实时变化） */
+  function updateCostBadges() {
+    var c = creditState.prices && creditState.prices.costs;
+    if (!c) return;
+    setBadge('costStory', c.story);
+    setBadge('costOptimize', c.optimizeVideoPrompt);
+    setBadge('costPhoto', c.visionPhoto.low === c.visionPhoto.high
+      ? String(c.visionPhoto.low)
+      : c.visionPhoto.low + '–' + c.visionPhoto.high);
+    var rate = c.visionVideoPerSec[currentVideoResolution] || 0;
+    setBadge('costVideo', Math.round(rate * (currentVideoDuration || 5)));
+  }
+
+  /* ---------- 付费墙 & 提示 ---------- */
+
+  var paywall = $('#paywallModal');
+  function openPaywall(kind, opts) {
+    opts = opts || {};
+    if (!paywall) return;
+    if (kind === 'pro') {
+      if ($('#pwTitle')) $('#pwTitle').textContent = 'Unlock with Pro ✦';
+      if ($('#pwIntro')) {
+        $('#pwIntro').textContent = opts.feature
+          ? (opts.feature + ' is a Pro feature — subscribe to use it without limits.')
+          : 'Unlimited affirmations, wallpapers and downloads.';
+      }
+      if ($('#pwCost')) {
+        var sub = creditState.prices && creditState.prices.subscription;
+        var m = sub ? sub.monthlyUsd : 7.99;
+        var y = sub ? sub.yearlyUsd : 59.99;
+        var save = sub ? sub.yearlySavePct : 37;
+        $('#pwCost').innerHTML = usd(m) + ' / month · ' + usd(y) + ' / year (save ' + save + '%)';
+      }
+    } else {
+      if ($('#pwTitle')) $('#pwTitle').textContent = 'Not enough credits';
+      if ($('#pwIntro')) $('#pwIntro').textContent = 'AI generation is billed by the model\'s real cost, so it needs credits.';
+      if ($('#pwCost')) {
+        $('#pwCost').innerHTML = 'This generation needs <span class="pw-req">' + (opts.required || 0) + ' ✦</span>' +
+          (opts.balance != null ? ' · you have ' + opts.balance + ' ✦' : '');
+      }
+    }
+    if ($('#pwBalance')) {
+      $('#pwBalance').textContent = 'Your balance: ' + creditState.balance + ' ✦' + (isPro() ? ' · Pro active' : '');
+    }
+    paywall.classList.remove('hidden');
+  }
+  function closePaywall() { if (paywall) paywall.classList.add('hidden'); }
+  if ($('#pwClose')) $('#pwClose').addEventListener('click', closePaywall);
+  if ($('#pwGoPlans')) $('#pwGoPlans').addEventListener('click', function () { closePaywall(); goTab('tab-plans'); });
+  if (paywall) paywall.addEventListener('click', function (e) { if (e.target === paywall) closePaywall(); });
+  if ($('#walletPill')) $('#walletPill').addEventListener('click', function () { goTab('tab-plans'); });
+
+  /** 需要订阅的功能入口统一走这里 */
+  function requirePro(feature) {
+    if (isPro()) return true;
+    openPaywall('pro', { feature: feature });
+    return false;
+  }
+
+  var _creditToastTimer = null;
+  function toastCredits(msg) {
+    var t = $('#creditToast');
+    if (!t) {
+      t = el('div', 'credit-toast');
+      t.id = 'creditToast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(_creditToastTimer);
+    _creditToastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
+  }
+
+  /** AI 调用成功：用响应里带回来的 charged / balance 更新 UI，无需再查一次 */
+  function applyCreditUsage(data) {
+    if (!data || !data.credits) return;
+    creditState.balance = Number(data.credits.balance) || 0;
+    renderCredits();
+    var charged = Number(data.credits.charged) || 0;
+    if (charged > 0) toastCredits('−' + charged + ' ✦ · ' + creditState.balance + ' left');
+  }
+
+  function creditBlocked() {
+    var e = new Error('credit_blocked');
+    e.__creditBlock = true;
+    return e;
+  }
+
+  /** 401 / 402 统一处理：未登录 → 登录框；余额不足 → 付费墙。返回 true 表示已拦截 */
+  function isCreditBlocked(res, data) {
+    var err = String((data && data.error) || '');
+    if (res.status === 401 || err === 'auth_required') {
+      openLoginModal('Sign in to use AI generation ✦');
+      return true;
+    }
+    if (res.status === 402 || err === 'insufficient_credits') {
+      openPaywall('credits', { required: (data && data.required) || 0, balance: (data && data.balance) });
+      return true;
+    }
+    return false;
+  }
 
   /* ═══════ Dashboard ═══════ */
   function renderToday() {
@@ -318,6 +546,7 @@
   });
   $('#affirmAdd').addEventListener('click', function () {
     if (!requireLogin('Sign in to add your own affirmations ✦')) return;
+    if (!requirePro('Your own affirmations')) return;
     var t = $('#affirmNew').value.trim();
     if (!t) return;
     var isNew = db.affirmCustom.indexOf(t) === -1;
@@ -425,12 +654,17 @@
     if (ownCountEl) ownCountEl.textContent = String(customs.length);
 
     // ── Browse: built-in affirmations for the current category ──
-    AFFIRMATIONS[curCat].forEach(function (text) {
+    // 免费用户只看到前几条（每日尝鲜），完整库 + 收藏 + 自定义需要 Pro
+    var pro = isPro();
+    var browseList = AFFIRMATIONS[curCat];
+    var shownList = pro ? browseList : browseList.slice(0, FREE_AFFIRM_TEASER);
+    shownList.forEach(function (text) {
       var fav = db.affirmFavs.indexOf(text) !== -1;
       var favBtn = el('button', 'icon-btn', fav ? '✦' : '✧');
       favBtn.title = fav ? 'Unfavorite' : 'Favorite';
       favBtn.addEventListener('click', function () {
         if (!requireLogin('Sign in to favorite affirmations ✦')) return;
+        if (!requirePro('Favourites')) return;
         var i = db.affirmFavs.indexOf(text);
         var was = i !== -1;
         if (!was) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
@@ -439,6 +673,15 @@
       });
       wrap.appendChild(affirmRow(text, [favBtn]));
     });
+    if (!pro && browseList.length > shownList.length) {
+      var lock = el('div', 'pro-lock-card');
+      lock.appendChild(el('h4', null, 'Unlock all ' + browseList.length + ' affirmations'));
+      lock.appendChild(el('p', null, 'Pro opens the full library in every category, plus favourites, your own lines and the swipe deck.'));
+      var lockBtn = el('button', 'plan-btn plan-btn-cta', 'Unlock with Pro');
+      lockBtn.addEventListener('click', function () { openPaywall('pro', { feature: 'The affirmation library' }); });
+      lock.appendChild(lockBtn);
+      wrap.appendChild(lock);
+    }
   }
 
   /* ═══════ Swipe Affirmations (Stella-style) ═══════ */
@@ -457,6 +700,16 @@
   }
   function renderSwipe() {
     var deck = $('#swipeDeck'); deck.innerHTML = '';
+    if (!isPro()) {
+      var lock = el('div', 'pro-lock-card');
+      lock.appendChild(el('h4', null, 'The swipe deck is Pro'));
+      lock.appendChild(el('p', null, 'Swipe through every affirmation and keep your favourites — unlock the whole deck with Pro.'));
+      var unlockBtn = el('button', 'plan-btn plan-btn-cta', 'Unlock with Pro');
+      unlockBtn.addEventListener('click', function () { openPaywall('pro', { feature: 'The swipe deck' }); });
+      lock.appendChild(unlockBtn);
+      deck.appendChild(lock);
+      return;
+    }
     if (!swipeQueue.length) {
       deck.appendChild(el('div', 'swipe-empty', "You've collected them all ✧\nTap Reset to begin again"));
       return;
@@ -486,6 +739,7 @@
   }
   $('#swipeSave').addEventListener('click', function () {
     if (!requireLogin('Sign in to save affirmations ♥')) return;
+    if (!requirePro('Favourites')) return;
     var text = swipeQueue[swipeQueue.length - 1];
     swipeOut('save', function () {
       swipeQueue.pop();
@@ -886,10 +1140,13 @@
       : '/api';
 
     var headers = { 'Content-Type': 'application/json' };
-    if (anonKey) {
-      headers['apikey'] = anonKey;
-      headers['Authorization'] = 'Bearer ' + anonKey;
-    }
+    if (anonKey) headers['apikey'] = anonKey;
+    // 积分账本按「真实用户」记账：优先带登录后的 access_token，未登录才退回 anon key
+    var session = savedSession();
+    var authToken = (session && session.access_token) || anonKey;
+    if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    // 本地 /api 模式（未配 Supabase 时）用设备号作为账本主键
+    headers['x-device-id'] = deviceId();
     var storedOrKey = localStorage.getItem('luminara_openrouter_key');
     if (storedOrKey) {
       headers['x-openrouter-key'] = storedOrKey;
@@ -907,9 +1164,22 @@
         body: JSON.stringify(fullPayload)
       });
 
+      // 登录态过期：静默刷新一次 token 再重试（积分接口强依赖真实用户身份）
+      if (res.status === 401 && endpoint !== '/api' && session && session.refresh_token) {
+        var fresh = await refreshSession();
+        if (fresh && fresh.access_token) {
+          headers['Authorization'] = 'Bearer ' + fresh.access_token;
+          res = await fetch(endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(fullPayload)
+          });
+        }
+      }
+
       if (!res.ok && endpoint !== '/api') {
         try {
-          var localHeaders = { 'Content-Type': 'application/json' };
+          var localHeaders = { 'Content-Type': 'application/json', 'x-device-id': deviceId() };
           if (storedOrKey) localHeaders['x-openrouter-key'] = storedOrKey;
           var localRes = await fetch('/api', {
             method: 'POST',
@@ -935,7 +1205,7 @@
       if (endpoint !== '/api') {
         return await fetch('/api', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-device-id': deviceId() },
           body: JSON.stringify(Object.assign({ action: action }, payload || {}))
         });
       }
@@ -961,11 +1231,14 @@
     var fetchPromise = (async function () {
       try {
         var res = await callUnifiedApi('voice', { text: trimmed, voiceName: voiceName, voiceId: voiceName, mood: mood });
+        var data = {};
+        try { data = (await res.json()) || {}; } catch (e) { data = {}; }
+        if (isCreditBlocked(res, data)) return null;
         if (!res.ok) {
           return null;
         }
-        var data = await res.json();
         if (!data || !data.audio) return null;
+        applyCreditUsage(data);
 
         if (!fsState.audioCtx) {
           fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -1519,11 +1792,21 @@
           language: detectedLanguage
         });
 
-        if (!res.ok) {
-          throw new Error('Server returned ' + res.status);
+        var data = {};
+        try { data = (await res.json()) || {}; } catch (e) { data = {}; }
+
+        // 未登录 / 积分不足：拦截并给出对应入口，不再走本地兜底文案
+        if (isCreditBlocked(res, data)) {
+          $('#fsLoading').classList.add('hidden');
+          setFsControlsEnabled(false);
+          return;
         }
 
-        var data = await res.json();
+        if (!res.ok || (data && data.error)) {
+          throw new Error((data && data.error) || ('Server returned ' + res.status));
+        }
+
+        applyCreditUsage(data);
         renderFsStoryUI(data);
       } catch (err) {
         console.warn('API error, using client fallback:', err);
@@ -2379,6 +2662,8 @@
     }
     if ($('#acctLoading')) $('#acctLoading').classList.add('hidden');
     if (typeof loadSavedVoices === 'function') loadSavedVoices();
+    // 登录态变化会影响账本归属（用户 token vs 设备号），重新拉一次余额
+    loadCredits();
   }
 
   function renderProfile() {
@@ -2613,15 +2898,18 @@
       callUnifiedApi('optimize-video-prompt', optPayload)
         .then(function (res) {
           return res.json().then(function (data) {
+            if (isCreditBlocked(res, data)) throw creditBlocked();
             if (!res.ok || (data && data.error)) {
               throw new Error((data && data.error) || ('Director service error (' + res.status + ')'));
             }
+            applyCreditUsage(data);
             return data;
           });
         })
         .then(function (data) {
           aiBtnOptimize.disabled = false;
           aiBtnOptimize.innerHTML = origBtnHtml;
+          updateCostBadges();
           if (data && data.success && data.optimizedPrompt) {
             if (targetInput) {
               targetInput.value = data.optimizedPrompt;
@@ -2640,6 +2928,8 @@
         .catch(function (err) {
           aiBtnOptimize.disabled = false;
           aiBtnOptimize.innerHTML = origBtnHtml;
+          updateCostBadges();
+          if (err && err.__creditBlock) return;
           console.warn('[Prompt Optimizer] Error:', err);
           aiStatus('Director note: ' + err.message + ' (System will still auto-optimize upon generation)', 'error');
         });
@@ -3142,6 +3432,7 @@
     if (btnVideoSub) {
       btnVideoSub.textContent = currentVideoDuration + 's · ' + currentVideoResolution;
     }
+    updateCostBadges();
   }
 
   function setVideoResolution(res) {
@@ -3283,7 +3574,9 @@
       callUnifiedApi('vision-photo', photoPayload)
       .then(function (res) {
         return res.json().then(function (data) {
+          if (isCreditBlocked(res, data)) throw creditBlocked();
           if (!res.ok || data.error) throw new Error(data.error || ('Request failed (' + res.status + ')'));
+          applyCreditUsage(data);
           return data;
         });
       })
@@ -3314,6 +3607,7 @@
         if (btnPhoto) btnPhoto.disabled = false;
         if (btnVideo) btnVideo.disabled = false;
 
+        if (err && err.__creditBlock) return;
         var errMsg = err.message || '';
         aiStatus(formatFriendlyAiError(errMsg, 'photo'), 'error');
       });
@@ -3350,7 +3644,9 @@
         callUnifiedApi('vision-video', videoPayload)
         .then(function (res) {
           return res.json().then(function (data) {
+            if (isCreditBlocked(res, data)) throw creditBlocked();
             if (!res.ok || data.error) throw new Error(data.error || ('Submission failed (' + res.status + ')'));
+            applyCreditUsage(data);
             return data;
           });
         })
@@ -3396,6 +3692,7 @@
           if (btnPhoto) btnPhoto.disabled = false;
           if (btnVideo) btnVideo.disabled = false;
 
+          if (err && err.__creditBlock) return;
           var errMsg = err.message || '';
           aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');
         });
@@ -3416,8 +3713,18 @@
         if (userKey) optPayload.openrouterKey = userKey;
 
         callUnifiedApi('optimize-video-prompt', optPayload)
-          .then(function (res) { return res.json(); })
-          .then(function (data) {
+          .then(function (res) {
+            return res.json().then(function (data) { return { res: res, data: data }; });
+          })
+          .then(function (out) {
+            // 未登录 / 积分不足：停在这里，不要继续提交视频任务
+            if (isCreditBlocked(out.res, out.data)) {
+              if (btnPhoto) btnPhoto.disabled = false;
+              if (btnVideo) btnVideo.disabled = false;
+              return;
+            }
+            var data = out.data;
+            applyCreditUsage(data);
             var promptToUse = prompt;
             var dirUsed = null;
             if (data && data.success && data.optimizedPrompt) {
@@ -5065,6 +5372,8 @@
   function triggerWallpaperExport() {
     // Gate: exporting/saving a wallpaper requires an account
     if (!requireLogin('Sign in to save & download your wallpaper ✨')) return;
+    // Gate: unlimited wallpaper downloads are a Pro benefit
+    if (!requirePro('Wallpaper downloads')) return;
     // 1. Render clean canvas without UI selection boxes or handles
     renderWallpaper(true);
     var cnv = $('#wpCanvas');
@@ -5319,7 +5628,10 @@
     wpCanvasExpandBtn.addEventListener('mouseleave', function () {
       showCanvasExpandBtn();
     });
-    wpCanvasExpandBtn.addEventListener('click', openWallpaperFullscreen);
+    wpCanvasExpandBtn.addEventListener('click', function () {
+      if (!requirePro('Wallpaper Studio')) return;
+      openWallpaperFullscreen();
+    });
   }
 
   var wpFsCloseBtn = $('#wpFsCloseBtn');
@@ -5808,5 +6120,6 @@
   renderToday(); renderGoals(); renderAffirm(); renderVision(); renderMedTime();
   loadSavedVoices();
   initSwipe();
+  loadCredits();
   maybeShowQuiz();
 })();

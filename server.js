@@ -3,6 +3,11 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import { costFor, pointsForCost } from './credits-core.js';
+import {
+  LEDGER_MODE, resolveUser, spend, grant, redeem, setPlan, createCodes,
+  priceSheet, walletSummary, isAdmin
+} from './credits-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,7 +46,7 @@ app.get('/', (req, res) => {
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-device-id, x-openrouter-key, x-admin-token');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
@@ -794,7 +799,10 @@ function sendAppHtml(req, res) {
     const mtimeMs = fs.statSync(htmlPath).mtimeMs;
     if (!_appHtmlCache || _appHtmlCache.mtimeMs !== mtimeMs) {
       const html = fs.readFileSync(htmlPath, 'utf8');
-      const inject = '<script>window.SUPABASE_URL=' + JSON.stringify(SUPABASE_PROJECT_URL) + ';window.SUPABASE_ANON_KEY=' + JSON.stringify(SUPABASE_ANON_PUB_KEY) + ';</script>';
+      const inject = '<script>window.SUPABASE_URL=' + JSON.stringify(SUPABASE_PROJECT_URL)
+        + ';window.SUPABASE_ANON_KEY=' + JSON.stringify(SUPABASE_ANON_PUB_KEY)
+        // 由本机 Node 服务渲染时，AI 调用默认走本地 /api（积分账本也落在本地，前后一致）
+        + ';window.LUMINARA_API_TARGET="local";</script>';
       _appHtmlCache = { html: html.replace('<head>', '<head>\n  ' + inject), mtimeMs };
     }
   } catch (e) { /* fall through to stale cache */ }
@@ -1436,7 +1444,64 @@ async function executeVisionVideoContent(req, res, targetJobId) {
   return res.status(404).send('Video content not ready or unavailable');
 }
 
-// ═══════════════ Unified API Gateway (POST /api) ═══════════════
+// ═══════════════ 积分计费：调用前扣分，调用失败自动退款 ═══════════════
+// 扣分公式见 credits-core.js：积分 = 模型美元成本 ÷ (1 − 目标毛利) ÷ $0.01
+async function chargeAndRun(req, res, action, handler) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return res.status(401).json({
+      error: 'auth_required',
+      message: 'Please sign in before using AI features.',
+      prices: priceSheet()
+    });
+  }
+
+  const body = req.body || {};
+  const costUsd = costFor(action, body);
+  const points = pointsForCost(costUsd);
+  // 幂等键：同一次点击重试不会重复扣分（前端会带 opId）
+  const opId = String(body.opId || body.op_id || '').slice(0, 80);
+  const spendRef = opId ? `${user.id}:${action}:${opId}` : null;
+
+  let charged = 0;
+  if (points > 0) {
+    const r = await spend(user.id, points, 'spend:' + action, spendRef, costUsd);
+    if (!r.ok) {
+      if (r.error === 'insufficient') {
+        return res.status(402).json({
+          error: 'insufficient_credits',
+          message: `Not enough credits: ${points} needed, ${r.balance ?? 0} available.`,
+          required: points,
+          balance: r.balance ?? 0,
+          prices: priceSheet()
+        });
+      }
+      return res.status(400).json({ error: r.error || 'credit_error' });
+    }
+    charged = r.charged || 0;
+  }
+
+  // 捕获 handler 的输出，失败（4xx/5xx 或 body.error）则把积分退回
+  let capturedStatus = null;
+  let capturedBody = null;
+  const origJson = res.json.bind(res);
+  res.json = (payload) => { capturedStatus = res.statusCode; capturedBody = payload; return origJson(payload); };
+
+  await handler(req, res);
+
+  const failed = (capturedStatus != null && capturedStatus >= 400) || (capturedBody && capturedBody.error);
+  if (failed && charged > 0) {
+    await grant(user.id, charged, 'refund:' + action, opId ? `refund:${user.id}:${action}:${opId}` : null);
+    console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
+  }
+
+  // 在成功响应的 JSON 里带上最新余额，前端无需额外请求
+  if (!failed && capturedBody && typeof capturedBody === 'object' && !Array.isArray(capturedBody)) {
+    capturedBody.credits = { charged, balance: (await walletSummary(user.id)).balance };
+  }
+  return undefined;
+}
+
 // Handles all actions via a single endpoint matching the Supabase Edge Function pattern
 app.all('/api', async (req, res) => {
   if (req.method === 'GET') {
@@ -1448,29 +1513,51 @@ app.all('/api', async (req, res) => {
         openrouter: !!(process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY),
         supabase: !!process.env.SUPABASE_URL
       },
+      credits: { ledgerMode: LEDGER_MODE, prices: priceSheet() },
       models: {
         visionPhoto: 'openai/gpt-image-2',
         visionVideo: 'minimax/hailuo-3-max'
       },
-      supportedActions: ['story', 'voice', 'vision-photo', 'vision-video', 'vision-video-status', 'vision-video-content', 'health']
+      supportedActions: ['story', 'voice', 'vision-photo', 'vision-video', 'vision-video-status', 'vision-video-content', 'credits', 'credits-redeem', 'health']
     });
   }
 
   const action = req.body?.action || req.query?.action;
+
+  /* ── 积分账户：余额 / 订阅状态 / 价目表（未登录也返回价目表，方便按钮显示价格） ── */
+  if (action === 'credits' || action === 'credits-balance' || action === 'subscription-status') {
+    const user = await resolveUser(req);
+    if (!user) {
+      return res.json({ ok: true, signedIn: false, balance: 0, plan: 'free', plan_expires_at: null, prices: priceSheet() });
+    }
+    const w = await walletSummary(user.id);
+    return res.json(Object.assign({ ok: true, signedIn: true, mode: LEDGER_MODE, prices: priceSheet() }, w));
+  }
+
+  /* ── 兑换码：发积分 / 开订阅 ── */
+  if (action === 'credits-redeem' || action === 'redeem') {
+    const user = await resolveUser(req);
+    if (!user) return res.status(401).json({ error: 'auth_required', message: 'Please sign in first.' });
+    const r = await redeem(user.id, req.body?.code);
+    if (!r.ok) return res.status(400).json({ error: r.error, message: r.error });
+    const w = await walletSummary(user.id);
+    return res.json(Object.assign({ ok: true, redeemed: true, prices: priceSheet() }, w, { grantedPoints: r.points || 0 }));
+  }
+
   if (action === 'story' || action === 'manifest-story') {
-    return await executeStoryGeneration(req, res);
+    return await chargeAndRun(req, res, 'story', executeStoryGeneration);
   }
   if (action === 'voice' || action === 'manifest-voice') {
-    return await executeVoiceSynthesis(req, res);
+    return await chargeAndRun(req, res, 'voice', executeVoiceSynthesis);
   }
   if (action === 'vision-photo' || action === 'photo') {
-    return await executeVisionPhoto(req, res);
+    return await chargeAndRun(req, res, 'vision-photo', executeVisionPhoto);
   }
   if (action === 'vision-video' || action === 'video') {
-    return await executeVisionVideo(req, res);
+    return await chargeAndRun(req, res, 'vision-video', executeVisionVideo);
   }
   if (action === 'optimize-video-prompt' || action === 'optimize-prompt') {
-    return await executeOptimizeVideoPrompt(req, res);
+    return await chargeAndRun(req, res, 'optimize-video-prompt', executeOptimizeVideoPrompt);
   }
   if (action === 'vision-video-status' || action === 'video-status') {
     return await executeVisionVideoStatus(req, res);
@@ -1483,21 +1570,59 @@ app.all('/api', async (req, res) => {
   }
 
   return res.status(400).json({
-    error: `Unknown action: "${action}". Supported actions: "story", "voice", "vision-photo", "vision-video", "optimize-video-prompt", "vision-video-status", "vision-video-content", "health"`
+    error: `Unknown action: "${action}". Supported actions: "story", "voice", "vision-photo", "vision-video", "optimize-video-prompt", "vision-video-status", "vision-video-content", "credits", "credits-redeem", "health"`
   });
 });
 
-// Dedicated REST Endpoints for AI Vision
+/* ═══════════════ 管理端：发放积分 / 生成兑换码（需 x-admin-token） ═══════════════ */
+app.post('/api/admin/credits/grant', async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden', message: 'Set ADMIN_TOKEN and pass it in x-admin-token.' });
+  const { userId, email, points, plan, days, reason } = req.body || {};
+  let uid = userId;
+  if (!uid && email) uid = await lookupUserIdByEmail(email);
+  if (!uid) return res.status(400).json({ error: 'missing_user', message: 'Provide userId or a resolvable email.' });
+
+  const out = { ok: true, userId: uid };
+  if (points) out.points = await grant(uid, points, reason || 'admin_grant', null);
+  if (plan) out.plan = await setPlan(uid, plan, days || 30);
+  out.wallet = await walletSummary(uid);
+  return res.json(out);
+});
+
+app.post('/api/admin/codes', async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden', message: 'Set ADMIN_TOKEN and pass it in x-admin-token.' });
+  const r = await createCodes(req.body?.codes || []);
+  if (!r.ok) return res.status(400).json(r);
+  return res.json(r);
+});
+
+/** 用 Supabase 管理接口按邮箱查用户 id（需要 service role key） */
+async function lookupUserIdByEmail(email) {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch(SUPABASE_PROJECT_URL + '/auth/v1/admin/users?email=' + encodeURIComponent(email), {
+      headers: { apikey: key, Authorization: 'Bearer ' + key }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const list = data.users || (Array.isArray(data) ? data : []);
+    const hit = list.find(u => (u.email || '').toLowerCase() === String(email).toLowerCase()) || list[0];
+    return hit ? hit.id : null;
+  } catch (e) { return null; }
+}
+
+// Dedicated REST Endpoints for AI Vision（同样走积分计费，避免绕过）
 app.post('/api/ai/vision/photo', async (req, res) => {
-  return await executeVisionPhoto(req, res);
+  return await chargeAndRun(req, res, 'vision-photo', executeVisionPhoto);
 });
 
 app.post('/api/ai/vision/video', async (req, res) => {
-  return await executeVisionVideo(req, res);
+  return await chargeAndRun(req, res, 'vision-video', executeVisionVideo);
 });
 
 app.post('/api/ai/vision/optimize-prompt', async (req, res) => {
-  return await executeOptimizeVideoPrompt(req, res);
+  return await chargeAndRun(req, res, 'optimize-video-prompt', executeOptimizeVideoPrompt);
 });
 
 app.get('/api/ai/vision/video/status/:jobId', async (req, res) => {
@@ -1519,13 +1644,13 @@ app.get('/api/config', (req, res) => {
 // App entry points — inject Supabase config into the HTML (before static middleware)
 app.get(['/index.html', '/app', '/index'], sendAppHtml);
 
-// Legacy backward-compatible endpoints
+// Legacy backward-compatible endpoints（同样走积分计费）
 app.post('/api/manifest-story', async (req, res) => {
-  return await executeStoryGeneration(req, res);
+  return await chargeAndRun(req, res, 'story', executeStoryGeneration);
 });
 
 app.post('/api/manifest-voice', async (req, res) => {
-  return await executeVoiceSynthesis(req, res);
+  return await chargeAndRun(req, res, 'voice', executeVoiceSynthesis);
 });
 
 app.use(express.static(path.join(__dirname, 'public'), {

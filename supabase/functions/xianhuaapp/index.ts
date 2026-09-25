@@ -11,10 +11,14 @@
 //   OPENROUTER_API_KEY: OpenRouter API 密钥 (用于 minimax/minimax-m3:free 等大模型)
 //   ELEVENLABS_API_KEY: ElevenLabs API 密钥 (用于拟真真人语音 TTS)
 //   GEMINI_API_KEY: (可选) Google Gemini API 密钥
+//
+// 积分计费：见 ./credits.ts —— 调用前按模型成本扣积分，失败自动退回。
+
+import { withCredits, handleCreditsAction, priceSheet } from './credits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-device-id, x-openrouter-key, x-op-id',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
@@ -45,7 +49,8 @@ Deno.serve(async (req: Request) => {
           llm: hasOpenRouter ? 'openrouter:minimax/minimax-m3:free' : (hasGemini ? 'gemini-2.5-flash' : 'none'),
           tts: hasElevenLabs ? 'elevenlabs:eleven_multilingual_v2' : (hasGemini ? 'gemini-3.1-flash-tts' : 'none')
         },
-        supportedActions: ['story', 'voice', 'health']
+        credits: { enabled: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), prices: priceSheet() },
+        supportedActions: ['credits', 'credits-redeem', 'story', 'voice', 'vision-photo', 'vision-video', 'health']
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -65,37 +70,50 @@ Deno.serve(async (req: Request) => {
 
     switch (action) {
       // ══════════════════════════════════════════════════════════
+      // 模块 0: 积分账户（余额 / 订阅状态 / 价目表 / 兑换码）
+      // ══════════════════════════════════════════════════════════
+      case 'credits':
+      case 'credits-balance':
+      case 'subscription-status':
+      case 'credits-redeem':
+      case 'redeem':
+        return await handleCreditsAction(action, req, body, corsHeaders);
+
+      // ══════════════════════════════════════════════════════════
       // 模块 1: 生成第一人称沉浸式显化剧本 (OpenRouter minimax-m3 / Gemini)
+      // 每次生成按 LLM 成本扣积分
       // ══════════════════════════════════════════════════════════
       case 'story':
       case 'manifest-story':
-        return await handleStory(body);
+        return await withCredits(req, body, 'story', corsHeaders, () => handleStory(body));
 
       // ══════════════════════════════════════════════════════════
       // 模块 2: 拟真真人语音合成 TTS (ElevenLabs / Gemini Neural Voice)
+      // 按待合成文本长度扣积分（音频回放走缓存，不重复扣费）
       // ══════════════════════════════════════════════════════════
       case 'voice':
       case 'manifest-voice':
-        return await handleVoice(body);
+        return await withCredits(req, body, 'voice', corsHeaders, () => handleVoice(body));
 
       // ══════════════════════════════════════════════════════════
       // 模块 3: AI 目标愿景写真 (OpenRouter: openai/gpt-image-2)
       // ══════════════════════════════════════════════════════════
       case 'vision-photo':
       case 'photo':
-        return await handleVisionPhoto(body);
+        return await withCredits(req, body, 'vision-photo', corsHeaders, () => handleVisionPhoto(body));
 
       // ══════════════════════════════════════════════════════════
       // 模块 4: AI 目标动态视频 (OpenRouter: minimax/hailuo-3-max)
       // ══════════════════════════════════════════════════════════
       case 'vision-video':
       case 'video':
-        return await handleVisionVideo(body);
+        return await withCredits(req, body, 'vision-video', corsHeaders, () => handleVisionVideo(body));
 
       case 'optimize-video-prompt':
       case 'optimize-prompt':
-        return await handleOptimizeVideoPrompt(body);
+        return await withCredits(req, body, 'optimize-video-prompt', corsHeaders, () => handleOptimizeVideoPrompt(body));
 
+      // 查询类调用不消耗模型，直接放行不扣分
       case 'vision-video-status':
       case 'video-status':
         return await handleVisionVideoStatus(body);

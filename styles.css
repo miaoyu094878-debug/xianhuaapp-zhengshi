@@ -3104,3 +3104,131 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 @keyframes fsSpin { to { transform: rotate(360deg); } }
 .fs-loading-txt { font-size: 14px; color: var(--text); font-weight: 500; }
 .fs-loading-sub { font-size: 12px; color: var(--text-dim); }
+
+/* ═══════════ 积分 / 订阅（Credits & Subscription） ═══════════ */
+
+/* 顶部余额药丸 */
+.wallet-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: transform .18s, box-shadow .18s, background .18s;
+}
+.wallet-pill:hover { background: var(--surface-hover); transform: translateY(-1px); box-shadow: var(--shadow-card); }
+.wallet-pill .wp-ico { font-size: 12px; color: var(--accent); }
+.wallet-pill .wp-plan {
+  font-size: 9px; letter-spacing: .06em; font-weight: 700;
+  padding: 2px 6px; border-radius: 6px;
+  background: var(--cta-grad); color: var(--cta-text);
+}
+.wallet-pill.low #walletBalance { color: #e05b7a; }
+
+/* 套餐里「不包含」的条目 */
+.plan-feats li.pf-off { color: var(--text-dim); text-decoration: line-through; }
+.plan-feats li.pf-off::before { opacity: .45; }
+.plan-feats li strong { font-weight: 600; }
+
+/* 钱包卡 */
+.credit-wallet {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; margin: 14px 0 18px; padding: 16px 18px;
+}
+.cw-label { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
+.cw-balance { display: block; font-family: var(--font-heading); font-size: 30px; line-height: 1.15; color: var(--text); }
+.cw-balance small { font-family: var(--font-body); font-size: 13px; color: var(--text-soft); }
+.cw-plan { display: inline-block; margin-top: 4px; font-size: 12px; color: var(--text-soft); }
+.cw-plan.pro { color: var(--accent); font-weight: 600; }
+
+/* 积分包 */
+.credit-packs { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.credit-pack {
+  position: relative; display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; padding: 15px 18px; border-radius: 16px;
+  border: 1px solid var(--border); background: var(--surface);
+  transition: transform .18s, box-shadow .18s;
+}
+.credit-pack:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.credit-pack.featured { border-color: var(--border-strong); box-shadow: var(--shadow-card); }
+.cp-left { display: flex; flex-direction: column; gap: 3px; }
+.cp-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.cp-points { font-size: 12.5px; color: var(--text-soft); }
+.cp-badge {
+  position: absolute; top: -9px; right: 14px;
+  font-size: 9px; font-weight: 700; letter-spacing: .06em;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--cta-grad); color: var(--cta-text);
+}
+.cp-right { display: flex; align-items: center; gap: 12px; }
+.cp-price { font-family: var(--font-heading); font-size: 20px; color: var(--text); }
+.cp-rate { display: block; font-size: 10.5px; color: var(--text-dim); text-align: right; }
+
+/* 价目表 */
+.credit-price-list { margin-top: 18px; padding: 16px 18px; }
+.cpl-title { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 10px; }
+.credit-price-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.credit-price-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text-soft); }
+.credit-price-list li b { color: var(--text); font-weight: 600; white-space: nowrap; }
+.cpl-note { font-size: 11.5px; color: var(--text-dim); margin: 12px 0 0; line-height: 1.55; }
+
+/* 兑换码 */
+.redeem-box { margin-top: 18px; padding: 16px 18px; }
+.redeem-row { display: flex; gap: 8px; align-items: center; }
+.redeem-row input {
+  flex: 1; min-width: 0; height: 40px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
+}
+.redeem-row input:focus { outline: none; border-color: var(--border-strong); }
+.redeem-row .plan-btn { flex: 0 0 auto; }
+
+/* 生成按钮上的积分标价 */
+.cost-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent); white-space: nowrap;
+}
+
+/* 付费墙弹窗 */
+.pw-cost { font-size: 13px; color: var(--text-soft); text-align: center; margin: 6px 0 0; }
+.pw-cost .pw-req { color: var(--accent); font-weight: 700; }
+.pw-packs { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 14px 0 4px; }
+.pw-pack {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface); font-size: 13px; color: var(--text);
+}
+.pw-pack b { font-weight: 600; }
+.pw-balance { font-size: 12px; color: var(--text-dim); text-align: center; margin: 10px 0 12px; }
+
+/* 免费用户看到的 Pro 解锁卡（肯定句库 / 滑动卡组） */
+.pro-lock-card {
+  margin-top: 14px; padding: 20px; border-radius: 16px;
+  border: 1px dashed var(--border-strong); background: var(--surface);
+  text-align: center;
+}
+.pro-lock-card h4 { margin: 0 0 6px; font-family: var(--font-heading); font-size: 19px; color: var(--text); }
+.pro-lock-card p { margin: 0 0 14px; font-size: 12.5px; line-height: 1.6; color: var(--text-soft); }
+.pro-lock-card .plan-btn { width: auto; padding: 11px 22px; border-radius: 12px; }
+
+/* 扣费提示 */
+.credit-toast {
+  position: fixed; left: 50%; bottom: 92px; transform: translate(-50%, 12px);
+  z-index: 3000; pointer-events: none;
+  padding: 9px 16px; border-radius: 999px;
+  background: var(--surface-hover); border: 1px solid var(--border-strong);
+  color: var(--text); font-size: 13px; font-weight: 600;
+  box-shadow: var(--shadow-hover); backdrop-filter: blur(14px);
+  opacity: 0; transition: opacity .22s, transform .22s;
+}
+.credit-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* 生成按钮里的积分标价（按钮为纵向 flex，故取消左外边距） */
+.ai-btn-generate .cost-badge { margin-left: 0; }
+
+@media (min-width: 720px) {
+  .credit-packs { grid-template-columns: repeat(3, 1fr); }
+  .plan-card .plan-feats li strong { font-weight: 700; }
+}
