@@ -3645,7 +3645,6 @@
   setCameraQuality(currentCameraQuality);
   setVideoResolution(currentVideoResolution);
   setVideoDuration(currentVideoDuration);
-  updateKeyStateLabels();
   updateUseRecentPhotoBtn();
   renderAiResults();
 
