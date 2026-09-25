@@ -22,7 +22,7 @@
     'prism': ['255,255,255', '255,170,190', '255,209,128', '143,195,245'],
     'ios': ['90,200,250', '0,122,255', '255,255,255']
   };
-  var starPalette = STAR_PALETTES['luminara'];
+  var starPalette = STAR_PALETTES['prism'];
 
   for (var i = 0; i < 140; i++) {
     stars.push({
@@ -2494,10 +2494,10 @@
   var THEME_KEY = 'luminara_theme_v1';
   var THEMES = ['luminara', 'manifest-light', 'manifest-dark', 'prism', 'ios'];
   function applyTheme(t) {
-    if (THEMES.indexOf(t) === -1) t = 'luminara';
+    if (THEMES.indexOf(t) === -1) t = 'prism';
     document.documentElement.setAttribute('data-theme', t);
     try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
-    starPalette = STAR_PALETTES[t] || STAR_PALETTES['luminara'];
+    starPalette = STAR_PALETTES[t] || STAR_PALETTES['prism'];
     $$('.theme-opt').forEach(function (o) { o.classList.toggle('active', o.dataset.theme === t); });
     $$('.ds-theme').forEach(function (o) { o.classList.toggle('active', o.dataset.theme === t); });
   }
