@@ -2199,13 +2199,36 @@
   async function deleteSavedVoice(row) {
     var s = savedSession();
     if (!s || !(s.user && s.user.id)) return;
-    if (!confirm('Remove "' + (row.title || 'this voice') + '" from My Voices?')) return;
+    if (!confirm('Delete "' + (row.title || 'this voice') + '"?\n\nThis permanently removes the saved voice and its audio file.')) return;
     try {
+      if (isSvPlaying(row.storage_key)) stopFutureAudio();
+      // Remove the audio file from Storage ({userId}/{storage_key}.wav)
+      if (row.storage_key) {
+        try {
+          var delRes = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + s.user.id + '/' + row.storage_key + '.wav', { method: 'DELETE' });
+          if (!delRes.ok && delRes.status !== 404) console.warn('delete stored audio failed:', delRes.status);
+        } catch (e) { console.warn('delete stored audio:', e); }
+      }
       var res = await sbFetch('/rest/v1/' + SV_TABLE + '?id=eq.' + encodeURIComponent(row.id) + '&user_id=eq.' + encodeURIComponent(s.user.id), { method: 'DELETE' });
       if (!res.ok) { svToast('Delete failed (' + res.status + ').'); return; }
       svRows = svRows.filter(function (r) { return String(r.id) !== String(row.id); });
       renderSavedVoices();
-      svToast('Removed from My Voices');
+      svToast('Deleted from My Voices');
+      // Append a "deleted" event to the usage log; the original generation record stays untouched.
+      try {
+        await sbFetch('/rest/v1/listening_sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: s.user.id,
+            scenario: row.title || '',
+            voice: row.voice || '',
+            frequency: '',
+            duration_sec: row.duration_sec || 0,
+            action: 'delete'
+          })
+        });
+      } catch (e) { console.warn('recordVoiceDeletion:', e); }
     } catch (e) { svToast('Delete failed.'); }
   }
 
