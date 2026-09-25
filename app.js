@@ -2214,6 +2214,21 @@
       svRows = svRows.filter(function (r) { return String(r.id) !== String(row.id); });
       renderSavedVoices();
       svToast('Deleted from My Voices');
+      // Append a "deleted" event to the usage log; the original generation record stays untouched.
+      try {
+        await sbFetch('/rest/v1/listening_sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: s.user.id,
+            scenario: row.title || '',
+            voice: row.voice || '',
+            frequency: '',
+            duration_sec: row.duration_sec || 0,
+            action: 'delete'
+          })
+        });
+      } catch (e) { console.warn('recordVoiceDeletion:', e); }
     } catch (e) { svToast('Delete failed.'); }
   }
 
