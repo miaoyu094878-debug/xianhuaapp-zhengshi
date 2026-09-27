@@ -351,24 +351,22 @@
   function renderPriceList() {
     var ul = $('#creditPriceList');
     if (!ul || !creditState.prices) return;
-    var c = creditState.prices.costs;
+    var c = creditState.prices.costs || {};
     ul.innerHTML = '';
     function row(label, pts) {
+      if (!pts) return;
       var li = el('li');
       li.appendChild(el('span', null, label));
       li.appendChild(el('b', null, pts + ' ✦'));
       ul.appendChild(li);
     }
-    row('Guided voice story', c.story);
-    row('Voice narration · per 100 characters', c.voicePer100Chars);
-    row('AI portrait · standard', c.visionPhoto.medium);
-    row('AI portrait · high detail', c.visionPhoto.high);
-    row('Motion video · per second (480p)', c.visionVideoPerSec['480p']);
-    row('Motion video · 5 seconds (480p)', c.visionVideo[5]);
-    row('AI Director prompt polish', c.optimizeVideoPrompt);
+    row('Guided affirmation story', c.story);
+    row('Voice narration', c.voice);
+    row('AI portrait / vision image', c['vision-photo']);
+    row('Motion video', c['vision-video']);
     var note = $('#creditMarginNote');
     if (note) {
-      note.textContent = 'Priced from the AI\'s real cost — 1 credit = ' + usd(creditState.prices.pointValueUsd) +
+      note.textContent = 'All AI generations are priced in credits — 1 credit = ' + usd(creditState.prices.pointValueUsd) +
         '. Credits never expire, and a failed generation is refunded automatically.';
     }
   }
@@ -381,17 +379,14 @@
     el.classList.toggle('hidden', !has);
   }
 
-  /** 生成按钮上的积分标价（随视频时长/分辨率实时变化） */
+  /** 生成按钮上的积分标价（固定价目，直接取数据库 credit_costs 镜像） */
   function updateCostBadges() {
     var c = creditState.prices && creditState.prices.costs;
     if (!c) return;
     setBadge('costStory', c.story);
-    setBadge('costOptimize', c.optimizeVideoPrompt);
-    setBadge('costPhoto', c.visionPhoto.low === c.visionPhoto.high
-      ? String(c.visionPhoto.low)
-      : c.visionPhoto.low + '–' + c.visionPhoto.high);
-    var rate = c.visionVideoPerSec[currentVideoResolution] || 0;
-    setBadge('costVideo', Math.round(rate * (currentVideoDuration || 5)));
+    setBadge('costOptimize', c['optimize-video-prompt']);
+    setBadge('costPhoto', c['vision-photo']);
+    setBadge('costVideo', c['vision-video']);
   }
 
   /* ---------- 付费墙 & 提示 ---------- */

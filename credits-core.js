@@ -65,6 +65,24 @@ export const PACKAGES = [
 /** 需要积分/订阅才可用的功能键 */
 export const GATED_ACTIONS = ['story', 'voice', 'vision-photo', 'vision-video', 'optimize-video-prompt'];
 
+/* ───────────────────────── 实际扣费价目（权威 = 数据库 credit_costs） ─────────────────────────
+ * 线上扣费与前端价目都读 public.credit_costs 表，这里只是「本地开发模式」的镜像，
+ * 让没连 Supabase 时行为一致。调价时改数据库那张表（线上为准），同步改这里的数字。
+ * ──────────────────────────────────────────────────────────────────────────── */
+export const CREDIT_COSTS = {
+  story: 5,
+  voice: 5,
+  'vision-photo': 20,
+  'vision-video': 50,
+  'optimize-video-prompt': 0,
+};
+
+/** 某个动作要扣多少积分（本地模式）；线上由数据库 credit_costs 决定 */
+export function pointsForAction(action) {
+  const pts = CREDIT_COSTS[String(action || '')];
+  return Number.isFinite(pts) ? pts : 0;
+}
+
 /** 成本（美元）→ 积分数 */
 export function pointsForCost(costUsd) {
   const usd = Number(costUsd) || 0;
@@ -136,39 +154,25 @@ export function grossMargin(points, costUsd) {
   return (revenue - Number(costUsd || 0)) / revenue;
 }
 
-/** 暴露给前端的价目表（不含任何密钥，纯粹让按钮显示价格） */
+/** 暴露给前端的价目表（不含任何密钥，纯粹让按钮显示价格）
+ *  扣费口径 = 每个动作固定积分，与数据库 credit_costs 一一对应。 */
 export function clientPriceSheet() {
   return {
     pointValueUsd: POINT_VALUE_USD,
-    targetMargin: TARGET_MARGIN,
     minPoints: MIN_POINTS,
     subscription: SUBSCRIPTION,
     packages: PACKAGES,
-    costs: {
-      story: pointsFor('story'),
-      voicePer1kChars: pointsForCost(COST_TABLE.ttsPer1kChars),
-      voicePer100Chars: pointsForCost(COST_TABLE.ttsPer1kChars / 10),
-      visionPhoto: {
-        low: pointsFor('vision-photo', { quality: 'low' }),
-        medium: pointsFor('vision-photo', { quality: 'medium' }),
-        high: pointsFor('vision-photo', { quality: 'high' }),
-      },
-      visionVideoPerSec: {
-        '480p': pointsFor('vision-video', { duration: 1, resolution: '480p' }),
-        '768p': pointsFor('vision-video', { duration: 1, resolution: '768p' }),
-      },
-      /** 原始每秒美元成本：前端按同一公式算任意时长的积分，避免 ceil 取整后不一致 */
-      visionVideoUsdPerSec: Object.assign({}, COST_TABLE.visionVideoPerSec),
-      visionVideo: {
-        5: pointsFor('vision-video', { duration: 5, resolution: '480p' }),
-        10: pointsFor('vision-video', { duration: 10, resolution: '480p' }),
-      },
-      optimizeVideoPrompt: pointsFor('optimize-video-prompt'),
-    },
+    /** 各动作实际扣分（前端按它渲染按钮角标） */
+    costs: Object.assign({}, CREDIT_COSTS),
   };
 }
 
-/** 供日志/自检：打印每个操作的定价与毛利 */
+/* ───────────────────────── 调价计算器 ─────────────────────────
+ * 扣费不再走「按模型成本 × 毛利倍数」的公式，但换算出 credit_costs 该填多少
+ * 仍然用这套模型：把它算出的积分数写进 public.credit_costs 即可。
+ * ──────────────────────────────────────────────────────────── */
+
+/** 供日志/自检：打印每个操作在目标毛利下应有的定价 */
 export function pricingReport() {
   const rows = [
     ['story', {}, pointsFor('story'), costFor('story')],

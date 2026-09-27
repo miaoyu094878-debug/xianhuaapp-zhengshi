@@ -3,9 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { costFor, pointsForCost } from './credits-core.js';
+import { costFor } from './credits-core.js';
 import {
-  LEDGER_MODE, resolveUser, spend, grant, redeem, setPlan, createCodes,
+  LEDGER_MODE, resolveUser, spend, grant, refund, redeem, setPlan, createCodes,
   priceSheet, walletSummary, isAdmin
 } from './credits-store.js';
 
@@ -1445,7 +1445,10 @@ async function executeVisionVideoContent(req, res, targetJobId) {
 }
 
 // ═══════════════ 积分计费：调用前扣分，调用失败自动退款 ═══════════════
-// 扣分公式见 credits-core.js：积分 = 模型美元成本 ÷ (1 − 目标毛利) ÷ $0.01
+// 定价口径 = 每个动作固定积分（线上以 credit_costs 表为准，本地镜像见 credits-core.js）。
+// Pro 订阅用户：肯定句（story）不限量、不扣分；其余 AI 生成仍按积分计费。
+const PRO_UNLIMITED_ACTIONS = new Set(['story']);
+
 async function chargeAndRun(req, res, action, handler) {
   const user = await resolveUser(req);
   if (!user) {
@@ -1457,21 +1460,28 @@ async function chargeAndRun(req, res, action, handler) {
   }
 
   const body = req.body || {};
-  const costUsd = costFor(action, body);
-  const points = pointsForCost(costUsd);
+  const costUsd = costFor(action, body); // 仅用于成本审计（落到 cost_usd 列）
   // 幂等键：同一次点击重试不会重复扣分（前端会带 opId）
   const opId = String(body.opId || body.op_id || '').slice(0, 80);
   const spendRef = opId ? `${user.id}:${action}:${opId}` : null;
 
+  // Pro 订阅：肯定句无限使用（壁纸在客户端本地生成，无需服务端计费）
+  const wallet = await walletSummary(user.id);
+  const isProUser = String(wallet.plan || '').toLowerCase() === 'pro'
+    && (!wallet.plan_expires_at || new Date(wallet.plan_expires_at) > new Date());
+  const freeForPro = isProUser && PRO_UNLIMITED_ACTIONS.has(action);
+
   let charged = 0;
-  if (points > 0) {
-    const r = await spend(user.id, points, 'spend:' + action, spendRef, costUsd);
+  let ledgerId = null;
+  let balanceAfter = Number(wallet.balance) || 0;
+  if (!freeForPro) {
+    const r = await spend(user.id, action, spendRef, costUsd);
     if (!r.ok) {
       if (r.error === 'insufficient') {
         return res.status(402).json({
           error: 'insufficient_credits',
-          message: `Not enough credits: ${points} needed, ${r.balance ?? 0} available.`,
-          required: points,
+          message: `Not enough credits: ${r.required ?? 0} needed, ${r.balance ?? 0} available.`,
+          required: r.required ?? 0,
           balance: r.balance ?? 0,
           prices: priceSheet()
         });
@@ -1479,25 +1489,32 @@ async function chargeAndRun(req, res, action, handler) {
       return res.status(400).json({ error: r.error || 'credit_error' });
     }
     charged = r.charged || 0;
+    ledgerId = r.ledgerId ?? null;
+    balanceAfter = r.balance ?? balanceAfter;
   }
 
-  // 捕获 handler 的输出，失败（4xx/5xx 或 body.error）则把积分退回
+  // 捕获 handler 的输出：成功时把「本次扣了多少 / 剩余多少」并进 JSON，
+  // 失败（4xx/5xx 或 body.error）则按原流水退回积分。
+  // 注意必须在 res.json 真正发送前注入，否则改的是已序列化过的对象。
   let capturedStatus = null;
   let capturedBody = null;
   const origJson = res.json.bind(res);
-  res.json = (payload) => { capturedStatus = res.statusCode; capturedBody = payload; return origJson(payload); };
+  res.json = (payload) => {
+    capturedStatus = res.statusCode;
+    capturedBody = payload;
+    if (payload && typeof payload === 'object' && !Array.isArray(payload) && !payload.error) {
+      payload.credits = { charged, balance: balanceAfter };
+    }
+    return origJson(payload);
+  };
 
   await handler(req, res);
 
   const failed = (capturedStatus != null && capturedStatus >= 400) || (capturedBody && capturedBody.error);
-  if (failed && charged > 0) {
-    await grant(user.id, charged, 'refund:' + action, opId ? `refund:${user.id}:${action}:${opId}` : null);
-    console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
-  }
-
-  // 在成功响应的 JSON 里带上最新余额，前端无需额外请求
-  if (!failed && capturedBody && typeof capturedBody === 'object' && !Array.isArray(capturedBody)) {
-    capturedBody.credits = { charged, balance: (await walletSummary(user.id)).balance };
+  if (failed && charged > 0 && ledgerId != null) {
+    // 按原扣费流水退回（同一笔只能退一次，见 refund_credits RPC）
+    const rr = await refund(user.id, ledgerId);
+    if (rr && rr.ok) console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
   }
   return undefined;
 }

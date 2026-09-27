@@ -3,16 +3,17 @@
  *
  * 两种落库模式（自动选择）：
  *   supabase : 配了 SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY → 调 SQL RPC
- *              原子扣分（supabase/migrations/20260925120000_credit_system.sql）
+ *              原子扣分（supabase/migrations/20260925223000_credit_system_b.sql）
  *   local    : 否则落到 data/credits.json（本地开发/自托管，进程内串行写入）
  *
  * 与积分有关的所有写操作都只在这里发生，前端无法直接改余额。
+ * 定价口径 = 每个动作固定积分，线上以 public.credit_costs 表为准。
  * ═══════════════════════════════════════════════════════════════════════ */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { SIGNUP_BONUS_POINTS, clientPriceSheet } from './credits-core.js';
+import { SIGNUP_BONUS_POINTS, clientPriceSheet, CREDIT_COSTS, pointsForAction } from './credits-core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -124,74 +125,139 @@ function localWallet(state, userId) {
   return w;
 }
 
-function localRecord(w, delta, reason, ref, costUsd) {
+function localRecord(w, delta, action, ledgerType, ref, costUsd) {
   w.balance += delta;
   if (w.balance < 0) w.balance = 0;
-  w.ledger.push({
-    delta, balance_after: w.balance, reason, ref: ref || null,
+  w.seq = (w.seq || 0) + 1;
+  var rec = {
+    id: w.seq, delta: delta, balance_after: w.balance,
+    action: action, ledger_type: ledgerType, ref: ref || null,
     cost_usd: Number(costUsd) || 0, created_at: new Date().toISOString()
-  });
+  };
+  w.ledger.push(rec);
   if (w.ledger.length > 500) w.ledger = w.ledger.slice(-500);
+  return rec;
 }
 
 function hasRef(w, ref) {
   return !!ref && w.ledger.some(r => r.ref === ref);
 }
 
+/* ───────────────────────── 价目（线上读 credit_costs，本地用镜像） ───────────────────────── */
+
+let _costCache = null;   // { story: 5, 'vision-video': 50, ... }
+let _costAt = 0;
+const COST_TTL_MS = 60 * 1000;
+
+async function refreshCosts() {
+  if (LEDGER_MODE !== 'supabase') return Object.assign({}, CREDIT_COSTS);
+  if (_costCache && Date.now() - _costAt < COST_TTL_MS) return _costCache;
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/credit_costs?select=action,cost', {
+      headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      const map = Object.assign({}, CREDIT_COSTS);
+      for (const r of rows || []) map[r.action] = Number(r.cost) || 0;
+      _costCache = map;
+      _costAt = Date.now();
+    }
+  } catch (e) { /* 拉不到就退回镜像，不阻塞请求 */ }
+  return _costCache || Object.assign({}, CREDIT_COSTS);
+}
+
 /* ───────────────────────── 对外统一 API ───────────────────────── */
 
-/** 读取钱包（首次访问时按需创建并发放注册赠送积分） */
-export async function ensureWallet(userId) {
-  const bonus = SIGNUP_BONUS;
+/** 读取账户：余额 + 订阅状态 */
+export async function walletSummary(userId) {
   if (LEDGER_MODE === 'supabase') {
-    if (!isSupabaseUserId(userId)) return { ok: false, error: 'not_a_supabase_user' };
-    return await rpc('ensure_wallet', { p_user_id: userId, p_bonus: bonus });
+    if (!isSupabaseUserId(userId)) {
+      return { ok: false, balance: 0, plan: 'free', plan_expires_at: null, mode: LEDGER_MODE };
+    }
+    await refreshCosts();
+    const w = await rpc('wallet_summary', { p_user_id: userId });
+    return {
+      ok: !!w.ok,
+      balance: w.balance ?? 0,
+      plan: w.plan || 'free',
+      plan_expires_at: w.plan_expires_at || null,
+      mode: LEDGER_MODE
+    };
   }
   const state = loadLedger();
   const w = localWallet(state, userId);
-  if (bonus > 0 && !hasRef(w, 'signup_bonus')) {
-    localRecord(w, bonus, 'signup_bonus', 'signup_bonus', 0);
-  }
   await saveLedger(state);
-  return { ok: true, balance: w.balance, plan: w.plan, plan_expires_at: w.plan_expires_at };
+  return { ok: true, balance: w.balance, plan: w.plan, plan_expires_at: w.plan_expires_at, mode: LEDGER_MODE };
 }
 
-/** 原子扣分。返回 { ok, balance } 或 { ok:false, error:'insufficient', balance, required } */
-export async function spend(userId, amount, reason, ref, costUsd) {
-  const amt = Math.max(0, Math.round(Number(amount) || 0));
+/**
+ * 扣分（原子）。返回 { ok, balance, charged, ledgerId }
+ * 或 { ok:false, error:'insufficient', balance, required }。
+ * 幂等键 ref 相同则视为重复请求，不重复扣。
+ */
+export async function spend(userId, action, ref, costUsd) {
   if (LEDGER_MODE === 'supabase') {
     if (!isSupabaseUserId(userId)) return { ok: false, error: 'not_a_supabase_user' };
-    return await rpc('spend_credits', {
-      p_user_id: userId, p_amount: amt, p_reason: reason || 'spend',
-      p_ref: ref || null, p_cost_usd: Number(costUsd) || 0
+    const r = await rpc('consume_credits', {
+      p_user_id: userId, p_action: action, p_ref: ref || null, p_cost_usd: Number(costUsd) || 0
     });
+    if (!r.ok) return r;
+    return {
+      ok: true, balance: r.balance ?? 0, charged: r.charged || 0,
+      ledgerId: r.ledger_id ?? null, duplicate: !!r.duplicate, free: !!r.free
+    };
   }
+
   const state = loadLedger();
   const w = localWallet(state, userId);
-  if (amt === 0) return { ok: true, balance: w.balance, charged: 0 };
   if (hasRef(w, ref)) return { ok: true, balance: w.balance, charged: 0, duplicate: true };
-  if (w.balance < amt) {
-    return { ok: false, error: 'insufficient', balance: w.balance, required: amt };
-  }
-  localRecord(w, -amt, reason || 'spend', ref, costUsd);
+
+  const pts = pointsForAction(action);
+  if (pts === 0) return { ok: true, balance: w.balance, charged: 0, free: true };
+  if (w.balance < pts) return { ok: false, error: 'insufficient', balance: w.balance, required: pts };
+
+  const rec = localRecord(w, -pts, action, 'consume', ref, costUsd);
   await saveLedger(state);
-  return { ok: true, balance: w.balance, charged: amt };
+  return { ok: true, balance: w.balance, charged: pts, ledgerId: rec.id };
 }
 
-/** 发放积分（退款 / 管理员 / 兑换） */
+/** 退款：按原扣费流水退回，同一笔只能退一次 */
+export async function refund(userId, ledgerId) {
+  if (LEDGER_MODE === 'supabase') {
+    if (!isSupabaseUserId(userId)) return { ok: false, error: 'not_a_supabase_user' };
+    return await rpc('refund_credits', { p_user_id: userId, p_ledger_id: Number(ledgerId) || 0 });
+  }
+
+  const state = loadLedger();
+  const w = localWallet(state, userId);
+  const rec = w.ledger.find(r => Number(r.id) === Number(ledgerId));
+  if (!rec || rec.ledger_type !== 'consume') return { ok: false, error: 'ledger_not_refundable' };
+
+  const ref = 'refund:' + rec.id;
+  if (hasRef(w, ref)) return { ok: true, balance: w.balance, duplicate: true };
+
+  localRecord(w, -rec.delta, rec.action, 'refund', ref, 0);
+  await saveLedger(state);
+  return { ok: true, balance: w.balance, refunded: -rec.delta };
+}
+
+/** 发放积分（管理员充值 / 补偿） */
 export async function grant(userId, amount, reason, ref) {
   const amt = Math.round(Number(amount) || 0);
   if (LEDGER_MODE === 'supabase') {
     if (!isSupabaseUserId(userId)) return { ok: false, error: 'not_a_supabase_user' };
-    return await rpc('grant_credits', { p_user_id: userId, p_amount: amt, p_reason: reason || 'admin_grant', p_ref: ref || null });
+    return await rpc('grant_credits', {
+      p_user_id: userId, p_amount: amt, p_reason: reason || 'admin_grant', p_ref: ref || null
+    });
   }
   const state = loadLedger();
   const w = localWallet(state, userId);
   if (amt === 0) return { ok: true, balance: w.balance };
   if (hasRef(w, ref)) return { ok: true, balance: w.balance, duplicate: true };
-  localRecord(w, amt, reason || 'admin_grant', ref, 0);
+  localRecord(w, amt, reason || 'admin_grant', 'reward', ref, 0);
   await saveLedger(state);
-  return { ok: true, balance: w.balance };
+  return { ok: true, balance: w.balance, granted: amt };
 }
 
 /** 开通 / 续期 Pro（解锁「肯定句 + 壁纸」无限使用） */
@@ -237,7 +303,7 @@ export async function redeem(userId, code) {
   if (hasRef(w, ref)) return { ok: false, error: 'already_redeemed' };
 
   const pts = Math.max(0, Number(c.points) || 0);
-  localRecord(w, pts, 'redeem', ref, 0);
+  localRecord(w, pts, 'redeem', 'reward', ref, 0);
   if (String(c.plan || '').toLowerCase() === 'pro') {
     const base = (w.plan === 'pro' && w.plan_expires_at) ? new Date(w.plan_expires_at) : new Date();
     const from = base > new Date() ? base : new Date();
@@ -276,17 +342,6 @@ export async function createCodes(list) {
 /** 前端需要的价目表 + 当前钱包状态 */
 export function priceSheet() {
   return Object.assign({ signupBonus: SIGNUP_BONUS }, clientPriceSheet());
-}
-
-export async function walletSummary(userId) {
-  const w = await ensureWallet(userId);
-  return {
-    ok: !!w.ok,
-    balance: w.balance ?? 0,
-    plan: w.plan || 'free',
-    plan_expires_at: w.plan_expires_at || null,
-    mode: LEDGER_MODE
-  };
 }
 
 export function isAdmin(req) {

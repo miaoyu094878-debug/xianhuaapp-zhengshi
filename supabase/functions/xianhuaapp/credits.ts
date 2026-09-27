@@ -1,20 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════
 // Alyema 积分系统 · Supabase Edge Function 版
 //
-// 与根目录 credits-core.js / credits-store.js 保持同一套定价与扣费逻辑
-// （改价格时两处一起改，或只改本文件里的 COST_TABLE / TARGET_MARGIN 并同步）。
-//
-// 账本由 SQL RPC 保证原子性，见 supabase/migrations/20260925120000_credit_system.sql
+// 与根目录 credits-core.js / credits-store.js 保持同一套定价与扣费逻辑：
+//   · 定价口径 = 每个动作固定积分，权威来源是 public.credit_costs 表
+//   · 幂等 + 并发安全 + 成本审计 + 订阅（Pro）全部走 SQL RPC
+// 迁移文件：supabase/migrations/20260925223000_credit_system_b.sql
 // ═══════════════════════════════════════════════════════════════════════
 
 /** 1 积分值多少美元（用户支付口径）。100 积分 = $1 */
 export const POINT_VALUE_USD = 0.01;
 
-/** 目标毛利率。0.85 → 按模型成本的 6.667 倍计价，即该次调用毛利 85% */
+/** 目标毛利率（用于反算 credit_costs 该填多少，运行时扣费不再用公式） */
 export const TARGET_MARGIN = 0.85;
-
-/** 安全系数：>1 时在目标毛利上再加价，用来抵御模型涨价 */
-export const SAFETY_FACTOR = 1.0;
 
 export const MIN_POINTS = 1;
 
@@ -28,15 +25,9 @@ export const SUBSCRIPTION = {
   yearlySavePct: Math.round((1 - 59.99 / (7.99 * 12)) * 100),
 };
 
-const MARGIN_MULTIPLIER = 1 / (1 - TARGET_MARGIN);
-
 /**
- * 模型成本表（美元）— 与 credits-core.js 一致
- *   story               OpenRouter minimax-m3 / Gemini 2.5 Flash 文本
- *   ttsPer1kChars       Gemini 2.5 Flash TTS 音频输出，约 $0.02 / 1000 字符
- *   visionPhoto.low     openai/gpt-image-2 low quality
- *   visionVideoPerSec   与前端 VIDEO_PRICING 一致的 hailuo-3-max 每秒单价
- *   optimizeVideoPrompt AI Director 文本改写
+ * 模型成本表（美元）— 与 credits-core.js 一致，仅用于成本审计。
+ * 实际扣费不看它，而看 public.credit_costs 表里的固定积分。
  */
 export const COST_TABLE = {
   story: 0.006,
@@ -53,6 +44,18 @@ export const PACKAGES = [
   { id: 'studio', name: 'Studio', points: 2500, priceUsd: 24.99, badge: 'Best value' },
 ];
 
+/** 实际扣费价目（权威 = 数据库 credit_costs；这里是前端/兜底镜像） */
+export const CREDIT_COSTS: Record<string, number> = {
+  story: 5,
+  voice: 5,
+  'vision-photo': 20,
+  'vision-video': 50,
+  'optimize-video-prompt': 0,
+};
+
+/** Pro 订阅后不限量、不计费的动作（壁纸在客户端本地生成，不经过服务端） */
+export const PRO_UNLIMITED_ACTIONS = ['story'];
+
 function normalizeQuality(q: any): 'low' | 'medium' | 'high' {
   const v = String(q || '').toLowerCase();
   if (v === 'high' || v === 'hd' || v === 'pro') return 'high';
@@ -64,14 +67,7 @@ function normalizeResolution(r: any): '480p' | '768p' {
   return String(r || '480p').toLowerCase().startsWith('7') ? '768p' : '480p';
 }
 
-/** 成本（美元）→ 积分数 */
-export function pointsForCost(costUsd: number): number {
-  const usd = Number(costUsd) || 0;
-  if (usd <= 0) return 0;
-  return Math.max(MIN_POINTS, Math.ceil((usd * MARGIN_MULTIPLIER * SAFETY_FACTOR) / POINT_VALUE_USD));
-}
-
-/** 一次调用的美元成本 */
+/** 一次调用的美元成本（仅审计用） */
 export function costFor(action: string, body: any = {}): number {
   switch (String(action || '')) {
     case 'story':
@@ -104,36 +100,15 @@ export function costFor(action: string, body: any = {}): number {
   }
 }
 
-/** 暴露给前端的价目表 */
+/** 暴露给前端的价目表（与 credit_costs 一一对应） */
 export function priceSheet() {
   return {
     pointValueUsd: POINT_VALUE_USD,
-    targetMargin: TARGET_MARGIN,
     minPoints: MIN_POINTS,
     signupBonus: SIGNUP_BONUS_POINTS,
     subscription: SUBSCRIPTION,
     packages: PACKAGES,
-    costs: {
-      story: pointsForCost(costFor('story')),
-      voicePer1kChars: pointsForCost(COST_TABLE.ttsPer1kChars),
-      voicePer100Chars: pointsForCost(COST_TABLE.ttsPer1kChars / 10),
-      visionPhoto: {
-        low: pointsForCost(costFor('vision-photo', { quality: 'low' })),
-        medium: pointsForCost(costFor('vision-photo', { quality: 'medium' })),
-        high: pointsForCost(costFor('vision-photo', { quality: 'high' })),
-      },
-      visionVideoPerSec: {
-        '480p': pointsForCost(costFor('vision-video', { duration: 1, resolution: '480p' })),
-        '768p': pointsForCost(costFor('vision-video', { duration: 1, resolution: '768p' })),
-      },
-      /** 原始每秒美元成本：前端按同一公式算任意时长的积分，避免 ceil 取整后不一致 */
-      visionVideoUsdPerSec: { ...COST_TABLE.visionVideoPerSec },
-      visionVideo: {
-        5: pointsForCost(costFor('vision-video', { duration: 5, resolution: '480p' })),
-        10: pointsForCost(costFor('vision-video', { duration: 10, resolution: '480p' })),
-      },
-      optimizeVideoPrompt: pointsForCost(costFor('optimize-video-prompt')),
-    },
+    costs: { ...CREDIT_COSTS },
   };
 }
 
@@ -182,8 +157,9 @@ async function rpc(fn: string, args: Record<string, unknown>) {
   return data || { ok: true };
 }
 
+/** 读取账户：余额 + 订阅状态（过期自动降级在 RPC 里处理） */
 export async function walletSummary(userId: string) {
-  const w = await rpc('ensure_wallet', { p_user_id: userId, p_bonus: SIGNUP_BONUS_POINTS });
+  const w: any = await rpc('wallet_summary', { p_user_id: userId });
   return {
     ok: !!w.ok,
     balance: w.balance ?? 0,
@@ -192,17 +168,30 @@ export async function walletSummary(userId: string) {
   };
 }
 
-export function spend(userId: string, amount: number, reason: string, ref: string | null, costUsd: number) {
-  return rpc('spend_credits', {
-    p_user_id: userId, p_amount: Math.max(0, Math.round(amount || 0)),
-    p_reason: reason, p_ref: ref, p_cost_usd: costUsd || 0,
+/**
+ * 扣分（原子，幂等）。传动作名，由数据库 credit_costs 决定扣多少。
+ * 返回 { ok, balance, charged, ledger_id, duplicate, free } 或 { ok:false, error }
+ */
+export function spend(userId: string, action: string, ref: string | null, costUsd = 0) {
+  return rpc('consume_credits', {
+    p_user_id: userId, p_action: action, p_ref: ref || null, p_cost_usd: costUsd || 0,
   });
+}
+
+/** 退款：按原扣费流水退回，同一笔只能退一次 */
+export function refund(userId: string, ledgerId: number) {
+  return rpc('refund_credits', { p_user_id: userId, p_ledger_id: Number(ledgerId) || 0 });
 }
 
 export function grant(userId: string, amount: number, reason: string, ref: string | null) {
   return rpc('grant_credits', {
     p_user_id: userId, p_amount: Math.round(amount || 0), p_reason: reason, p_ref: ref,
   });
+}
+
+/** 开通 / 续期 Pro（写 profiles.plan / plan_expires_at） */
+export function setPlan(userId: string, plan: string, days = 30) {
+  return rpc('set_plan', { p_user_id: userId, p_plan: plan, p_days: days });
 }
 
 export function redeem(userId: string, code: string) {
@@ -214,6 +203,12 @@ const json = (payload: unknown, status = 200, cors: Record<string, string> = {})
     status,
     headers: { ...cors, 'Content-Type': 'application/json' },
   });
+
+function isProActive(w: { plan?: string; plan_expires_at?: string | null }): boolean {
+  if (String(w.plan || '').toLowerCase() !== 'pro') return false;
+  if (!w.plan_expires_at) return true;
+  return new Date(w.plan_expires_at) > new Date();
+}
 
 /**
  * 扣费包装器：调用前扣分 → 执行 → 失败自动退款 → 成功把余额写回 JSON。
@@ -231,20 +226,24 @@ export async function withCredits(
     return json({ error: 'auth_required', message: 'Please sign in before using AI features.', prices: priceSheet() }, 401, cors);
   }
 
-  const costUsd = costFor(action, body);
-  const points = pointsForCost(costUsd);
+  const costUsd = costFor(action, body); // 仅审计
   const opId = String(body?.opId || body?.op_id || '').slice(0, 80);
   const spendRef = opId ? `${user.id}:${action}:${opId}` : null;
 
+  // Pro 订阅：肯定句不限量、不扣分
+  const wallet = await walletSummary(user.id);
+  const freeForPro = isProActive(wallet) && PRO_UNLIMITED_ACTIONS.includes(action);
+
   let charged = 0;
-  if (points > 0) {
-    const r: any = await spend(user.id, points, 'spend:' + action, spendRef, costUsd);
+  let ledgerId: number | null = null;
+  if (!freeForPro) {
+    const r: any = await spend(user.id, action, spendRef, costUsd);
     if (!r.ok) {
       if (r.error === 'insufficient') {
         return json({
           error: 'insufficient_credits',
-          message: `Not enough credits: ${points} needed, ${r.balance ?? 0} available.`,
-          required: points,
+          message: `Not enough credits: ${r.required ?? 0} needed, ${r.balance ?? 0} available.`,
+          required: r.required ?? 0,
           balance: r.balance ?? 0,
           prices: priceSheet(),
         }, 402, cors);
@@ -252,14 +251,15 @@ export async function withCredits(
       return json({ error: r.error || 'credit_error' }, 400, cors);
     }
     charged = r.charged || 0;
+    ledgerId = r.ledger_id ?? null;
   }
 
   const res = await handler();
 
   if (res.status >= 400) {
-    if (charged > 0) {
-      await grant(user.id, charged, 'refund:' + action, opId ? `refund:${user.id}:${action}:${opId}` : null);
-      console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
+    if (charged > 0 && ledgerId != null) {
+      const rr: any = await refund(user.id, ledgerId);
+      if (rr && rr.ok) console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
     }
     return res;
   }
