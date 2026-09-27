@@ -1784,7 +1784,9 @@
     db.profile.desire = $('#qDesire').value.trim();
     save();
     $('#quizModal').classList.add('hidden');
+    renderProfile();
     renderToday();
+    persistProfile();
   });
 
   /* ═══════ My Profile ═══════ */
@@ -1882,12 +1884,12 @@
     var pass = $('#lmPassword').value || '';
     var name = ($('#lmName') && $('#lmName').value || '').trim() || (db.profile && db.profile.name) || '';
     if (!email || pass.length < 8) { lmMsg('Enter a valid email and a password of at least 8 characters.'); return; }
-    if (name) { db.profile = db.profile || {}; db.profile.name = name; save(); }
+    if (name) { db.profile = db.profile || {}; db.profile.name = name; save(); renderProfile(); }
     lmMsg('Creating account…');
     try {
       var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: name } });
       if (d.user && d.user.identities && d.user.identities.length === 0) { lmMsg('This email is already registered. Please log in instead.'); return; }
-      if (d.session && d.session.access_token) { setSession(d.session); await seedProfile(d.session); }
+      if (d.session && d.session.access_token) { setSession(d.session); await loadProfile(d.session); await seedProfile(d.session); }
       if (d.access_token) { closeLoginModal(); }
       else { lmMsg('Check your inbox to confirm your email, then log in.'); }
       refreshAccount();
@@ -1901,7 +1903,7 @@
     try {
       var d = await requestToken('/auth/v1/token?grant_type=password', { email: email, password: pass });
       if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
-      setSession(d); await seedProfile(d);
+      setSession(d); await loadProfile(d); await seedProfile(d);
       closeLoginModal();
       refreshAccount();
     } catch (e) { lmMsg(e.message); }
@@ -2319,7 +2321,7 @@
         acctMsg('This email is already registered. Please log in instead.');
         return;
       }
-      if (d.session && d.session.access_token) { setSession(d.session); await seedProfile(d.session); }
+      if (d.session && d.session.access_token) { setSession(d.session); await loadProfile(d.session); await seedProfile(d.session); }
       acctMsg(d.access_token ? '' : 'Check your inbox to confirm your email, then log in.');
       refreshAccount();
     } catch (e) { acctMsg(e.message); }
@@ -2332,7 +2334,7 @@
     try {
       var d = await requestToken('/auth/v1/token?grant_type=password', { email: email, password: pass });
       if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
-      setSession(d); await seedProfile(d);
+      setSession(d); await loadProfile(d); await seedProfile(d);
       refreshAccount();
     } catch (e) { acctMsg(e.message); }
   });
@@ -2345,11 +2347,21 @@
     setSession(null); refreshAccount();
   });
 
-  // Ensure a profiles row exists for the current user (upsert)
+  // Ensure a profiles row exists for the current user (upsert).
+  // Only non-empty fields are sent: with merge-duplicates a partial payload touches
+  // just those columns, so a blank local profile can never wipe a saved name.
   async function seedProfile(session) {
     var cfg = supabaseCfg();
     if (!cfg.url || !cfg.key || !session) return;
-    var body = Object.assign({}, db.profile || {}, { id: session.user && session.user.id });
+    var uid = session.user && session.user.id;
+    if (!uid) return;
+    var p = db.profile || {};
+    var body = { id: uid }, hasValue = false;
+    ['name', 'area', 'desire'].forEach(function (k) {
+      var v = (p[k] || '').trim();
+      if (v) { body[k] = v; hasValue = true; }
+    });
+    if (!hasValue) return;
     await sbFetch('/rest/v1/profiles?on_conflict=id', {
       method: 'POST',
       headers: {
@@ -2370,8 +2382,34 @@
     }
   }
 
+  // Pull the saved profile back from Supabase and merge it into local state.
+  // Without this the name only ever lived in this browser's localStorage and
+  // reverted to the "Your Name" placeholder on a new device or after a cache clear.
+  async function loadProfile(session) {
+    var cfg = supabaseCfg();
+    var uid = session && session.user && session.user.id;
+    if (!cfg.url || !uid) return;
+    try {
+      var res = await sbFetch('/rest/v1/profiles?id=eq.' + encodeURIComponent(uid) + '&select=name,area,desire');
+      if (!res.ok) return;
+      var rows = await res.json();
+      var row = rows && rows[0];
+      if (!row) return;
+      db.profile = db.profile || {};
+      // A value saved on the account wins; blank columns never overwrite local edits.
+      ['name', 'area', 'desire'].forEach(function (k) {
+        var v = (row[k] || '').trim();
+        if (v) db.profile[k] = v;
+      });
+      save();
+      renderProfile();
+      renderToday();
+    } catch (e) { console.warn('loadProfile:', e); }
+  }
+
   function refreshAccount() {
     var s = savedSession();
+    if (s) loadProfile(s);
     if ($('#acctSignedIn')) $('#acctSignedIn').classList.toggle('hidden', !s);
     if ($('#acctSignedOut')) $('#acctSignedOut').classList.toggle('hidden', !!s);
     if (s && $('#acctEmailLabel')) {
