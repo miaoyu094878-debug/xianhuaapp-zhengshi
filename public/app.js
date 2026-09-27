@@ -720,16 +720,7 @@
   }
   function renderSwipe() {
     var deck = $('#swipeDeck'); deck.innerHTML = '';
-    if (!isPro()) {
-      var lock = el('div', 'pro-lock-card');
-      lock.appendChild(el('h4', null, 'The swipe deck is Pro'));
-      lock.appendChild(el('p', null, 'Swipe through every affirmation and keep your favourites — unlock the whole deck with Pro.'));
-      var unlockBtn = el('button', 'plan-btn plan-btn-cta', 'Unlock with Pro');
-      unlockBtn.addEventListener('click', function () { openPaywall('pro', { feature: 'The swipe deck' }); });
-      lock.appendChild(unlockBtn);
-      deck.appendChild(lock);
-      return;
-    }
+    // 免费用户也能浏览/滑动整个 deck，只在点「喜欢/收藏」时才提示订阅（见下方 #swipeSave）
     if (!swipeQueue.length) {
       deck.appendChild(el('div', 'swipe-empty', "You've collected them all ✧\nTap Reset to begin again"));
       return;
