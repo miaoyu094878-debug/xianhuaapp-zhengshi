@@ -20,15 +20,18 @@
  * Alyema 积分系统（原 credits.ts，已内联为单文件）
  *
  * 与根目录 credits-core.js / credits-store.js 保持同一套定价与扣费逻辑：
- *   · 定价口径 = 每个动作固定积分，权威来源是 public.credit_costs 表
+ *   · 定价口径 = 成本驱动：积分 = 本次调用成本 ÷ (1 - 目标毛利) ÷ 0.01
  *   · 幂等 + 并发安全 + 成本审计 + 订阅（Pro）全部走 SQL RPC
  * ═══════════════════════════════════════════════════════════════════════ */
 
 /** 1 积分值多少美元（用户支付口径）。100 积分 = $1 */
 const POINT_VALUE_USD = 0.01;
 
-/** 目标毛利率（用于反算 credit_costs 该填多少，运行时扣费不再用公式） */
-const TARGET_MARGIN = 0.85;
+/** 目标毛利率 —— 运行时定价口径：积分 = 成本 ÷ (1 - 毛利) ÷ 积分单价 */
+const POINT_MARGIN = 0.85;
+
+/** 兼容旧命名 */
+const TARGET_MARGIN = POINT_MARGIN;
 
 const MIN_POINTS = 1;
 
@@ -43,13 +46,15 @@ const SUBSCRIPTION = {
 };
 
 /**
- * 模型成本表（美元）— 与 credits-core.js 一致，仅用于成本审计。
- * 实际扣费不看它，而看 public.credit_costs 表里的固定积分。
+ * 模型成本表（美元）—— 成本驱动定价的唯一来源，也是成本审计的依据。
+ * 调价 = 改这里的数字（或改 POINT_MARGIN），不用碰数据库。
  */
 const COST_TABLE = {
   story: 0.006,
   ttsPer1kChars: 0.02,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
+  /** 每张参考图的额外成本（参考图越多，模型输入越贵） */
+  visionPhotoPerRef: 0.01,
   visionVideoPerSec: { '480p': 0.05, '768p': 0.08 },
   optimizeVideoPrompt: 0.002,
 };
@@ -61,7 +66,10 @@ const PACKAGES = [
   { id: 'studio', name: 'Studio', points: 2500, priceUsd: 24.99, badge: 'Best value' },
 ];
 
-/** 实际扣费价目（权威 = 数据库 credit_costs；这里是前端/兜底镜像） */
+/**
+ * 兜底价目（仅当 p_points 没传时数据库 credit_costs 的参考值）。
+ * 实际扣费 = pointsForCost(costFor(action, body))，按本次输入的成本算。
+ */
 const CREDIT_COSTS: Record<string, number> = {
   story: 5,
   voice: 5,
@@ -72,6 +80,36 @@ const CREDIT_COSTS: Record<string, number> = {
 
 /** Pro 订阅后不限量、不计费的动作（壁纸在客户端本地生成，不经过服务端） */
 const PRO_UNLIMITED_ACTIONS = ['story'];
+
+/**
+ * 成本（美元）→ 应交积分。
+ * 公式：积分 = 成本 ÷ (1 - 目标毛利) ÷ 积分单价，向上取整，最小 1 分。
+ * 零成本动作（如优化提示词）保持免费，返回 0。
+ */
+function pointsForCost(costUsd: number): number {
+  const c = Number(costUsd) || 0;
+  if (c <= 0) return 0;
+  return Math.max(MIN_POINTS, Math.ceil(c / (1 - POINT_MARGIN) / POINT_VALUE_USD));
+}
+
+/** 本次请求带了几张参考图（兼容单张 image 与数组 images 两种传法） */
+function refImageCount(body: any): number {
+  const arr = Array.isArray(body?.images) ? body.images.length : 0;
+  const single = body?.image ? 1 : 0;
+  const refs = Array.isArray(body?.input_references) ? body.input_references.length : 0;
+  return Math.max(arr, single, refs);
+}
+
+/**
+ * 从 OpenRouter 的 usage 里取「真实成本（美元）」——LLM 用后结算的依据。
+ * 请求里带 usage:{include:true} 时，字段可能是 cost / total_cost，两种都兼容。
+ * 取不到就返回 null → 不做结算，退回「按输入估算」的扣费。
+ */
+function usageCostUsd(usage: any): number | null {
+  if (!usage || typeof usage !== 'object') return null;
+  const c = usage.cost ?? usage.total_cost ?? usage.totalCost;
+  return typeof c === 'number' && isFinite(c) ? c : null;
+}
 
 function normalizeQuality(q: any): 'low' | 'medium' | 'high' {
   const v = String(q || '').toLowerCase();
@@ -84,7 +122,7 @@ function normalizeResolution(r: any): '480p' | '768p' {
   return String(r || '480p').toLowerCase().startsWith('7') ? '768p' : '480p';
 }
 
-/** 一次调用的美元成本（仅审计用） */
+/** 一次调用的美元成本 —— 既是审计数据，也是定价依据（pointsForCost 的输入） */
 function costFor(action: string, body: any = {}): number {
   switch (String(action || '')) {
     case 'story':
@@ -99,8 +137,11 @@ function costFor(action: string, body: any = {}): number {
     }
 
     case 'vision-photo':
-    case 'photo':
-      return COST_TABLE.visionPhoto[normalizeQuality(body.quality)] ?? COST_TABLE.visionPhoto.medium;
+    case 'photo': {
+      const base = COST_TABLE.visionPhoto[normalizeQuality(body.quality)] ?? COST_TABLE.visionPhoto.medium;
+      // 参考图越多，模型输入越大、越贵
+      return base + refImageCount(body) * COST_TABLE.visionPhotoPerRef;
+    }
 
     case 'vision-video':
     case 'video': {
@@ -117,15 +158,19 @@ function costFor(action: string, body: any = {}): number {
   }
 }
 
-/** 暴露给前端的价目表（与 credit_costs 一一对应） */
+/** 暴露给前端的价目表（含成本表与毛利系数，前端按当前参数实时算价） */
 function priceSheet() {
   return {
     pointValueUsd: POINT_VALUE_USD,
     minPoints: MIN_POINTS,
     signupBonus: SIGNUP_BONUS_POINTS,
+    margin: POINT_MARGIN,
     subscription: SUBSCRIPTION,
     packages: PACKAGES,
+    /** 兜底固定价（仅参考，实际扣费按成本算） */
     costs: { ...CREDIT_COSTS },
+    /** 成本表：前端据此实时估算"这次要花多少分" */
+    costTable: COST_TABLE,
   };
 }
 
@@ -186,18 +231,28 @@ async function walletSummary(userId: string) {
 }
 
 /**
- * 扣分（原子，幂等）。传动作名，由数据库 credit_costs 决定扣多少。
- * 返回 { ok, balance, charged, ledger_id, duplicate, free } 或 { ok:false, error }
+ * 扣分（原子，幂等）。points 由服务端按本次成本算好传入（p_points）；
+ * 不传则数据库回退读 credit_costs。
  */
-function spend(userId: string, action: string, ref: string | null, costUsd = 0) {
+function spend(userId: string, action: string, ref: string | null, costUsd = 0, points: number | null = null) {
   return rpc('consume_credits', {
     p_user_id: userId, p_action: action, p_ref: ref || null, p_cost_usd: costUsd || 0,
+    p_points: points == null ? null : Math.max(0, Math.round(points)),
   });
 }
 
 /** 退款：按原扣费流水退回，同一笔只能退一次 */
 function refund(userId: string, ledgerId: number) {
   return rpc('refund_credits', { p_user_id: userId, p_ledger_id: Number(ledgerId) || 0 });
+}
+
+/** 结算：LLM 用后按真实用量下调，只退多扣的部分（绝不补扣） */
+function settle(userId: string, ledgerId: number, actualPoints: number) {
+  return rpc('settle_credits', {
+    p_user_id: userId,
+    p_ledger_id: Number(ledgerId) || 0,
+    p_actual_points: Math.max(0, Math.round(actualPoints) || 0),
+  });
 }
 
 function grant(userId: string, amount: number, reason: string, ref: string | null) {
@@ -243,7 +298,9 @@ async function withCredits(
     return json({ error: 'auth_required', message: 'Please sign in before using AI features.', prices: priceSheet() }, 401, cors);
   }
 
-  const costUsd = costFor(action, body); // 仅审计
+  // 成本驱动定价：按本次输入算出成本 → 换算成积分（LLM 会在用后按真实成本结算）
+  const costUsd = costFor(action, body);
+  const points = pointsForCost(costUsd);
   const opId = String(body?.opId || body?.op_id || '').slice(0, 80);
   const spendRef = opId ? `${user.id}:${action}:${opId}` : null;
 
@@ -254,7 +311,7 @@ async function withCredits(
   let charged = 0;
   let ledgerId: number | null = null;
   if (!freeForPro) {
-    const r: any = await spend(user.id, action, spendRef, costUsd);
+    const r: any = await spend(user.id, action, spendRef, costUsd, points);
     if (!r.ok) {
       if (r.error === 'insufficient') {
         return json({
@@ -287,8 +344,18 @@ async function withCredits(
   try {
     const payload = await res.json();
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+      // LLM 用后结算：handler 回传真实成本（__costUsd）→ 按它下调多扣的积分，只退不补
+      let finalCharged = charged;
+      if (charged > 0 && ledgerId != null && payload.__costUsd != null) {
+        const actualPoints = pointsForCost(Number(payload.__costUsd));
+        if (actualPoints < charged) {
+          const sr: any = await settle(user.id, ledgerId, actualPoints);
+          if (sr && sr.ok) finalCharged = actualPoints;
+        }
+      }
+      delete payload.__costUsd;
       const w = await walletSummary(user.id);
-      payload.credits = { charged, balance: w.balance };
+      payload.credits = { charged: finalCharged, balance: w.balance };
     }
     return json(payload, res.status, cors);
   } catch (_e) {
@@ -538,7 +605,9 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
               content: prompt
             }
           ],
-          temperature: 0.7
+          temperature: 0.7,
+          // 让 OpenRouter 在响应 usage 里直接返回本次真实成本（美元），用于用后结算
+          usage: { include: true }
         })
       });
 
@@ -548,6 +617,8 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
         const parsed = parseJsonSafely(rawContent);
         if (parsed && parsed.story) {
           parsed.provider = 'openrouter:minimax/minimax-m3:free';
+          const realCost = usageCostUsd(orData.usage);
+          if (realCost != null) parsed.__costUsd = realCost; // 用后结算依据（withCredits 读取后删除）
           return new Response(JSON.stringify(parsed), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }

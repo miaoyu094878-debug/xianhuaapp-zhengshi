@@ -3,9 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { costFor } from './credits-core.js';
+import { costFor, pointsForCost } from './credits-core.js';
 import {
-  LEDGER_MODE, resolveUser, spend, grant, refund, redeem, setPlan, createCodes,
+  LEDGER_MODE, resolveUser, spend, grant, refund, settle, redeem, setPlan, createCodes,
   priceSheet, walletSummary, isAdmin
 } from './credits-store.js';
 
@@ -52,6 +52,16 @@ app.use((req, res, next) => {
 });
 
 /* ═══════════════ AI Manifestation Voice & Story APIs ═══════════════ */
+
+/**
+ * 从 OpenRouter 的 usage 里取真实成本（美元）—— LLM 用后结算的依据。
+ * 请求带 usage:{include:true} 时字段可能是 cost / total_cost，取不到返回 null。
+ */
+function usageCostUsd(usage) {
+  if (!usage || typeof usage !== 'object') return null;
+  const c = usage.cost ?? usage.total_cost ?? usage.totalCost;
+  return typeof c === 'number' && isFinite(c) ? c : null;
+}
 
 // 1. Core Logic: Generate Present-Tense Immersive Manifestation Story
 async function executeStoryGeneration(req, res) {
@@ -138,7 +148,9 @@ You MUST return a strictly valid JSON object with the following fields:
               { role: 'user', content: prompt }
             ],
             temperature: 0.7,
-            response_format: { type: 'json_object' }
+            response_format: { type: 'json_object' },
+            // 要求返回真实成本 usage.cost → 供 chargeAndRun 用后结算
+            usage: { include: true }
           })
         });
 
@@ -153,6 +165,9 @@ You MUST return a strictly valid JSON object with the following fields:
             if (match) parsed = JSON.parse(match[0]);
           }
           if (parsed && parsed.story) {
+            // 真实成本（美元）→ chargeAndRun 读取后删除，用于下调扣费
+            const realCost = usageCostUsd(orData.usage);
+            if (realCost != null) parsed.__costUsd = realCost;
             return res.json(parsed);
           }
         }
@@ -1460,7 +1475,9 @@ async function chargeAndRun(req, res, action, handler) {
   }
 
   const body = req.body || {};
-  const costUsd = costFor(action, body); // 仅用于成本审计（落到 cost_usd 列）
+  // 成本驱动定价：按本次输入算出成本 → 换算成积分（LLM 会在用后按真实成本结算）
+  const costUsd = costFor(action, body);
+  const points = pointsForCost(costUsd);
   // 幂等键：同一次点击重试不会重复扣分（前端会带 opId）
   const opId = String(body.opId || body.op_id || '').slice(0, 80);
   const spendRef = opId ? `${user.id}:${action}:${opId}` : null;
@@ -1473,9 +1490,8 @@ async function chargeAndRun(req, res, action, handler) {
 
   let charged = 0;
   let ledgerId = null;
-  let balanceAfter = Number(wallet.balance) || 0;
   if (!freeForPro) {
-    const r = await spend(user.id, action, spendRef, costUsd);
+    const r = await spend(user.id, action, spendRef, costUsd, points);
     if (!r.ok) {
       if (r.error === 'insufficient') {
         return res.status(402).json({
@@ -1490,33 +1506,49 @@ async function chargeAndRun(req, res, action, handler) {
     }
     charged = r.charged || 0;
     ledgerId = r.ledgerId ?? null;
-    balanceAfter = r.balance ?? balanceAfter;
   }
 
   // 捕获 handler 的输出：成功时把「本次扣了多少 / 剩余多少」并进 JSON，
-  // 失败（4xx/5xx 或 body.error）则按原流水退回积分。
-  // 注意必须在 res.json 真正发送前注入，否则改的是已序列化过的对象。
+  // 失败（4xx/5xx 或 body.error）则按原流水退回积分；成功且是 LLM（回传了真实
+  // 成本 __costUsd）则先按真实成本结算，再把最终扣费写进 JSON 一起返回。
+  // 为让结算结果能进同一个响应，这里先「扣住」payload，等结算完再真正发送。
   let capturedStatus = null;
   let capturedBody = null;
   const origJson = res.json.bind(res);
   res.json = (payload) => {
     capturedStatus = res.statusCode;
     capturedBody = payload;
-    if (payload && typeof payload === 'object' && !Array.isArray(payload) && !payload.error) {
-      payload.credits = { charged, balance: balanceAfter };
-    }
-    return origJson(payload);
+    return undefined;
   };
 
   await handler(req, res);
 
-  const failed = (capturedStatus != null && capturedStatus >= 400) || (capturedBody && capturedBody.error);
-  if (failed && charged > 0 && ledgerId != null) {
-    // 按原扣费流水退回（同一笔只能退一次，见 refund_credits RPC）
-    const rr = await refund(user.id, ledgerId);
-    if (rr && rr.ok) console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
+  // handler 没走 res.json（如音频流用 res.send）→ 原样放行，无需结算
+  if (capturedBody == null) return undefined;
+
+  const failed = capturedStatus >= 400 || (capturedBody && capturedBody.error);
+  let finalCharged = charged;
+  if (failed) {
+    if (charged > 0 && ledgerId != null) {
+      // 按原扣费流水退回（同一笔只能退一次，见 refund_credits RPC）
+      const rr = await refund(user.id, ledgerId);
+      if (rr && rr.ok) console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
+    }
+  } else if (typeof capturedBody === 'object' && !Array.isArray(capturedBody)) {
+    // LLM 用后结算：按真实成本下调这一笔，只退不补
+    if (charged > 0 && ledgerId != null && capturedBody.__costUsd != null) {
+      const actualPoints = pointsForCost(Number(capturedBody.__costUsd));
+      if (actualPoints < charged) {
+        const sr = await settle(user.id, ledgerId, actualPoints);
+        if (sr && sr.ok) finalCharged = actualPoints;
+      }
+    }
+    delete capturedBody.__costUsd;
+    const w = await walletSummary(user.id);
+    capturedBody.credits = { charged: finalCharged, balance: w.balance };
   }
-  return undefined;
+
+  return origJson(capturedBody);
 }
 
 // Handles all actions via a single endpoint matching the Supabase Edge Function pattern

@@ -348,10 +348,36 @@
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
   }
 
+  /** 成本（美元）→ 积分：与后端 credits-core.js 的 pointsForCost 完全一致 */
+  function ptsForCost(costUsd) {
+    var c = Number(costUsd) || 0;
+    if (c <= 0) return 0;
+    var ps = creditState.prices || {};
+    var margin = ps.margin != null ? ps.margin : 0.85;
+    var unit = ps.pointValueUsd || 0.01;
+    var min = ps.minPoints || 1;
+    return Math.max(min, Math.ceil(c / (1 - margin) / unit));
+  }
+
+  /** 按成本表估算某动作的积分（与后端 costFor 同口径，取默认参数） */
+  function estPoints(action) {
+    var ps = creditState.prices || {};
+    var t = ps.costTable;
+    if (!t) return (ps.costs && ps.costs[action]) || 0;
+    var cost = 0;
+    switch (action) {
+      case 'story': cost = t.story; break;
+      case 'voice': cost = 0.5 * t.ttsPer1kChars; break;
+      case 'vision-photo': cost = (t.visionPhoto && t.visionPhoto.medium) || 0; break;
+      case 'vision-video': cost = 5 * ((t.visionVideoPerSec && t.visionVideoPerSec['480p']) || 0); break;
+      case 'optimize-video-prompt': cost = t.optimizeVideoPrompt; break;
+    }
+    return ptsForCost(cost);
+  }
+
   function renderPriceList() {
     var ul = $('#creditPriceList');
     if (!ul || !creditState.prices) return;
-    var c = creditState.prices.costs || {};
     ul.innerHTML = '';
     function row(label, pts) {
       if (!pts) return;
@@ -360,10 +386,10 @@
       li.appendChild(el('b', null, pts + ' ✦'));
       ul.appendChild(li);
     }
-    row('Guided affirmation story', c.story);
-    row('Voice narration', c.voice);
-    row('AI portrait / vision image', c['vision-photo']);
-    row('Motion video', c['vision-video']);
+    row('Guided affirmation story', estPoints('story'));
+    row('Voice narration', estPoints('voice'));
+    row('AI portrait / vision image', estPoints('vision-photo'));
+    row('Motion video', estPoints('vision-video'));
     var note = $('#creditMarginNote');
     if (note) {
       note.textContent = 'All AI generations are priced in credits — 1 credit = ' + usd(creditState.prices.pointValueUsd) +
@@ -379,14 +405,13 @@
     el.classList.toggle('hidden', !has);
   }
 
-  /** 生成按钮上的积分标价（固定价目，直接取数据库 credit_costs 镜像） */
+  /** 生成按钮上的积分标价（成本驱动，与后端扣费口径一致） */
   function updateCostBadges() {
-    var c = creditState.prices && creditState.prices.costs;
-    if (!c) return;
-    setBadge('costStory', c.story);
-    setBadge('costOptimize', c['optimize-video-prompt']);
-    setBadge('costPhoto', c['vision-photo']);
-    setBadge('costVideo', c['vision-video']);
+    if (!creditState.prices) return;
+    setBadge('costStory', estPoints('story'));
+    setBadge('costOptimize', estPoints('optimize-video-prompt'));
+    setBadge('costPhoto', estPoints('vision-photo'));
+    setBadge('costVideo', estPoints('vision-video'));
   }
 
   /* ---------- 付费墙 & 提示 ---------- */

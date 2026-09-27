@@ -51,6 +51,8 @@ export const COST_TABLE = {
   story: 0.006,
   ttsPer1kChars: 0.02,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
+  /** 每张参考图的额外成本（参考图越多，模型输入越大越贵） */
+  visionPhotoPerRef: 0.01,
   visionVideoPerSec: { '480p': 0.05, '768p': 0.08 },
   optimizeVideoPrompt: 0.002,
 };
@@ -65,9 +67,9 @@ export const PACKAGES = [
 /** 需要积分/订阅才可用的功能键 */
 export const GATED_ACTIONS = ['story', 'voice', 'vision-photo', 'vision-video', 'optimize-video-prompt'];
 
-/* ───────────────────────── 实际扣费价目（权威 = 数据库 credit_costs） ─────────────────────────
- * 线上扣费与前端价目都读 public.credit_costs 表，这里只是「本地开发模式」的镜像，
- * 让没连 Supabase 时行为一致。调价时改数据库那张表（线上为准），同步改这里的数字。
+/* ───────────────────────── 兜底价目（仅当数据库 credit_costs 缺行时使用） ─────────────────────────
+ * 实际扣费走「成本驱动」：积分 = pointsForCost(costFor(action, payload))。
+ * 这里的数字只是旧口径的兜底参考，调价改 COST_TABLE，不用动数据库。
  * ──────────────────────────────────────────────────────────────────────────── */
 export const CREDIT_COSTS = {
   story: 5,
@@ -77,7 +79,7 @@ export const CREDIT_COSTS = {
   'optimize-video-prompt': 0,
 };
 
-/** 某个动作要扣多少积分（本地模式）；线上由数据库 credit_costs 决定 */
+/** 某个动作的兜底扣分（仅数据库价目表缺行时用） */
 export function pointsForAction(action) {
   const pts = CREDIT_COSTS[String(action || '')];
   return Number.isFinite(pts) ? pts : 0;
@@ -99,6 +101,14 @@ function normalizeQuality(q) {
 
 function normalizeResolution(r) {
   return String(r || '480p').toLowerCase().startsWith('7') ? '768p' : '480p';
+}
+
+/** 本次请求带了几张参考图（兼容单张 image / 数组 images / input_references） */
+export function refImageCount(payload = {}) {
+  const arr = Array.isArray(payload.images) ? payload.images.length : 0;
+  const single = payload.image ? 1 : 0;
+  const refs = Array.isArray(payload.input_references) ? payload.input_references.length : 0;
+  return Math.max(arr, single, refs);
 }
 
 /**
@@ -123,8 +133,11 @@ export function costFor(action, payload = {}, result = {}) {
     }
 
     case 'vision-photo':
-    case 'photo':
-      return COST_TABLE.visionPhoto[normalizeQuality(payload.quality)] ?? COST_TABLE.visionPhoto.medium;
+    case 'photo': {
+      const base = COST_TABLE.visionPhoto[normalizeQuality(payload.quality)] ?? COST_TABLE.visionPhoto.medium;
+      // 参考图越多，输入成本越高
+      return base + refImageCount(payload) * COST_TABLE.visionPhotoPerRef;
+    }
 
     case 'vision-video':
     case 'video': {
@@ -154,22 +167,25 @@ export function grossMargin(points, costUsd) {
   return (revenue - Number(costUsd || 0)) / revenue;
 }
 
-/** 暴露给前端的价目表（不含任何密钥，纯粹让按钮显示价格）
- *  扣费口径 = 每个动作固定积分，与数据库 credit_costs 一一对应。 */
+/** 暴露给前端的价目表（不含任何密钥）
+ *  扣费口径 = 成本驱动：前端拿 costTable + margin + pointValueUsd 就能按当前参数实时算价。 */
 export function clientPriceSheet() {
   return {
     pointValueUsd: POINT_VALUE_USD,
     minPoints: MIN_POINTS,
+    margin: TARGET_MARGIN,
     subscription: SUBSCRIPTION,
     packages: PACKAGES,
-    /** 各动作实际扣分（前端按它渲染按钮角标） */
+    /** 成本表：前端据此估算"这次要花多少分" */
+    costTable: Object.assign({}, COST_TABLE),
+    /** 兜底固定价（仅参考） */
     costs: Object.assign({}, CREDIT_COSTS),
   };
 }
 
-/* ───────────────────────── 调价计算器 ─────────────────────────
- * 扣费不再走「按模型成本 × 毛利倍数」的公式，但换算出 credit_costs 该填多少
- * 仍然用这套模型：把它算出的积分数写进 public.credit_costs 即可。
+/* ───────────────────────── 调价自检 ─────────────────────────
+ * 扣费走「成本 × 毛利倍数」公式（pointsForCost），下面把各动作在目标毛利下的
+ * 定价与真实毛利打印出来，改 COST_TABLE / TARGET_MARGIN 后跑一次即可核对。
  * ──────────────────────────────────────────────────────────── */
 
 /** 供日志/自检：打印每个操作在目标毛利下应有的定价 */

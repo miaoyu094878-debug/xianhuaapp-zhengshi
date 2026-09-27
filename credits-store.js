@@ -195,12 +195,16 @@ export async function walletSummary(userId) {
  * 扣分（原子）。返回 { ok, balance, charged, ledgerId }
  * 或 { ok:false, error:'insufficient', balance, required }。
  * 幂等键 ref 相同则视为重复请求，不重复扣。
+ *
+ * points 由服务端按本次成本算好传入（成本驱动）；不传则退回数据库/兜底价目。
  */
-export async function spend(userId, action, ref, costUsd) {
+export async function spend(userId, action, ref, costUsd, points) {
+  const pts = points == null ? null : Math.max(0, Math.round(Number(points) || 0));
   if (LEDGER_MODE === 'supabase') {
     if (!isSupabaseUserId(userId)) return { ok: false, error: 'not_a_supabase_user' };
     const r = await rpc('consume_credits', {
-      p_user_id: userId, p_action: action, p_ref: ref || null, p_cost_usd: Number(costUsd) || 0
+      p_user_id: userId, p_action: action, p_ref: ref || null, p_cost_usd: Number(costUsd) || 0,
+      p_points: pts
     });
     if (!r.ok) return r;
     return {
@@ -213,13 +217,13 @@ export async function spend(userId, action, ref, costUsd) {
   const w = localWallet(state, userId);
   if (hasRef(w, ref)) return { ok: true, balance: w.balance, charged: 0, duplicate: true };
 
-  const pts = pointsForAction(action);
-  if (pts === 0) return { ok: true, balance: w.balance, charged: 0, free: true };
-  if (w.balance < pts) return { ok: false, error: 'insufficient', balance: w.balance, required: pts };
+  const cost = pts == null ? pointsForAction(action) : pts;
+  if (cost === 0) return { ok: true, balance: w.balance, charged: 0, free: true };
+  if (w.balance < cost) return { ok: false, error: 'insufficient', balance: w.balance, required: cost };
 
-  const rec = localRecord(w, -pts, action, 'consume', ref, costUsd);
+  const rec = localRecord(w, -cost, action, 'consume', ref, costUsd);
   await saveLedger(state);
-  return { ok: true, balance: w.balance, charged: pts, ledgerId: rec.id };
+  return { ok: true, balance: w.balance, charged: cost, ledgerId: rec.id };
 }
 
 /** 退款：按原扣费流水退回，同一笔只能退一次 */
@@ -240,6 +244,36 @@ export async function refund(userId, ledgerId) {
   localRecord(w, -rec.delta, rec.action, 'refund', ref, 0);
   await saveLedger(state);
   return { ok: true, balance: w.balance, refunded: -rec.delta };
+}
+
+/**
+ * 结算（LLM 用后按真实用量下调）：把多扣的积分退回，只退不补。
+ * 幂等：结算流水 ref = settle:<原流水号>，同一笔只结算一次。
+ */
+export async function settle(userId, ledgerId, actualPoints) {
+  const actual = Math.max(0, Math.round(Number(actualPoints) || 0));
+  if (LEDGER_MODE === 'supabase') {
+    if (!isSupabaseUserId(userId)) return { ok: false, error: 'not_a_supabase_user' };
+    return await rpc('settle_credits', {
+      p_user_id: userId, p_ledger_id: Number(ledgerId) || 0, p_actual_points: actual
+    });
+  }
+
+  const state = loadLedger();
+  const w = localWallet(state, userId);
+  const rec = w.ledger.find(r => Number(r.id) === Number(ledgerId) && r.ledger_type === 'consume');
+  if (!rec) return { ok: false, error: 'ledger_not_settleable' };
+
+  const charged = -Number(rec.delta || 0);           // 原扣费为正数
+  const back = charged - actual;                     // 多扣的部分
+  if (back <= 0) return { ok: true, balance: w.balance, settled: 0, no_adjust: true };
+
+  const ref = 'settle:' + rec.id;
+  if (hasRef(w, ref)) return { ok: true, balance: w.balance, duplicate: true };
+
+  localRecord(w, back, rec.action, 'refund', ref, 0);
+  await saveLedger(state);
+  return { ok: true, balance: w.balance, settled: back };
 }
 
 /** 发放积分（管理员充值 / 补偿） */
