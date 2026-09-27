@@ -261,9 +261,6 @@
      前端只负责展示、拦截与提示，绝不本地加减余额。
      ══════════════════════════════════════════════════════════════ */
 
-  // 免费用户可浏览的肯定句条数（其余需 Pro）
-  var FREE_AFFIRM_TEASER = 3;
-
   var creditState = {
     loaded: false, signedIn: false,
     balance: 0, plan: 'free', planExpiresAt: null, prices: null
@@ -674,11 +671,9 @@
     if (ownCountEl) ownCountEl.textContent = String(customs.length);
 
     // ── Browse: built-in affirmations for the current category ──
-    // 免费用户只看到前几条（每日尝鲜），完整库 + 收藏 + 自定义需要 Pro
-    var pro = isPro();
+    // 全部可见；只有「收藏」才需要 Pro（见下方 ✦ 按钮门禁）
     var browseList = AFFIRMATIONS[curCat];
-    var shownList = pro ? browseList : browseList.slice(0, FREE_AFFIRM_TEASER);
-    shownList.forEach(function (text) {
+    browseList.forEach(function (text) {
       var fav = db.affirmFavs.indexOf(text) !== -1;
       var favBtn = el('button', 'icon-btn', fav ? '✦' : '✧');
       favBtn.title = fav ? 'Unfavorite' : 'Favorite';
@@ -693,15 +688,6 @@
       });
       wrap.appendChild(affirmRow(text, [favBtn]));
     });
-    if (!pro && browseList.length > shownList.length) {
-      var lock = el('div', 'pro-lock-card');
-      lock.appendChild(el('h4', null, 'Unlock all ' + browseList.length + ' affirmations'));
-      lock.appendChild(el('p', null, 'Pro opens the full library in every category, plus favourites, your own lines and the swipe deck.'));
-      var lockBtn = el('button', 'plan-btn plan-btn-cta', 'Unlock with Pro');
-      lockBtn.addEventListener('click', function () { openPaywall('pro', { feature: 'The affirmation library' }); });
-      lock.appendChild(lockBtn);
-      wrap.appendChild(lock);
-    }
   }
 
   /* ═══════ Swipe Affirmations (Stella-style) ═══════ */
