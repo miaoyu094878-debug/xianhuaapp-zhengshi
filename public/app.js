@@ -2855,7 +2855,7 @@
   }
 
   // ═══════════════ Camera Aesthetic & Quality Selector (iPhone Textures) ═══════════════
-  var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphone16pro'; // Default to Cinematic (second style)
+  var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphone7'; // Default to Texture
 
   var IPHONE_TEXTURE_PROMPTS = {
     iphonex: {
