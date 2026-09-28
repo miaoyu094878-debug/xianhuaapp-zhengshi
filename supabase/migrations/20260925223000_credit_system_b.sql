@@ -37,6 +37,10 @@ insert into public.credit_costs (action, cost) values ('optimize-video-prompt', 
 on conflict (action) do nothing;
 
 -- ───────────────────────── 4. 订阅列（Pro 状态存在 profiles 上） ─────────────────────────
+-- 注意：plan 列必须显式补齐。原线上 profiles 没有这一列，
+-- 缺了它 wallet_summary / set_plan 会直接报错（column plan does not exist），
+-- 导致前端读到的余额恒为 0、订阅恒为 free。
+alter table public.profiles add column if not exists plan text not null default 'free';
 alter table public.profiles add column if not exists plan_expires_at timestamptz;
 
 -- ───────────────────────── 5. RLS：客户端只读自己的流水 ─────────────────────────
