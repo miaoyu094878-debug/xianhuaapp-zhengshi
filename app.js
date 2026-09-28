@@ -3341,7 +3341,7 @@
         });
         save();
         logVision({ kind: 'photo', prompt: prompt, aspect: photoPayload.aspect_ratio || '3:4' }, data.url);
-        aiStatus('✦ Portrait generated with ' + cameraInfo.label + '! View and download below.', 'success');
+        aiStatus('照片不保存，请及时下载保存', 'success');
         updateUseRecentPhotoBtn();
         renderAiResults();
       })
@@ -3421,8 +3421,7 @@
             });
             save();
             logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' }, videoUrl);
-            var readyMsg = '▶ Cinematic video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
-            aiStatus(readyMsg, 'success');
+            aiStatus('视频不保存，请及时下载保存', 'success');
             renderAiResults();
           });
         })
