@@ -3341,7 +3341,7 @@
         });
         save();
         logVision({ kind: 'photo', prompt: prompt, aspect: photoPayload.aspect_ratio || '3:4' }, data.url);
-        aiStatus('照片不保存，请及时下载保存', 'success');
+        aiStatus('Photos aren\'t saved — please download and save them now.', 'success');
         updateUseRecentPhotoBtn();
         renderAiResults();
       })
@@ -3421,7 +3421,7 @@
             });
             save();
             logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' }, videoUrl);
-            aiStatus('视频不保存，请及时下载保存', 'success');
+            aiStatus('Videos aren\'t saved — please download and save them now.', 'success');
             renderAiResults();
           });
         })
