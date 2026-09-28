@@ -313,6 +313,11 @@
     if ($('#walletPlan')) $('#walletPlan').classList.toggle('hidden', !isPro());
     if ($('#walletPill')) $('#walletPill').classList.toggle('low', creditState.signedIn && !isPro() && creditState.balance <= 0);
 
+    // 侧栏余额入口（桌面端）
+    if ($('#dsWalletBalance')) $('#dsWalletBalance').textContent = String(creditState.balance);
+    if ($('#dsWalletPlan')) $('#dsWalletPlan').classList.toggle('hidden', !isPro());
+    if ($('#dsWallet')) $('#dsWallet').classList.toggle('low', creditState.signedIn && !isPro() && creditState.balance <= 0);
+
     // 钱包卡
     if ($('#cwBalance')) $('#cwBalance').textContent = String(creditState.balance);
     var cwPlan = $('#cwPlan');
