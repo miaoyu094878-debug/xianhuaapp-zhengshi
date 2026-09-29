@@ -111,6 +111,44 @@ function usageCostUsd(usage: any): number | null {
   return typeof c === 'number' && isFinite(c) ? c : null;
 }
 
+/**
+ * 语音这类接口返回的是二进制音频，body 里没有成本，只能拿响应头 X-Generation-Id 去 /generation 查。
+ * OpenRouter 的 generation 记录有几十秒入账延迟，所以这里只做「短轮询」（默认 5 秒）：
+ * 查得到就按真实成本结算，查不到就保持原估算价，尽量不阻塞用户。
+ */
+async function fetchGenerationCostUsd(generationId: string, apiKey: string, budgetMs = 5000): Promise<number | null> {
+  const id = String(generationId || '').trim();
+  if (!id || !apiKey) return null;
+  const deadline = Date.now() + budgetMs;
+  for (;;) {
+    try {
+      const res = await fetch(`https://openrouter.ai/api/v1/generation?id=${encodeURIComponent(id)}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        const c = data?.data?.total_cost ?? data?.data?.usage;
+        if (typeof c === 'number' && isFinite(c)) return c;
+      }
+    } catch (_e) {
+      // 网络异常忽略，继续重试
+    }
+    if (Date.now() >= deadline) return null;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+}
+
+/** 语音响应统一出口：用 X-Generation-Id 短轮询取真实成本，塞进 __costUsd 供 withCredits 结算 */
+async function ttsResponse(orRes: Response, apiKey: string, payload: Record<string, unknown>): Promise<Response> {
+  const realCost = await fetchGenerationCostUsd(orRes.headers.get('x-generation-id') || '', apiKey);
+  const out: Record<string, unknown> = { ...payload };
+  if (realCost != null) out.__costUsd = realCost;
+  return new Response(JSON.stringify(out), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 function normalizeQuality(q: any): 'low' | 'medium' | 'high' {
   const v = String(q || '').toLowerCase();
   if (v === 'high' || v === 'hd' || v === 'pro') return 'high';
@@ -763,16 +801,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-qwen-tts',
-            model: targetModel,
-            voice: cleanVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-qwen-tts',
+          model: targetModel,
+          voice: cleanVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Qwen Audio 3.0 TTS returned non-200 in Edge Function:', orRes.status, errText);
@@ -811,16 +846,13 @@ async function handleVoice(body: any): Promise<Response> {
         const pcmBytes = new Uint8Array(arrayBuf);
         const wavBytes = pcmToWavUint8Array(pcmBytes, 24000, 1, 16);
         const base64Audio = bufferToBase64(wavBytes);
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'wav',
-            provider: 'openrouter-gemini-tts',
-            model: 'google/gemini-3.1-flash-tts-preview',
-            voice: cleanVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'wav',
+          provider: 'openrouter-gemini-tts',
+          model: 'google/gemini-3.1-flash-tts-preview',
+          voice: cleanVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Gemini 3.1 TTS returned status:', orRes.status, errText);
@@ -864,16 +896,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-kokoro',
-            model: 'hexgrad/kokoro-82m',
-            voice: kokoroVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-kokoro',
+          model: 'hexgrad/kokoro-82m',
+          voice: kokoroVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Kokoro TTS returned non-200 in Edge Function:', orRes.status, errText);
@@ -910,16 +939,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-fish-audio',
-            model: 'fish-audio/s2.1-pro-free:free',
-            voice: 'fish-audio/s2.1-pro-free:free'
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-fish-audio',
+          model: 'fish-audio/s2.1-pro-free:free',
+          voice: 'fish-audio/s2.1-pro-free:free'
+        });
       }
     } catch (e) {
       console.warn('OpenRouter Fish Audio error in edge function:', e);
@@ -1010,16 +1036,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-gemini-tts',
-            model: 'google/gemini-3.1-flash-tts-preview',
-            voice: chosenVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-gemini-tts',
+          model: 'google/gemini-3.1-flash-tts-preview',
+          voice: chosenVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Gemini 3.1 TTS returned status:', orRes.status, errText);
