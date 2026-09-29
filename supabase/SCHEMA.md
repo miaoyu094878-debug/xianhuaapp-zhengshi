@@ -260,7 +260,7 @@
 | `visions` | owner all visions | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
 | `wallpapers` | owner all wallpapers | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
 
-### 5.4 ⚠️ 越权开 Pro 漏洞（已确认，修复迁移已写、待执行）
+### 5.4 ✅ 越权开 Pro 漏洞（2026-09-29 已确认并已修复）
 
 **证据（2026-09-29 实测 `role_table_grants`）**：`profiles` 上 `anon` 与 `authenticated` 都持有表级
 `INSERT / SELECT / UPDATE / DELETE / TRUNCATE / REFERENCES / TRIGGER`。
@@ -289,12 +289,13 @@ grant update (name, area, desire)       on public.profiles to authenticated;
 前端只写 `id / name / area / desire`（见 `app.js` 的 `seedProfile`），所以按列授权即可满足 onboarding；
 `plan` / `plan_expires_at` 只剩 `service_role`（边缘函数）能写。
 
-**验证（预期 false / false / true）**：
+**验证**（2026-09-29 线上实测结果：`table_update=false`、`plan_update=false`、`name_update=true` ✅）：
 
 ```sql
-select has_table_privilege ('authenticated', 'public.profiles', 'UPDATE');
-select has_column_privilege('authenticated', 'public.profiles', 'plan', 'UPDATE');
-select has_column_privilege('authenticated', 'public.profiles', 'name', 'UPDATE');
+select
+  has_table_privilege ('authenticated','public.profiles','UPDATE')        as table_update,
+  has_column_privilege('authenticated','public.profiles','plan','UPDATE') as plan_update,
+  has_column_privilege('authenticated','public.profiles','name','UPDATE') as name_update;
 ```
 
 > 复盘：第一版只写了 `revoke update (plan, plan_expires_at)`，验证仍返回 `true`——就是踩了
