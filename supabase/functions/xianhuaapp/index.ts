@@ -51,7 +51,9 @@ const SUBSCRIPTION = {
  */
 const COST_TABLE = {
   story: 0.006,
-  ttsPer1kChars: 0.02,
+  /** 语音预扣价：取「最贵 TTS 模型（Gemini 音频 token）长文本」的上界，保证预扣 ≥ 真实成本。
+   *  这只是预扣（押金），调用后会在后台按 OpenRouter 返回的真实成本结算并退回多扣部分。 */
+  ttsPer1kChars: 0.25,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
   /** 每张参考图的额外成本（参考图越多，模型输入越贵） */
   visionPhotoPerRef: 0.01,
@@ -113,10 +115,10 @@ function usageCostUsd(usage: any): number | null {
 
 /**
  * 语音这类接口返回的是二进制音频，body 里没有成本，只能拿响应头 X-Generation-Id 去 /generation 查。
- * OpenRouter 的 generation 记录有几十秒入账延迟，所以这里只做「短轮询」（默认 5 秒）：
- * 查得到就按真实成本结算，查不到就保持原估算价，尽量不阻塞用户。
+ * OpenRouter 的 generation 记录有几十秒入账延迟，所以这里只在「后台」轮询（默认 45 秒）：
+ * 查得到就按真实成本结算，查不到就保持原预扣价，绝不阻塞用户拿音频。
  */
-async function fetchGenerationCostUsd(generationId: string, apiKey: string, budgetMs = 5000): Promise<number | null> {
+async function fetchGenerationCostUsd(generationId: string, apiKey: string, budgetMs = 45000): Promise<number | null> {
   const id = String(generationId || '').trim();
   if (!id || !apiKey) return null;
   const deadline = Date.now() + budgetMs;
@@ -138,15 +140,48 @@ async function fetchGenerationCostUsd(generationId: string, apiKey: string, budg
   }
 }
 
-/** 语音响应统一出口：用 X-Generation-Id 短轮询取真实成本，塞进 __costUsd 供 withCredits 结算 */
+/**
+ * 语音响应统一出口：把 X-Generation-Id 透传给 withCredits（内部字段，返回前会删掉），
+ * 由它在响应返回后「后台」查真实成本并结算同一笔流水，不阻塞用户拿音频。
+ */
 async function ttsResponse(orRes: Response, apiKey: string, payload: Record<string, unknown>): Promise<Response> {
-  const realCost = await fetchGenerationCostUsd(orRes.headers.get('x-generation-id') || '', apiKey);
   const out: Record<string, unknown> = { ...payload };
-  if (realCost != null) out.__costUsd = realCost;
+  const genId = orRes.headers.get('x-generation-id') || '';
+  if (genId && apiKey) {
+    out.__generationId = genId;
+    out.__orKey = apiKey;
+  }
   return new Response(JSON.stringify(out), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * 后台结算（不阻塞用户）：响应返回后再去 OpenRouter 查这次请求的真实成本，
+ * 拿到就把 credit_ledger 里这一条 pending 流水改成真实积分（只退不补）。
+ * 查不到（入账超时/接口异常）就保持预扣价，下次仍是同一条记录，不会产生第二条流水。
+ */
+function deferSettle(userId: string, ledgerId: number, generationId: string, apiKey: string, estimated: number) {
+  const task = (async () => {
+    try {
+      const realCost = await fetchGenerationCostUsd(generationId, apiKey, 45000);
+      if (realCost == null) return;
+      const actualPoints = pointsForCost(realCost);
+      if (actualPoints >= estimated) return; // 真实更高 → 按已扣算，不补扣
+      const r: any = await settle(userId, ledgerId, actualPoints);
+      if (r && r.ok) {
+        console.log(`[credits] 语音后台结算 ledger=${ledgerId} 预扣=${estimated} 实际=${actualPoints} (cost=$${realCost})`);
+      }
+    } catch (e) {
+      console.warn('[credits] 语音后台结算失败:', e);
+    }
+  })();
+  // Supabase Edge Runtime 提供 waitUntil：响应发出后继续跑，最长到函数 wall-clock 上限
+  if (typeof EdgeRuntime !== 'undefined' && typeof EdgeRuntime?.waitUntil === 'function') {
+    // @ts-ignore EdgeRuntime 是边缘运行时全局对象，Deno 类型里没有声明
+    EdgeRuntime.waitUntil(task);
+  }
 }
 
 function normalizeQuality(q: any): 'low' | 'medium' | 'high' {
@@ -391,6 +426,15 @@ async function withCredits(
         if (sr && sr.ok) finalCharged = Math.min(charged, actualPoints);
       }
       delete payload.__costUsd;
+
+      // 语音/音频类：响应体里没有成本，交给后台用 X-Generation-Id 查真实成本再结算（不阻塞）
+      const genId = payload.__generationId;
+      const genKey = payload.__orKey;
+      delete payload.__generationId;
+      delete payload.__orKey;
+      if (genId && genKey && charged > 0 && ledgerId != null) {
+        deferSettle(user.id, ledgerId, String(genId), String(genKey), charged);
+      }
       const w = await walletSummary(user.id);
       payload.credits = { charged: finalCharged, balance: w.balance };
     }

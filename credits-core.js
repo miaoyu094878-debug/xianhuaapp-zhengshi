@@ -42,14 +42,15 @@ export const MARGIN_MULTIPLIER = 1 / (1 - TARGET_MARGIN);
 /* ───────────────────────── 模型成本表（美元） ─────────────────────────
  * 数据来源与假设（随官方调价直接改这里）：
  *   story               OpenRouter minimax-m3 / Gemini 2.5 Flash 文本，约 1.5k tokens 输出
- *   ttsPer1kChars       Gemini 2.5 Flash TTS 音频输出，约 $0.02 / 1000 字符
+ *   ttsPer1kChars       语音预扣价，取最贵 TTS 模型长文本的上界，约 $0.25 / 1000 字符
+ *                       （仅预扣，调用后由后台按真实成本结算退回多扣部分）
  *   visionPhoto.low     openai/gpt-image-2 low quality，约 1 张
  *   visionVideoPerSec   与前端 VIDEO_PRICING 一致的 hailuo-3-max 每秒单价
  *   optimizeVideoPrompt AI Director 文本改写，单次
  * ──────────────────────────────────────────────────────────────────── */
 export const COST_TABLE = {
   story: 0.006,
-  ttsPer1kChars: 0.02,
+  ttsPer1kChars: 0.25,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
   /** 每张参考图的额外成本（参考图越多，模型输入越大越贵） */
   visionPhotoPerRef: 0.01,
