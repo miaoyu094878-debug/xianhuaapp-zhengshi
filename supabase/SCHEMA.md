@@ -269,7 +269,6 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 | `affirm_favs` | owner all affirm_favs | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
 | `credit_costs` | read credit_costs | SELECT | public | `true` | — |
 | `credit_ledger` | credit_ledger_select_own | SELECT | public | `auth.uid() = user_id` | — |
-| `credit_ledger` | own credit_ledger read | SELECT | public | `auth.uid() = user_id` | — |
 | `goals` | owner all goals | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
 | `listening_sessions` | owner all listening_sessions | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
 | `profiles` | owner all profiles | ALL | public | `auth.uid() = id` | `auth.uid() = id` |
@@ -322,8 +321,7 @@ select
 
 ### 5.5 其他小问题
 
-- `credit_ledger` 有**两条重复的 SELECT 策略**（`credit_ledger_select_own` 来自迁移，`own credit_ledger read` 是旧实现遗留），条件完全相同，冗余。可清理：
-  `drop policy if exists "own credit_ledger read" on public.credit_ledger;`
+- ~~`credit_ledger` 有两条重复的 SELECT 策略~~ ✅ 2026-09-29 已清理（删掉旧实现遗留的 `own credit_ledger read`，见迁移 `20260929030000`）
 - `credit_costs` 策略 `USING (true)` → **匿名也能读价目表**。属于设计如此（前端要展示价格），但要知道成本表对公网开放。
 - `subscriptions` 是 `FOR ALL` 且没人再读它——用户可自行插假订阅行，目前无影响，但表本身已废弃。
 
@@ -338,7 +336,7 @@ select
    - ~~应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`~~ ✅ 2026-09-29 已应用（见第 2 节 credit_ledger）
    - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
    - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 2026-09-29 已应用（10 列，末尾为 `plan`）
-   - 清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`（见 5.5）
+   - ~~清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`~~ ✅ 2026-09-29 已清理（见 5.5）
    - 补 `redeem_code` 函数（或隐藏兑换入口）
    - 处理 `handle_new_user` 的注册赠分触发器
    - `story` 使用的 `minimax/minimax-m3:free` 已下架，需换可用模型
