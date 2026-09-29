@@ -6145,15 +6145,50 @@
       if (reg) reg.update();
     }).catch(function () {});
   }
+  /* ═══════ PWA: unified install / add-to-home-screen ═══════ */
   var deferredPrompt = null;
+  var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function isStandalone() {
+    return window.matchMedia && window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator.standalone === true);
+  }
+  function refreshInstallBtn() {
+    if (isStandalone()) { $('#installBtn').classList.add('hidden'); return; }
+    $('#installBtn').classList.remove('hidden');
+  }
+  function showInstallGuide() {
+    var guide = $('#imGuide');
+    if (!guide) return;
+    var steps = isIOS ? [
+      'Tap the <b>Share</b> button <span aria-hidden="true">⤴️</span> in Safari',
+      'Scroll down and tap <b>Add to Home Screen</b>',
+      'Tap <b>Add</b> — Alyema opens like an app ✨'
+    ] : [
+      'Tap the browser <b>menu</b> <span aria-hidden="true">⋮</span> (top-right)',
+      'Choose <b>Add to Home screen</b> / <b>Install app</b>',
+      'Confirm — Alyema opens like an app ✨'
+    ];
+    guide.innerHTML = steps.map(function (t, i) {
+      return '<div class="ig-step"><span class="ig-num">' + (i + 1) + '</span><span>' + t + '</span></div>';
+    }).join('');
+    var m = $('#installModal');
+    if (m) m.classList.remove('hidden');
+  }
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault(); deferredPrompt = e;
-    $('#installBtn').classList.remove('hidden');
+    refreshInstallBtn();
   });
-  $('#installBtn').addEventListener('click', function () {
-    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
     $('#installBtn').classList.add('hidden');
   });
+  $('#installBtn').addEventListener('click', function () {
+    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; $('#installBtn').classList.add('hidden'); return; }
+    showInstallGuide();
+  });
+  $('#imClose').addEventListener('click', function () { $('#installModal').classList.add('hidden'); });
+  refreshInstallBtn();
 
   /* ═══════ Init ═══════ */
   renderToday(); renderGoals(); renderAffirm(); renderVision(); renderMedTime();
