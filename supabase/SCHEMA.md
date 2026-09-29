@@ -220,7 +220,14 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 | `settle_credits` | `p_user_id uuid, p_ledger_id bigint, p_actual_points integer` | 用后按真实成本结算，只退不补 |
 | `wallet_summary` | `p_user_id uuid` | 一次返回余额 + 订阅状态（含过期自动降级） |
 
-**⚠️ 缺失**：函数列表里**没有 `redeem_code`**，但边缘函数 `handleCreditsAction` 会调它（`redeem` action）。所以**兑换码功能目前会报错**，要么补建这个函数，要么先隐藏入口。
+**✖ `redeem_code` 决定不做**（2026-09-29）：产品**不提供"用户用兑换码兑换"**的功能，所以不补建该函数，也不建 `redeem_codes` 表。
+
+> 但代码里仍残留「兑换码」的入口（死代码，前端无点击处理器、UI 默认 `hidden`）：
+> - 边缘函数 [index.ts](../supabase/functions/xianhuaapp/index.ts#L411-L413) 的 `credits-redeem` / `redeem` action
+> - [server.js](../server.js#L1592-L1598) 的 `credits-redeem` 分支、[credits-store.js](../credits-store.js#L320-L374) 的 `redeem()` / `createCodes()`
+> - [index.html](../index.html#L4508-L4526) 的 `cwOpenRedeem` / `redeemBox` / `pwRedeemRow` 等 UI
+>
+> 若某天有人触发，会因函数不存在而报错——建议后续清理或保持隐藏。
 
 ---
 
@@ -337,6 +344,6 @@ select
    - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
    - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 2026-09-29 已应用（10 列，末尾为 `plan`）
    - ~~清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`~~ ✅ 2026-09-29 已清理（见 5.5）
-   - 补 `redeem_code` 函数（或隐藏兑换入口）
+   - ~~补 `redeem_code` 函数~~ ✖ **决定不做**：产品不提供兑换码功能（见第 3 节说明）；代码里残留的入口可选清理
    - 处理 `handle_new_user` 的注册赠分触发器
    - `story` 使用的 `minimax/minimax-m3:free` 已下架，需换可用模型
