@@ -346,4 +346,4 @@ select
    - ~~清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`~~ ✅ 2026-09-29 已清理（见 5.5）
    - ~~补 `redeem_code` 函数~~ ✖ **决定不做**：产品不提供兑换码功能（见第 3 节说明）；代码里残留的入口可选清理
    - 处理 `handle_new_user` 的注册赠分触发器
-   - `story` 使用的 `minimax/minimax-m3:free` 已下架，需换可用模型
+   - ~~`story` 使用的 `minimax/minimax-m3:free` 已下架~~ ✅ 2026-09-29 已改为付费版 `minimax/minimax-m3`（$0.3/M 输入、$1.2/M 输出），成本由"用后结算"按真实用量回落

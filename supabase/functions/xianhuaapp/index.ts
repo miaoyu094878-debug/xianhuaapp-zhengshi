@@ -1,14 +1,14 @@
 // Supabase Edge Function: xianhuaapp (统一边缘函数网关)
 // 运行环境: Deno (TypeScript)
 // 作用: 集中管理所有需要第三方 API KEY 的安全业务逻辑：
-//       - 故事与剧本 LLM: OpenRouter (minimax/minimax-m3:free) 或 Google Gemini
+//       - 故事与剧本 LLM: OpenRouter (minimax/minimax-m3) 或 Google Gemini
 //       - 语音合成 TTS: ElevenLabs (eleven_multilingual_v2) 或 Google Gemini Neural Voice
 //
 // 部署命令 (CLI):
 //   supabase functions deploy xianhuaapp --no-verify-jwt
 //
 // 密钥配置 (Supabase 后台 -> Project Settings -> Edge Functions -> Secrets):
-//   OPENROUTER_API_KEY: OpenRouter API 密钥 (用于 minimax/minimax-m3:free 等大模型)
+//   OPENROUTER_API_KEY: OpenRouter API 密钥 (用于 minimax/minimax-m3 等大模型)
 //   ELEVENLABS_API_KEY: ElevenLabs API 密钥 (用于拟真真人语音 TTS)
 //   GEMINI_API_KEY: (可选) Google Gemini API 密钥
 //
@@ -449,7 +449,7 @@ Deno.serve(async (req: Request) => {
           GEMINI_API_KEY: hasGemini
         },
         models: {
-          llm: hasOpenRouter ? 'openrouter:minimax/minimax-m3:free' : (hasGemini ? 'gemini-2.5-flash' : 'none'),
+          llm: hasOpenRouter ? 'openrouter:minimax/minimax-m3' : (hasGemini ? 'gemini-2.5-flash' : 'none'),
           tts: hasElevenLabs ? 'elevenlabs:eleven_multilingual_v2' : (hasGemini ? 'gemini-3.1-flash-tts' : 'none')
         },
         credits: { enabled: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), prices: priceSheet() },
@@ -566,7 +566,7 @@ Deno.serve(async (req: Request) => {
 
 // ─────────────────────────────────────────────────────────────
 // 子业务逻辑 1: 显化剧本生成处理函数
-// 优先使用 OpenRouter (minimax/minimax-m3:free)，次选 Gemini
+// 优先使用 OpenRouter (minimax/minimax-m3)，次选 Gemini
 // ─────────────────────────────────────────────────────────────
 async function handleStory(body: any): Promise<Response> {
   const openrouterKey = Deno.env.get('OPENROUTER_API_KEY');
@@ -619,7 +619,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
   "mood": "calm"
 }`;
 
-  // 方案 A: 优先使用 OpenRouter + minimax/minimax-m3:free
+  // 方案 A: 优先使用 OpenRouter + minimax/minimax-m3
   if (openrouterKey) {
     try {
       const openrouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -631,7 +631,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
           'X-Title': 'Alyema Manifestation'
         },
         body: JSON.stringify({
-          model: 'minimax/minimax-m3:free',
+          model: 'minimax/minimax-m3',
           messages: [
             {
               role: 'system',
@@ -653,7 +653,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
         const rawContent = orData.choices?.[0]?.message?.content || '{}';
         const parsed = parseJsonSafely(rawContent);
         if (parsed && parsed.story) {
-          parsed.provider = 'openrouter:minimax/minimax-m3:free';
+          parsed.provider = 'openrouter:minimax/minimax-m3';
           const realCost = usageCostUsd(orData.usage);
           if (realCost != null) parsed.__costUsd = realCost; // 用后结算依据（withCredits 读取后删除）
           return new Response(JSON.stringify(parsed), {
