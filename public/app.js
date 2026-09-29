@@ -354,7 +354,7 @@
     var c = Number(costUsd) || 0;
     if (c <= 0) return 0;
     var ps = creditState.prices || {};
-    var margin = ps.margin != null ? ps.margin : 0.85;
+    var margin = ps.margin != null ? ps.margin : 0.90;
     var unit = ps.pointValueUsd || 0.01;
     var min = ps.minPoints || 1;
     return Math.max(min, Math.ceil(c / (1 - margin) / unit));

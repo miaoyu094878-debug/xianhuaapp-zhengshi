@@ -28,7 +28,7 @@
 const POINT_VALUE_USD = 0.01;
 
 /** 目标毛利率 —— 运行时定价口径：积分 = 成本 ÷ (1 - 毛利) ÷ 积分单价 */
-const POINT_MARGIN = 0.85;
+const POINT_MARGIN = 0.90;
 
 /** 兼容旧命名 */
 const TARGET_MARGIN = POINT_MARGIN;
