@@ -241,15 +241,50 @@
 > **结论**：未发现"未登录即可读到数据"的泄露。
 > **局限**：探测只能证明"匿名看不到"，**不能**证明策略的具体内容（比如是否只允许读自己那一行）。
 
-### 5.3 待补：完整策略清单
-以下查询的结果还没拿到，拿到后补进本节：
+### 5.3 完整策略清单（2026-09-29 实测 `pg_policies`）
+
+| 表 | 策略名 | cmd | roles | USING | WITH CHECK |
+|---|---|---|---|---|---|
+| `active_days` | owner all active_days | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `affirm_custom` | owner all affirm_custom | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `affirm_favs` | owner all affirm_favs | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `credit_costs` | read credit_costs | SELECT | public | `true` | — |
+| `credit_ledger` | credit_ledger_select_own | SELECT | public | `auth.uid() = user_id` | — |
+| `credit_ledger` | own credit_ledger read | SELECT | public | `auth.uid() = user_id` | — |
+| `goals` | owner all goals | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `listening_sessions` | owner all listening_sessions | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `profiles` | owner all profiles | ALL | public | `auth.uid() = id` | `auth.uid() = id` |
+| `saved_items` | owner all saved_items | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `saved_voices` | own saved_voices | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `subscriptions` | owner all subscriptions | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `visions` | owner all visions | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `wallpapers` | owner all wallpapers | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+
+### 5.4 ⚠️ 已发现的权限漏洞（未修）
+
+**`profiles` 的策略是 `FOR ALL` + `auth.uid() = id`**，意味着登录用户可以 **UPDATE 自己整行**——包括 `plan` 和 `plan_expires_at`。所以任何人只要调一次 REST API：
+
+```
+PATCH /rest/v1/profiles?id=eq.<自己的 uid>
+{ "plan": "pro", "plan_expires_at": null }
+```
+
+就能**免费给自己开永久 Pro**。
+
+修复（列级权限，最小改动）：
 
 ```sql
-select tablename, policyname, cmd, roles, qual, with_check
-from pg_policies
-where schemaname = 'public'
-order by tablename, policyname;
+revoke update (plan, plan_expires_at) on public.profiles from anon, authenticated;
 ```
+
+RLS 仍允许客户端改 `name` / `area` / `desire` 等列（前端 onboarding 需要），只锁死这两列。
+
+### 5.5 其他小问题
+
+- `credit_ledger` 有**两条重复的 SELECT 策略**（`credit_ledger_select_own` 来自迁移，`own credit_ledger read` 是旧实现遗留），条件完全相同，冗余。可清理：
+  `drop policy if exists "own credit_ledger read" on public.credit_ledger;`
+- `credit_costs` 策略 `USING (true)` → **匿名也能读价目表**。属于设计如此（前端要展示价格），但要知道成本表对公网开放。
+- `subscriptions` 是 `FOR ALL` 且没人再读它——用户可自行插假订阅行，目前无影响，但表本身已废弃。
 
 ---
 
@@ -258,7 +293,9 @@ order by tablename, policyname;
 1. **改 schema 后更新本文件**（新列/删列/改默认值）。
 2. 迁移文件写在 `supabase/migrations/`，命名 `YYYYMMDDHHMMSS_描述.sql`，保持幂等。
 3. 已知待办（截至快照）：
+   - **【安全】修 `profiles` 的 Pro 越权**：`revoke update (plan, plan_expires_at) on public.profiles from anon, authenticated;`（见 5.4）
    - 应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`
+   - 清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`（见 5.5）
    - 修正 `profiles_overview` 的余额口径（排除 `void`）
    - 补 `redeem_code` 函数（或隐藏兑换入口）
    - 处理 `handle_new_user` 的注册赠分触发器
