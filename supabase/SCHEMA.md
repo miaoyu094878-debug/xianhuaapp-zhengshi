@@ -52,20 +52,21 @@
 | 6 | created_at | timestamptz | NO | `now()` |
 | 7 | ref | text | YES | — （幂等键；唯一索引 `(user_id, ref)`） |
 | 8 | cost_usd | numeric | NO | `0` |
+| 9 | status | text | NO | `'settled'` （`pending` / `settled` / `void`） |
+| 10 | estimated_points | integer | YES | — （预扣时的预估积分，审计用） |
 
 **已知约束**
 - `credit_ledger_amount_nonzero`：`amount <> 0`
 - `credit_ledger_type_valid`：`ledger_type in ('reward','consume','refund')`
+- `credit_ledger_status_valid`：`status in ('pending','settled','void')`
 - 唯一索引 `credit_ledger_ref_uniq (user_id, ref)`
 - RLS 开启，策略 `credit_ledger_select_own`（只能看自己的）
 
-**⏳ 待应用（迁移 `20260929000000_ledger_single_row.sql` 会新增 2 列）**
-| 列 | 类型 | 可空 | 默认 | 说明 |
-|---|---|---|---|---|
-| `status` | text | NO | `'settled'` | `pending` / `settled` / `void` |
-| `estimated_points` | integer | YES | — | 预扣时的预估积分（审计用） |
-
-> 截至快照时这两列**尚未存在于线上**（已用 PostgREST 探测确认）。
+> `status` / `estimated_points` 由迁移 `20260929000000_ledger_single_row.sql` 添加，
+> **2026-09-29 已应用到线上**（`information_schema` 实测确认，见下表）。
+>
+> 单行账本约定：一次生成 = 1 条记录。
+> `pending`（已按预估预扣、未结算）/ `settled`（已按真实成本确定）/ `void`（生成失败作废，不计入余额）。
 
 ### goals
 | pos | 列 | 类型 | 可空 | 默认 |
@@ -314,11 +315,12 @@ select
 
 1. **改 schema 后更新本文件**（新列/删列/改默认值）。
 2. 迁移文件写在 `supabase/migrations/`，命名 `YYYYMMDDHHMMSS_描述.sql`，保持幂等。
-3. 已知待办（截至快照）：
-   - **【安全】修 `profiles` 的 Pro 越权**：`revoke update (plan, plan_expires_at) on public.profiles from anon, authenticated;`（见 5.4）
-   - 应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`
-   - 清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`（见 5.5）
+3. 已知待办：
+   - ~~**【安全】修 `profiles` 的 Pro 越权**~~ ✅ 2026-09-29 已修（见 5.4）
+   - ~~应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`~~ ✅ 2026-09-29 已应用（见第 2 节 credit_ledger）
+   - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
    - 修正 `profiles_overview` 的余额口径（排除 `void`）
+   - 清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`（见 5.5）
    - 补 `redeem_code` 函数（或隐藏兑换入口）
    - 处理 `handle_new_user` 的注册赠分触发器
    - `story` 使用的 `minimax/minimax-m3:free` 已下架，需换可用模型
