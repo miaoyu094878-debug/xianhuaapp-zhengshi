@@ -260,9 +260,12 @@
 | `visions` | owner all visions | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
 | `wallpapers` | owner all wallpapers | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
 
-### 5.4 ⚠️ 已发现的权限漏洞（未修）
+### 5.4 ⚠️ 越权开 Pro 漏洞（已确认，修复迁移已写、待执行）
 
-**`profiles` 的策略是 `FOR ALL` + `auth.uid() = id`**，意味着登录用户可以 **UPDATE 自己整行**——包括 `plan` 和 `plan_expires_at`。所以任何人只要调一次 REST API：
+**证据（2026-09-29 实测 `role_table_grants`）**：`profiles` 上 `anon` 与 `authenticated` 都持有表级
+`INSERT / SELECT / UPDATE / DELETE / TRUNCATE / REFERENCES / TRIGGER`。
+
+**成因**：`profiles` 的策略是 `FOR ALL` + `auth.uid() = id`，意味着登录用户可以 **UPDATE 自己整行**——包括 `plan` 和 `plan_expires_at`。两者叠加，任何人只要调一次 REST API：
 
 ```
 PATCH /rest/v1/profiles?id=eq.<自己的 uid>
@@ -271,13 +274,15 @@ PATCH /rest/v1/profiles?id=eq.<自己的 uid>
 
 就能**免费给自己开永久 Pro**。
 
-修复（列级权限，最小改动）：
+**修复**：迁移 [`20260929010000_protect_plan_columns.sql`](20260929010000_protect_plan_columns.sql)
 
 ```sql
+revoke insert (plan, plan_expires_at) on public.profiles from anon, authenticated;
 revoke update (plan, plan_expires_at) on public.profiles from anon, authenticated;
 ```
 
-RLS 仍允许客户端改 `name` / `area` / `desire` 等列（前端 onboarding 需要），只锁死这两列。
+RLS 仍允许客户端改 `name` / `area` / `desire` 等列（前端 onboarding 需要），只锁死这两列；
+`service_role` 不受影响，边缘函数写这两列照常工作。
 
 ### 5.5 其他小问题
 
