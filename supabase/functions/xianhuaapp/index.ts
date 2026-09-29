@@ -385,11 +385,10 @@ async function withCredits(
       // LLM 用后结算：handler 回传真实成本（__costUsd）→ 按它下调多扣的积分，只退不补
       let finalCharged = charged;
       if (charged > 0 && ledgerId != null && payload.__costUsd != null) {
+        // 真实成本到手就结算（无论进退）：数据库会把这一条流水改成真实积分并置为 settled
         const actualPoints = pointsForCost(Number(payload.__costUsd));
-        if (actualPoints < charged) {
-          const sr: any = await settle(user.id, ledgerId, actualPoints);
-          if (sr && sr.ok) finalCharged = actualPoints;
-        }
+        const sr: any = await settle(user.id, ledgerId, actualPoints);
+        if (sr && sr.ok) finalCharged = Math.min(charged, actualPoints);
       }
       delete payload.__costUsd;
       const w = await walletSummary(user.id);
