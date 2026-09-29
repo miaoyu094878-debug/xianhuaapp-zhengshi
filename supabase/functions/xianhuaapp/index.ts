@@ -1270,8 +1270,13 @@ async function handleVisionPhoto(body: any): Promise<Response> {
       imageUrl = data.url;
     }
 
+    const payload: any = { success: true, url: imageUrl, model: 'openai/gpt-image-2', prompt: prompt };
+    // 用后按真实成本结算：OpenRouter 生图响应自带 usage.cost（美元），withCredits 读取后删除
+    const realCost = usageCostUsd(data.usage);
+    if (realCost != null) payload.__costUsd = realCost;
+
     return new Response(
-      JSON.stringify({ success: true, url: imageUrl, model: 'openai/gpt-image-2', prompt: prompt }),
+      JSON.stringify(payload),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
