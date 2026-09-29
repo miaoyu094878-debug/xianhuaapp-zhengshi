@@ -337,7 +337,7 @@ select
    - ~~**【安全】修 `profiles` 的 Pro 越权**~~ ✅ 2026-09-29 已修（见 5.4）
    - ~~应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`~~ ✅ 2026-09-29 已应用（见第 2 节 credit_ledger）
    - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
-   - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 迁移 `20260929020000` 已写，待执行
+   - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 2026-09-29 已应用（10 列，末尾为 `plan`）
    - 清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`（见 5.5）
    - 补 `redeem_code` 函数（或隐藏兑换入口）
    - 处理 `handle_new_user` 的注册赠分触发器
