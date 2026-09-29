@@ -3175,13 +3175,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 .cp-price { font-family: var(--font-heading); font-size: 20px; color: var(--text); }
 .cp-rate { display: block; font-size: 10.5px; color: var(--text-dim); text-align: right; }
 
-/* 价目表 */
-.credit-price-list { margin-top: 18px; padding: 16px 18px; }
+/* 小标题（兑换码等区块复用） */
 .cpl-title { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 10px; }
-.credit-price-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.credit-price-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text-soft); }
-.credit-price-list li b { color: var(--text); font-weight: 600; white-space: nowrap; }
-.cpl-note { font-size: 11.5px; color: var(--text-dim); margin: 12px 0 0; line-height: 1.55; }
 
 /* 兑换码 */
 .redeem-box { margin-top: 18px; padding: 16px 18px; }

@@ -340,7 +340,6 @@
       proBtn.disabled = isPro();
     }
 
-    renderPriceList();
     updateCostBadges();
   }
 
@@ -375,28 +374,6 @@
       case 'optimize-video-prompt': cost = t.optimizeVideoPrompt; break;
     }
     return ptsForCost(cost);
-  }
-
-  function renderPriceList() {
-    var ul = $('#creditPriceList');
-    if (!ul || !creditState.prices) return;
-    ul.innerHTML = '';
-    function row(label, pts) {
-      if (!pts) return;
-      var li = el('li');
-      li.appendChild(el('span', null, label));
-      li.appendChild(el('b', null, pts + ' ✦'));
-      ul.appendChild(li);
-    }
-    row('Guided affirmation story', estPoints('story'));
-    row('Voice narration', estPoints('voice'));
-    row('AI portrait / vision image', estPoints('vision-photo'));
-    row('Motion video', estPoints('vision-video'));
-    var note = $('#creditMarginNote');
-    if (note) {
-      note.textContent = 'All AI generations are priced in credits — 1 credit = ' + usd(creditState.prices.pointValueUsd) +
-        '. Credits never expire, and a failed generation is refunded automatically.';
-    }
   }
 
   function setBadge(id, pts) {
