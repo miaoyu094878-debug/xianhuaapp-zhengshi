@@ -3146,7 +3146,7 @@
   }
 
   // ═══════════════ Camera Aesthetic & Quality Selector (iPhone Textures) ═══════════════
-  var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphone16pro'; // Default to Cinematic (second style)
+  var currentCameraQuality = (db && db.cameraQuality) ? db.cameraQuality : 'iphone7'; // Default to Texture
 
   var IPHONE_TEXTURE_PROMPTS = {
     iphonex: {
@@ -3639,7 +3639,7 @@
         });
         save();
         logVision({ kind: 'photo', prompt: prompt, aspect: photoPayload.aspect_ratio || '3:4' }, data.url);
-        aiStatus('✦ Portrait generated with ' + cameraInfo.label + '! View and download below.', 'success');
+        aiStatus('Photos aren\'t saved — please download and save them now.', 'success');
         updateUseRecentPhotoBtn();
         renderAiResults();
       })
@@ -3723,8 +3723,7 @@
             });
             save();
             logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' }, videoUrl);
-            var readyMsg = '▶ Cinematic video ready!' + (data.directorModel || directorUsed ? ' (Polished by AI Director)' : '');
-            aiStatus(readyMsg, 'success');
+            aiStatus('Videos aren\'t saved — please download and save them now.', 'success');
             renderAiResults();
           });
         })
