@@ -277,12 +277,28 @@ PATCH /rest/v1/profiles?id=eq.<自己的 uid>
 **修复**：迁移 [`20260929010000_protect_plan_columns.sql`](20260929010000_protect_plan_columns.sql)
 
 ```sql
-revoke insert (plan, plan_expires_at) on public.profiles from anon, authenticated;
-revoke update (plan, plan_expires_at) on public.profiles from anon, authenticated;
+-- ⚠️ 必须先收【表级】，再按列授权。
+-- 只写 revoke update (plan) 是无效的：PostgreSQL 中表级授权与列级授权相互独立，
+-- 只要角色仍持有表级 UPDATE，它就能更新该表所有列。
+revoke insert, update on public.profiles from anon, authenticated;
+
+grant insert (id, name, area, desire)   on public.profiles to authenticated;
+grant update (name, area, desire)       on public.profiles to authenticated;
 ```
 
-RLS 仍允许客户端改 `name` / `area` / `desire` 等列（前端 onboarding 需要），只锁死这两列；
-`service_role` 不受影响，边缘函数写这两列照常工作。
+前端只写 `id / name / area / desire`（见 `app.js` 的 `seedProfile`），所以按列授权即可满足 onboarding；
+`plan` / `plan_expires_at` 只剩 `service_role`（边缘函数）能写。
+
+**验证（预期 false / false / true）**：
+
+```sql
+select has_table_privilege ('authenticated', 'public.profiles', 'UPDATE');
+select has_column_privilege('authenticated', 'public.profiles', 'plan', 'UPDATE');
+select has_column_privilege('authenticated', 'public.profiles', 'name', 'UPDATE');
+```
+
+> 复盘：第一版只写了 `revoke update (plan, plan_expires_at)`，验证仍返回 `true`——就是踩了
+> "列级 revoke 动不了表级授权"这个坑。
 
 ### 5.5 其他小问题
 
