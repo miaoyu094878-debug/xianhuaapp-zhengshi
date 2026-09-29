@@ -218,7 +218,42 @@
 
 ---
 
-## 五、维护约定
+## 五、RLS 与权限
+
+### 5.1 迁移里明确写过的（只有 2 张表）
+来源：`20260925223000_credit_system_b.sql`
+
+| 表 | RLS | 策略 | 客户端写权限 |
+|---|---|---|---|
+| `credit_ledger` | 启用 | `credit_ledger_select_own` — FOR SELECT USING `auth.uid() = user_id` | 已 revoke `insert/update/delete/truncate/references/trigger` |
+| `credit_costs` | 启用 | `read credit_costs` — FOR SELECT USING `true` | 已 revoke `insert/update/delete/truncate/references/trigger` |
+
+积分相关函数也全部 `revoke ... from public, anon, authenticated` + `grant execute ... to service_role`
+（`consume_credits` / `settle_credits` / `refund_credits` / `credit_balance` / `grant_credits` / `set_plan` / `wallet_summary`）。
+
+### 5.2 anon（未登录）实测探测 — 2026-09-29
+
+| 表 | HTTP | 返回 | 判读 |
+|---|---|---|---|
+| `active_days` `affirm_custom` `affirm_favs` `credit_ledger` `goals` `listening_sessions` `profiles` `saved_items` `saved_voices` `subscriptions` `visions` `wallpapers` | 200 | `[]` | anon **有** SELECT 授权，但返回 0 行 → RLS 生效，匿名读不到数据 |
+| `profiles_overview` | 401 | `permission denied for view profiles_overview` | anon 连视图权限都没有（更严格） |
+
+> **结论**：未发现"未登录即可读到数据"的泄露。
+> **局限**：探测只能证明"匿名看不到"，**不能**证明策略的具体内容（比如是否只允许读自己那一行）。
+
+### 5.3 待补：完整策略清单
+以下查询的结果还没拿到，拿到后补进本节：
+
+```sql
+select tablename, policyname, cmd, roles, qual, with_check
+from pg_policies
+where schemaname = 'public'
+order by tablename, policyname;
+```
+
+---
+
+## 六、维护约定
 
 1. **改 schema 后更新本文件**（新列/删列/改默认值）。
 2. 迁移文件写在 `supabase/migrations/`，命名 `YYYYMMDDHHMMSS_描述.sql`，保持幂等。
