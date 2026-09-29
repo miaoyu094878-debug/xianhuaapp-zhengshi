@@ -181,10 +181,28 @@
 | 7 | email | text | YES |
 | 8 | plan_expires_at | timestamptz | YES |
 | 9 | credit_balance | bigint | YES |
+| 10 | plan | text | — | ← 2026-09-29 新增 |
 
-**⚠️ 注意事项**
-- 视图**没有 `plan` 列**（只有 `plan_expires_at`）。
-- `credit_balance` 如果是视图内直接 `sum(credit_ledger.amount)` 算的，**必须补 `and status <> 'void'`**，否则"生成失败已作废"的消费仍会被算进余额。建议改用 `credit_balance(id)` 函数。
+**定义**（2026-09-29 起，迁移 `20260929020000_profiles_overview_void.sql`）：
+
+```sql
+select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.plan_expires_at,
+       coalesce(cl.balance, 0::bigint) as credit_balance,
+       p.plan
+  from public.profiles p
+  left join (
+    select l.user_id, sum(l.amount) as balance
+      from public.credit_ledger l
+     where l.status <> 'void'     -- ★ 排除已作废的消费
+     group by l.user_id
+  ) cl on cl.user_id = p.id;
+```
+
+**修复历史**
+- 原定义是 `sum(credit_ledger.amount)` 且**没有排除 `void`** → 生成失败作废的消费会被算进余额，看板余额偏小。已修。
+- 原视图**没有 `plan` 列** → 看板上看不到谁在订阅。已在末尾追加（前 9 列不变）。
+
+> 注意：该视图对 `anon` / `authenticated` 无任何授权（实测 401），只有后台高权限连接能读。
 
 ---
 
@@ -319,7 +337,7 @@ select
    - ~~**【安全】修 `profiles` 的 Pro 越权**~~ ✅ 2026-09-29 已修（见 5.4）
    - ~~应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`~~ ✅ 2026-09-29 已应用（见第 2 节 credit_ledger）
    - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
-   - 修正 `profiles_overview` 的余额口径（排除 `void`）
+   - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 迁移 `20260929020000` 已写，待执行
    - 清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`（见 5.5）
    - 补 `redeem_code` 函数（或隐藏兑换入口）
    - 处理 `handle_new_user` 的注册赠分触发器
