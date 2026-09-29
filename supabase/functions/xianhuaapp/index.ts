@@ -1,14 +1,14 @@
 // Supabase Edge Function: xianhuaapp (统一边缘函数网关)
 // 运行环境: Deno (TypeScript)
 // 作用: 集中管理所有需要第三方 API KEY 的安全业务逻辑：
-//       - 故事与剧本 LLM: OpenRouter (minimax/minimax-m3:free) 或 Google Gemini
+//       - 故事与剧本 LLM: OpenRouter (minimax/minimax-m3) 或 Google Gemini
 //       - 语音合成 TTS: ElevenLabs (eleven_multilingual_v2) 或 Google Gemini Neural Voice
 //
 // 部署命令 (CLI):
 //   supabase functions deploy xianhuaapp --no-verify-jwt
 //
 // 密钥配置 (Supabase 后台 -> Project Settings -> Edge Functions -> Secrets):
-//   OPENROUTER_API_KEY: OpenRouter API 密钥 (用于 minimax/minimax-m3:free 等大模型)
+//   OPENROUTER_API_KEY: OpenRouter API 密钥 (用于 minimax/minimax-m3 等大模型)
 //   ELEVENLABS_API_KEY: ElevenLabs API 密钥 (用于拟真真人语音 TTS)
 //   GEMINI_API_KEY: (可选) Google Gemini API 密钥
 //
@@ -28,7 +28,7 @@
 const POINT_VALUE_USD = 0.01;
 
 /** 目标毛利率 —— 运行时定价口径：积分 = 成本 ÷ (1 - 毛利) ÷ 积分单价 */
-const POINT_MARGIN = 0.85;
+const POINT_MARGIN = 0.90;
 
 /** 兼容旧命名 */
 const TARGET_MARGIN = POINT_MARGIN;
@@ -51,7 +51,9 @@ const SUBSCRIPTION = {
  */
 const COST_TABLE = {
   story: 0.006,
-  ttsPer1kChars: 0.02,
+  /** 语音预扣价：取「最贵 TTS 模型（Gemini 音频 token）长文本」的上界，保证预扣 ≥ 真实成本。
+   *  这只是预扣（押金），调用后会在后台按 OpenRouter 返回的真实成本结算并退回多扣部分。 */
+  ttsPer1kChars: 0.25,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
   /** 每张参考图的额外成本（参考图越多，模型输入越贵） */
   visionPhotoPerRef: 0.01,
@@ -109,6 +111,77 @@ function usageCostUsd(usage: any): number | null {
   if (!usage || typeof usage !== 'object') return null;
   const c = usage.cost ?? usage.total_cost ?? usage.totalCost;
   return typeof c === 'number' && isFinite(c) ? c : null;
+}
+
+/**
+ * 语音这类接口返回的是二进制音频，body 里没有成本，只能拿响应头 X-Generation-Id 去 /generation 查。
+ * OpenRouter 的 generation 记录有几十秒入账延迟，所以这里只在「后台」轮询（默认 45 秒）：
+ * 查得到就按真实成本结算，查不到就保持原预扣价，绝不阻塞用户拿音频。
+ */
+async function fetchGenerationCostUsd(generationId: string, apiKey: string, budgetMs = 45000): Promise<number | null> {
+  const id = String(generationId || '').trim();
+  if (!id || !apiKey) return null;
+  const deadline = Date.now() + budgetMs;
+  for (;;) {
+    try {
+      const res = await fetch(`https://openrouter.ai/api/v1/generation?id=${encodeURIComponent(id)}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        const c = data?.data?.total_cost ?? data?.data?.usage;
+        if (typeof c === 'number' && isFinite(c)) return c;
+      }
+    } catch (_e) {
+      // 网络异常忽略，继续重试
+    }
+    if (Date.now() >= deadline) return null;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+}
+
+/**
+ * 语音响应统一出口：把 X-Generation-Id 透传给 withCredits（内部字段，返回前会删掉），
+ * 由它在响应返回后「后台」查真实成本并结算同一笔流水，不阻塞用户拿音频。
+ */
+async function ttsResponse(orRes: Response, apiKey: string, payload: Record<string, unknown>): Promise<Response> {
+  const out: Record<string, unknown> = { ...payload };
+  const genId = orRes.headers.get('x-generation-id') || '';
+  if (genId && apiKey) {
+    out.__generationId = genId;
+    out.__orKey = apiKey;
+  }
+  return new Response(JSON.stringify(out), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * 后台结算（不阻塞用户）：响应返回后再去 OpenRouter 查这次请求的真实成本，
+ * 拿到就把 credit_ledger 里这一条 pending 流水改成真实积分（只退不补）。
+ * 查不到（入账超时/接口异常）就保持预扣价，下次仍是同一条记录，不会产生第二条流水。
+ */
+function deferSettle(userId: string, ledgerId: number, generationId: string, apiKey: string, estimated: number) {
+  const task = (async () => {
+    try {
+      const realCost = await fetchGenerationCostUsd(generationId, apiKey, 45000);
+      if (realCost == null) return;
+      const actualPoints = pointsForCost(realCost);
+      if (actualPoints >= estimated) return; // 真实更高 → 按已扣算，不补扣
+      const r: any = await settle(userId, ledgerId, actualPoints);
+      if (r && r.ok) {
+        console.log(`[credits] 语音后台结算 ledger=${ledgerId} 预扣=${estimated} 实际=${actualPoints} (cost=$${realCost})`);
+      }
+    } catch (e) {
+      console.warn('[credits] 语音后台结算失败:', e);
+    }
+  })();
+  // Supabase Edge Runtime 提供 waitUntil：响应发出后继续跑，最长到函数 wall-clock 上限
+  if (typeof EdgeRuntime !== 'undefined' && typeof EdgeRuntime?.waitUntil === 'function') {
+    // @ts-ignore EdgeRuntime 是边缘运行时全局对象，Deno 类型里没有声明
+    EdgeRuntime.waitUntil(task);
+  }
 }
 
 function normalizeQuality(q: any): 'low' | 'medium' | 'high' {
@@ -347,13 +420,21 @@ async function withCredits(
       // LLM 用后结算：handler 回传真实成本（__costUsd）→ 按它下调多扣的积分，只退不补
       let finalCharged = charged;
       if (charged > 0 && ledgerId != null && payload.__costUsd != null) {
+        // 真实成本到手就结算（无论进退）：数据库会把这一条流水改成真实积分并置为 settled
         const actualPoints = pointsForCost(Number(payload.__costUsd));
-        if (actualPoints < charged) {
-          const sr: any = await settle(user.id, ledgerId, actualPoints);
-          if (sr && sr.ok) finalCharged = actualPoints;
-        }
+        const sr: any = await settle(user.id, ledgerId, actualPoints);
+        if (sr && sr.ok) finalCharged = Math.min(charged, actualPoints);
       }
       delete payload.__costUsd;
+
+      // 语音/音频类：响应体里没有成本，交给后台用 X-Generation-Id 查真实成本再结算（不阻塞）
+      const genId = payload.__generationId;
+      const genKey = payload.__orKey;
+      delete payload.__generationId;
+      delete payload.__orKey;
+      if (genId && genKey && charged > 0 && ledgerId != null) {
+        deferSettle(user.id, ledgerId, String(genId), String(genKey), charged);
+      }
       const w = await walletSummary(user.id);
       payload.credits = { charged: finalCharged, balance: w.balance };
     }
@@ -412,7 +493,7 @@ Deno.serve(async (req: Request) => {
           GEMINI_API_KEY: hasGemini
         },
         models: {
-          llm: hasOpenRouter ? 'openrouter:minimax/minimax-m3:free' : (hasGemini ? 'gemini-2.5-flash' : 'none'),
+          llm: hasOpenRouter ? 'openrouter:minimax/minimax-m3' : (hasGemini ? 'gemini-2.5-flash' : 'none'),
           tts: hasElevenLabs ? 'elevenlabs:eleven_multilingual_v2' : (hasGemini ? 'gemini-3.1-flash-tts' : 'none')
         },
         credits: { enabled: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), prices: priceSheet() },
@@ -529,7 +610,7 @@ Deno.serve(async (req: Request) => {
 
 // ─────────────────────────────────────────────────────────────
 // 子业务逻辑 1: 显化剧本生成处理函数
-// 优先使用 OpenRouter (minimax/minimax-m3:free)，次选 Gemini
+// 优先使用 OpenRouter (minimax/minimax-m3)，次选 Gemini
 // ─────────────────────────────────────────────────────────────
 async function handleStory(body: any): Promise<Response> {
   const openrouterKey = Deno.env.get('OPENROUTER_API_KEY');
@@ -582,7 +663,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
   "mood": "calm"
 }`;
 
-  // 方案 A: 优先使用 OpenRouter + minimax/minimax-m3:free
+  // 方案 A: 优先使用 OpenRouter + minimax/minimax-m3
   if (openrouterKey) {
     try {
       const openrouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -594,7 +675,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
           'X-Title': 'Alyema Manifestation'
         },
         body: JSON.stringify({
-          model: 'minimax/minimax-m3:free',
+          model: 'minimax/minimax-m3',
           messages: [
             {
               role: 'system',
@@ -616,7 +697,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
         const rawContent = orData.choices?.[0]?.message?.content || '{}';
         const parsed = parseJsonSafely(rawContent);
         if (parsed && parsed.story) {
-          parsed.provider = 'openrouter:minimax/minimax-m3:free';
+          parsed.provider = 'openrouter:minimax/minimax-m3';
           const realCost = usageCostUsd(orData.usage);
           if (realCost != null) parsed.__costUsd = realCost; // 用后结算依据（withCredits 读取后删除）
           return new Response(JSON.stringify(parsed), {
@@ -763,16 +844,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-qwen-tts',
-            model: targetModel,
-            voice: cleanVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-qwen-tts',
+          model: targetModel,
+          voice: cleanVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Qwen Audio 3.0 TTS returned non-200 in Edge Function:', orRes.status, errText);
@@ -811,16 +889,13 @@ async function handleVoice(body: any): Promise<Response> {
         const pcmBytes = new Uint8Array(arrayBuf);
         const wavBytes = pcmToWavUint8Array(pcmBytes, 24000, 1, 16);
         const base64Audio = bufferToBase64(wavBytes);
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'wav',
-            provider: 'openrouter-gemini-tts',
-            model: 'google/gemini-3.1-flash-tts-preview',
-            voice: cleanVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'wav',
+          provider: 'openrouter-gemini-tts',
+          model: 'google/gemini-3.1-flash-tts-preview',
+          voice: cleanVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Gemini 3.1 TTS returned status:', orRes.status, errText);
@@ -864,16 +939,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-kokoro',
-            model: 'hexgrad/kokoro-82m',
-            voice: kokoroVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-kokoro',
+          model: 'hexgrad/kokoro-82m',
+          voice: kokoroVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Kokoro TTS returned non-200 in Edge Function:', orRes.status, errText);
@@ -910,16 +982,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-fish-audio',
-            model: 'fish-audio/s2.1-pro-free:free',
-            voice: 'fish-audio/s2.1-pro-free:free'
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-fish-audio',
+          model: 'fish-audio/s2.1-pro-free:free',
+          voice: 'fish-audio/s2.1-pro-free:free'
+        });
       }
     } catch (e) {
       console.warn('OpenRouter Fish Audio error in edge function:', e);
@@ -1010,16 +1079,13 @@ async function handleVoice(body: any): Promise<Response> {
       if (orRes.ok) {
         const arrayBuf = await orRes.arrayBuffer();
         const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
-        return new Response(
-          JSON.stringify({
-            audio: base64Audio,
-            format: 'mp3',
-            provider: 'openrouter-gemini-tts',
-            model: 'google/gemini-3.1-flash-tts-preview',
-            voice: chosenVoice
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-gemini-tts',
+          model: 'google/gemini-3.1-flash-tts-preview',
+          voice: chosenVoice
+        });
       } else {
         const errText = await orRes.text();
         console.warn('OpenRouter Gemini 3.1 TTS returned status:', orRes.status, errText);
@@ -1270,8 +1336,13 @@ async function handleVisionPhoto(body: any): Promise<Response> {
       imageUrl = data.url;
     }
 
+    const payload: any = { success: true, url: imageUrl, model: 'openai/gpt-image-2', prompt: prompt };
+    // 用后按真实成本结算：OpenRouter 生图响应自带 usage.cost（美元），withCredits 读取后删除
+    const realCost = usageCostUsd(data.usage);
+    if (realCost != null) payload.__costUsd = realCost;
+
     return new Response(
-      JSON.stringify({ success: true, url: imageUrl, model: 'openai/gpt-image-2', prompt: prompt }),
+      JSON.stringify(payload),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {

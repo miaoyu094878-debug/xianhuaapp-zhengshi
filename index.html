@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.25.credits">
+  <link rel="stylesheet" href="styles.css?v=2026.9.29.nopricelist">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4534,12 +4534,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <!-- 充值渠道暂未开放：这里隐藏了积分包与兑换码入口，开放时去掉 hidden 类即可 -->
         <div class="credit-packs hidden" id="creditPacks"><!-- 由 app.js 依据 /api 价目表渲染 --></div>
 
-        <div class="credit-price-list glass">
-          <p class="cpl-title">What each generation costs</p>
-          <ul id="creditPriceList"><!-- 由 app.js 渲染 --></ul>
-          <p class="cpl-note" id="creditMarginNote"></p>
-        </div>
-
         <div class="redeem-box glass hidden" id="redeemBox">
           <p class="cpl-title">Have a code?</p>
           <div class="redeem-row">
@@ -4748,7 +4742,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260925credits" defer></script>
+  <script src="app.js?v=20260929nopricelist" defer></script>
 
 </body>
 </html>

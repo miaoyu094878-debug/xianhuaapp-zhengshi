@@ -961,12 +961,17 @@ async function executeVisionPhoto(req, res) {
       return res.status(502).json({ error: 'Could not extract generated image data from response.', raw: data });
     }
 
-    return res.json({
+    const out = {
       success: true,
       url: imageUrl,
       model: 'openai/gpt-image-2',
       prompt: cleanPrompt
-    });
+    };
+    // 用后按真实成本结算：OpenRouter 生图响应自带 usage.cost（美元）
+    const realCost = usageCostUsd(data.usage);
+    if (realCost != null) out.__costUsd = realCost;
+
+    return res.json(out);
   } catch (err) {
     console.error('[Vision Photo] Error:', err);
     return res.status(500).json({ error: err.message || 'Error occurred while generating photo' });
