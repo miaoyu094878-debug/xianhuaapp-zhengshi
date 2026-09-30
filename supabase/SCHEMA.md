@@ -206,10 +206,11 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 
 ---
 
-## 三、函数（9 个）
+## 三、函数（10 个）
 
 | 函数 | 参数 | 说明 |
 |---|---|---|
+| `activate_subscription` | `p_user_id uuid, p_period text DEFAULT 'monthly'` | 开通/续期 Pro **并发放随附积分**（月付 990 / 年付 10500），幂等。迁移 `20260930120000_activate_subscription.sql` |
 | `admin_set_balance` | `p_email text, p_target integer` | 按邮箱直接把余额设为某值（管理用） |
 | `consume_credits` | `p_user_id uuid, p_action text, p_ref text DEFAULT NULL, p_cost_usd numeric DEFAULT 0, p_points integer DEFAULT NULL` | 原子扣费；顾问锁 + 幂等 ref。截图里后半段被截断，按迁移定义应为上表 |
 | `credit_balance` | `p_user_id uuid` | 返回余额 = `sum(amount)` |
