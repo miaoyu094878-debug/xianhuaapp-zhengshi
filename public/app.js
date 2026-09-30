@@ -201,8 +201,6 @@
   });
   function goTab(id) {
     stopFutureAudio();
-    // 未订阅 Pro 时锁定在订阅页：其它标签一律重定向
-    if (gated() && id !== 'tab-plans') id = 'tab-plans';
     // Sub-pages of Affirmations keep the "Affirm" nav item highlighted.
     var navId = (id === 'tab-affirm-fav' || id === 'tab-affirm-own') ? 'tab-affirm' : id;
     var hasNav = false;
@@ -282,8 +280,6 @@
   }
 
   function isPro() { return String(creditState.plan || '').toLowerCase() === 'pro'; }
-  /** 硬门槛：未订阅 Pro 时，仅允许停留在订阅页 */
-  function gated() { return !!(creditState && creditState.loaded && !isPro()); }
   function usd(n) { return '$' + Number(n || 0).toFixed(2); }
 
   async function creditRequest(action, payload) {
@@ -342,11 +338,6 @@
             : 'Please sign in, then subscribe to unlock everything.');
     }
     if ($('#gateSignIn')) $('#gateSignIn').classList.toggle('hidden', isPro() || creditState.signedIn);
-    // 硬门槛：未订阅 Pro 则强制回到订阅页
-    if (gated()) {
-      var activePage = $('.tab-page.active');
-      if (!activePage || activePage.id !== 'tab-plans') goTab('tab-plans');
-    }
     var proBtn = $('#proSubscribeBtn');
     if (proBtn) {
       proBtn.textContent = isPro() ? 'Pro active' : 'Activate Pro';
@@ -492,6 +483,8 @@
       openPaywall('credits', { required: (data && data.required) || 0, balance: (data && data.balance) });
       return true;
     }
+    // 403 pro_required：订阅框已由 callUnifiedApi 弹出，这里只拦截，不叠加弹窗
+    if (res.status === 403 || err === 'pro_required') return true;
     return false;
   }
 
@@ -1123,7 +1116,24 @@
   // Unified API Gateway Client
   // Dispatches API requests to Supabase Edge Function (/functions/v1/xianhuaapp) or local /api
   // ══════════════════════════════════════════════════════════
+  /** 软门槛：不锁导航，只在「使用时」弹可关闭的订阅框（key = 动作名） */
+  var PRO_GATED_ACTIONS = {
+    'story': 'AI affirmations',
+    'voice': 'AI voice narration',
+    'vision-photo': 'AI Vision photos',
+    'vision-video': 'AI Vision videos'
+  };
+
   async function callUnifiedApi(action, payload) {
+    // 未订阅 Pro：生成类动作直接弹订阅框（可关闭，关掉后可继续浏览）
+    var gateLabel = PRO_GATED_ACTIONS[action];
+    if (gateLabel && !isPro()) {
+      openPaywall('pro', { feature: gateLabel });
+      return new Response(JSON.stringify({ error: 'pro_required' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     var supabaseUrl = window.SUPABASE_URL || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_URL) || localStorage.getItem('luminara_supabase_url') || 'https://bnxjwnvsmiqofbjiknwf.supabase.co';
     var anonKey = window.SUPABASE_ANON_KEY || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_ANON_KEY) || localStorage.getItem('luminara_supabase_anon_key');
 
