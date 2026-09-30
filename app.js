@@ -246,6 +246,7 @@
     btns.forEach(function (b) { b.classList.toggle('active', b.dataset.billing === mode); });
     $$('#tab-plans [data-price]').forEach(function (el) { el.hidden = el.dataset.price !== mode; });
     $$('#tab-plans [data-note]').forEach(function (el) { el.hidden = el.dataset.note !== mode; });
+    $$('#tab-plans [data-credits]').forEach(function (el) { el.hidden = el.dataset.credits !== mode; });
   }
   $$('.plans-toggle-btn').forEach(function (b) {
     b.addEventListener('click', function () { setBillingMode(b.dataset.billing); });

@@ -32,6 +32,9 @@ export const SIGNUP_BONUS_POINTS = 0;
 export const SUBSCRIPTION = {
   monthlyUsd: 9.9,
   yearlyUsd: 70,
+  /** 订阅随附积分：月付 990 / 年付 10500（发放口径见迁移 20260930120000_activate_subscription.sql） */
+  monthlyCredits: 990,
+  yearlyCredits: 10500,
   /** 年付相当于月付的几折（前端展示 "Save X%"） */
   yearlySavePct: Math.round((1 - 70 / (9.9 * 12)) * 100),
 };

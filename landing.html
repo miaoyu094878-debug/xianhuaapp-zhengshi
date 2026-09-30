@@ -133,7 +133,22 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
 .price li { font-size: 14px; color: var(--text2); padding: 6px 0; display: flex; gap: 9px; align-items: center; }
 .price li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
 .price.pro li::before { background: var(--gold); }
+.price li[hidden] { display: none; }
 .price .btn { width: 100%; justify-content: center; }
+
+/* Billing toggle */
+.lp-toggle { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto 26px; flex-wrap: wrap; }
+.lp-toggle-btn {
+  font-family: inherit; font-size: 13.5px; font-weight: 500; color: var(--text2);
+  background: rgba(255,255,255,0.72); border: 1px solid rgba(184,161,227,0.28);
+  padding: 9px 20px; border-radius: 999px; cursor: pointer; transition: 0.25s;
+}
+.lp-toggle-btn:hover { color: var(--text); border-color: rgba(184,161,227,0.5); }
+.lp-toggle-btn.active {
+  background: linear-gradient(135deg, #E8B86D, #F4A6BD); color: #fff;
+  border-color: transparent; box-shadow: 0 6px 16px rgba(244,166,189,0.35);
+}
+.lp-save { font-size: 12px; font-weight: 600; color: #B98A3E; background: rgba(232,184,109,0.2); padding: 5px 12px; border-radius: 999px; }
 
 /* Footer */
 .lp-foot { border-top: 1px solid rgba(184,161,227,0.2); padding: 34px 0 44px; margin-top: 60px; text-align: center; }
@@ -252,18 +267,24 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
       <p class="lp-kicker">Plans</p>
       <h2>One plan. Everything unlocked.</h2>
     </div>
+    <div class="lp-toggle">
+      <button type="button" class="lp-toggle-btn active" data-billing="yearly">Yearly</button>
+      <button type="button" class="lp-toggle-btn" data-billing="monthly">Monthly</button>
+      <span class="lp-save">Save 41%</span>
+    </div>
     <div class="lp-price">
       <div class="price pro">
         <span class="best">Best value</span>
         <h3>Pro</h3>
-        <div class="amt">$5.83<small> / month</small></div>
-        <p class="price-sub" style="font-size:12.5px;color:var(--text3);margin-top:-4px;">Billed $70.00 yearly · or $9.90 monthly</p>
+        <div class="amt"><span data-lp-price="yearly">$5.83</span><span data-lp-price="monthly" hidden>$9.90</span><small> / month</small></div>
+        <p class="price-sub" style="font-size:12.5px;color:var(--text3);margin-top:-4px;"><span data-lp-note="yearly">Billed $70.00 yearly</span><span data-lp-note="monthly" hidden>Billed monthly</span></p>
         <ul>
           <li>Living Reality — AI audio journeys</li>
           <li>AI Vision — photos &amp; videos</li>
           <li>Affirmation wallpapers</li>
           <li>Unlimited affirmations</li>
-          <li>More AI credits every month</li>
+          <li data-lp-credits="yearly"><strong>10,500 AI credits</strong> / year</li>
+          <li data-lp-credits="monthly" hidden><strong>990 AI credits</strong> / month</li>
         </ul>
         <a class="btn btn-gold" href="index.html">Get started</a>
       </div>
@@ -282,6 +303,19 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
     </p>
   </div>
 </footer>
+
+<script>
+(function () {
+  var btns = document.querySelectorAll('.lp-toggle-btn');
+  function setMode(mode) {
+    btns.forEach(function (b) { b.classList.toggle('active', b.dataset.billing === mode); });
+    document.querySelectorAll('#pricing [data-lp-price]').forEach(function (el) { el.hidden = el.dataset.lpPrice !== mode; });
+    document.querySelectorAll('#pricing [data-lp-note]').forEach(function (el) { el.hidden = el.dataset.lpNote !== mode; });
+    document.querySelectorAll('#pricing [data-lp-credits]').forEach(function (el) { el.hidden = el.dataset.lpCredits !== mode; });
+  }
+  btns.forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.billing); }); });
+})();
+</script>
 
 </body>
 </html>
