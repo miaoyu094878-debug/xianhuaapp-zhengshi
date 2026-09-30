@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.29.nopricelist">
+  <link rel="stylesheet" href="styles.css?v=2026.9.30.proonly">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4450,7 +4450,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <div class="more-card" data-goto="tab-plans">
             <span class="mc-ico">✦</span>
             <span class="mc-title">Subscriptions</span>
-            <span class="mc-desc">Free &amp; Pro — unlock your full practice</span>
+            <span class="mc-desc">Unlock your full practice</span>
           </div>
         </div>
 
@@ -4469,38 +4469,20 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <div class="plans-toggle">
           <button type="button" class="plans-toggle-btn active" data-billing="yearly">Yearly</button>
           <button type="button" class="plans-toggle-btn" data-billing="monthly">Monthly</button>
-          <span class="plans-save" id="plansSave">Save 37%</span>
+          <span class="plans-save" id="plansSave">Save 41%</span>
         </div>
 
         <div class="plans-grid">
-          <article class="plan-card">
-            <div class="plan-badge">Free</div>
-            <h3 class="plan-name">Begin</h3>
-            <p class="plan-tag">A gentle start to your daily ritual.</p>
-            <div class="plan-price">
-              <span class="plan-amount">$0</span>
-              <span class="plan-period">forever</span>
-            </div>
-            <ul class="plan-feats">
-              <li>Dashboard, mantra &amp; day streak</li>
-              <li>Desires &amp; vision board basics</li>
-              <li>Cosmic meditation timer</li>
-              <li>Manifest song essentials</li>
-              <li class="pf-off">Affirmations &amp; wallpapers</li>
-            </ul>
-            <button type="button" class="plan-btn" data-plan="free">Current plan</button>
-          </article>
-
           <article class="plan-card plan-card-featured">
             <div class="plan-badge plan-badge-pro">Pro</div>
             <h3 class="plan-name">Bloom</h3>
             <p class="plan-tag">Everything unlocked, fully supported.</p>
             <div class="plan-price">
-              <span class="plan-amount" data-price="yearly">$5.00</span>
-              <span class="plan-amount" data-price="monthly" hidden>$7.99</span>
+              <span class="plan-amount" data-price="yearly">$5.83</span>
+              <span class="plan-amount" data-price="monthly" hidden>$9.90</span>
               <span class="plan-period">/ month</span>
             </div>
-            <p class="plan-note" data-note="yearly">Billed $59.99 yearly</p>
+            <p class="plan-note" data-note="yearly">Billed $70.00 yearly</p>
             <p class="plan-note" data-note="monthly" hidden>Billed monthly</p>
             <ul class="plan-feats">
               <li><strong>Unlimited affirmations</strong></li>
@@ -4513,7 +4495,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </article>
         </div>
 
-        <p class="plans-fineprint" id="planStatusLine">You are on the Free plan.</p>
+        <p class="plans-fineprint" id="planStatusLine">You are not subscribed.</p>
+        <button type="button" class="btn-primary gate-signin hidden" id="gateSignIn">Sign in to subscribe</button>
 
         <!-- AI 积分 -->
         <h2 class="page-title" style="margin-top:28px">AI Credits</h2>
@@ -4526,7 +4509,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <div>
             <span class="cw-label">Your balance</span>
             <span class="cw-balance"><span id="cwBalance">0</span> <small>credits</small></span>
-            <span class="cw-plan" id="cwPlan">Free plan</span>
+            <span class="cw-plan" id="cwPlan">Not subscribed</span>
           </div>
           <button type="button" class="plan-btn plan-btn-cta hidden" id="cwOpenRedeem">Redeem code</button>
         </div>
@@ -4742,7 +4725,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20260929nopricelist" defer></script>
+  <script src="app.js?v=20260930proonly" defer></script>
 
 </body>
 </html>

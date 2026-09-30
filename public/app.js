@@ -201,6 +201,8 @@
   });
   function goTab(id) {
     stopFutureAudio();
+    // 未订阅 Pro 时锁定在订阅页：其它标签一律重定向
+    if (gated() && id !== 'tab-plans') id = 'tab-plans';
     // Sub-pages of Affirmations keep the "Affirm" nav item highlighted.
     var navId = (id === 'tab-affirm-fav' || id === 'tab-affirm-own') ? 'tab-affirm' : id;
     var hasNav = false;
@@ -248,11 +250,11 @@
   $$('.plans-toggle-btn').forEach(function (b) {
     b.addEventListener('click', function () { setBillingMode(b.dataset.billing); });
   });
-  $$('#tab-plans .plan-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      if (btn.dataset.plan === 'pro') { openPaywall('pro'); return; }
-      alert('You are on the Free plan — everything you need for a daily practice is included. Upgrade to Pro for unlimited affirmations and wallpapers.');
-    });
+  $$('#tab-plans .plan-card .plan-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { openPaywall('pro'); });
+  });
+  if ($('#gateSignIn')) $('#gateSignIn').addEventListener('click', function () {
+    openLoginModal('Sign in or create an account to subscribe ✦');
   });
 
   /* ══════════════════════════════════════════════════════════════
@@ -279,6 +281,8 @@
   }
 
   function isPro() { return String(creditState.plan || '').toLowerCase() === 'pro'; }
+  /** 硬门槛：未订阅 Pro 时，仅允许停留在订阅页 */
+  function gated() { return !!(creditState && creditState.loaded && !isPro()); }
   function usd(n) { return '$' + Number(n || 0).toFixed(2); }
 
   async function creditRequest(action, payload) {
@@ -324,7 +328,7 @@
     if (cwPlan) {
       cwPlan.textContent = isPro()
         ? ('Pro · until ' + fmtDay(creditState.planExpiresAt))
-        : 'Free plan';
+        : 'Not subscribed';
       cwPlan.classList.toggle('pro', isPro());
     }
 
@@ -332,7 +336,15 @@
     if ($('#planStatusLine')) {
       $('#planStatusLine').textContent = isPro()
         ? 'Pro is active — unlimited affirmations and wallpapers.'
-        : 'You are on the Free plan. Affirmations beyond the daily taste and wallpaper downloads need Pro.';
+        : (creditState.signedIn
+            ? 'You are not subscribed — subscribe below to unlock everything.'
+            : 'Please sign in, then subscribe to unlock everything.');
+    }
+    if ($('#gateSignIn')) $('#gateSignIn').classList.toggle('hidden', isPro() || creditState.signedIn);
+    // 硬门槛：未订阅 Pro 则强制回到订阅页
+    if (gated()) {
+      var activePage = $('.tab-page.active');
+      if (!activePage || activePage.id !== 'tab-plans') goTab('tab-plans');
     }
     var proBtn = $('#proSubscribeBtn');
     if (proBtn) {
@@ -408,9 +420,9 @@
       }
       if ($('#pwCost')) {
         var sub = creditState.prices && creditState.prices.subscription;
-        var m = sub ? sub.monthlyUsd : 7.99;
-        var y = sub ? sub.yearlyUsd : 59.99;
-        var save = sub ? sub.yearlySavePct : 37;
+        var m = sub ? sub.monthlyUsd : 9.9;
+        var y = sub ? sub.yearlyUsd : 70;
+        var save = sub ? sub.yearlySavePct : 41;
         $('#pwCost').innerHTML = usd(m) + ' / month · ' + usd(y) + ' / year (save ' + save + '%)';
       }
     } else {
