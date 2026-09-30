@@ -40,9 +40,9 @@ const SIGNUP_BONUS_POINTS = 0;
 
 /** Pro 订阅价（解锁肯定句 + 壁纸无限使用；这两个功能模型成本≈0） */
 const SUBSCRIPTION = {
-  monthlyUsd: 7.99,
-  yearlyUsd: 59.99,
-  yearlySavePct: Math.round((1 - 59.99 / (7.99 * 12)) * 100),
+  monthlyUsd: 9.9,
+  yearlyUsd: 70,
+  yearlySavePct: Math.round((1 - 70 / (9.9 * 12)) * 100),
 };
 
 /**
