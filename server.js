@@ -37,6 +37,76 @@ function getAI() {
   return aiClient;
 }
 
+/* ══════════ 语音真实成本结算（与 Supabase 边缘函数同一套逻辑）══════════
+ * OpenRouter 的 /audio/speech 返回二进制音频，响应体里没有成本，
+ * 只能用响应头 X-Generation-Id 去 GET /api/v1/generation?id= 反查 total_cost（美元）。
+ * 该记录入账有延迟，所以先预扣、拿到真实成本后再把这笔流水改成真实积分（升降都改）。
+ */
+async function fetchGenerationCostUsd(generationId, apiKey, budgetMs = 60000) {
+  const id = String(generationId || '').trim();
+  if (!id || !apiKey) return null;
+  const deadline = Date.now() + budgetMs;
+  let attempts = 0;
+  let lastStatus = '';
+  for (;;) {
+    attempts++;
+    try {
+      const res = await fetch(`https://openrouter.ai/api/v1/generation?id=${encodeURIComponent(id)}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const c = data?.data?.total_cost ?? data?.data?.usage;
+        if (typeof c === 'number' && isFinite(c)) return c;
+        lastStatus = 'ok_but_no_cost_field';
+      } else {
+        lastStatus = 'http_' + res.status;   // 404 = 记录尚未入账，继续重试
+      }
+    } catch (e) {
+      lastStatus = 'fetch_error:' + String(e?.message || e).slice(0, 80);
+    }
+    if (Date.now() >= deadline) {
+      console.warn(`[credits] 查真实成本超时 gen=${id} 尝试=${attempts}次 最后状态=${lastStatus}`);
+      return null;
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+}
+
+/** 后台结算：不阻塞用户，拿到真实成本后把这笔 pending 流水改成真实积分 */
+function deferSettle(userId, ledgerId, generationId, apiKey, estimated, action) {
+  (async () => {
+    try {
+      const realCost = await fetchGenerationCostUsd(generationId, apiKey, 60000);
+      if (realCost == null) {
+        console.warn(`[credits] ${action} 未查到真实成本（gen=${generationId}）→ 保留预扣 ${estimated} 分，流水仍为 pending`);
+        return;
+      }
+      const actualPoints = pointsForCost(realCost);
+      const r = await settle(userId, ledgerId, actualPoints, true);
+      if (r && r.ok) {
+        console.log(`[credits] ${action} 真实成本结算 ledger=${ledgerId} 预扣=${estimated} 实际=${actualPoints} (cost=$${realCost}) 现余额=${r.balance}`);
+      } else {
+        console.warn(`[credits] ${action} 结算失败 ledger=${ledgerId}:`, r && r.error);
+      }
+    } catch (e) {
+      console.warn('[credits] 语音后台结算异常:', e);
+    }
+  })();
+}
+
+/** 把 OpenRouter 的 X-Generation-Id 挂到返回体上（内部字段，发送前由 chargeAndRun 删除） */
+function attachGen(result, orRes, apiKey) {
+  const genId = (orRes && orRes.headers && orRes.headers.get) ? (orRes.headers.get('x-generation-id') || '') : '';
+  if (genId && apiKey) {
+    result.__generationId = genId;
+    result.__orKey = apiKey;
+  } else {
+    console.warn(`[credits] OpenRouter 响应缺少 X-Generation-Id（provider=${result.provider}）→ 本次不做真实成本结算`);
+  }
+  return result;
+}
+
 // Root redirect to landing.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
@@ -422,7 +492,7 @@ async function executeVoiceSynthesis(req, res) {
               voiceCache.delete(firstKey);
             }
             voiceCache.set(cacheKey, result);
-            return result;
+            return attachGen({ ...result }, orRes, effectiveOpenRouterKey);
           } else {
             const errText = await orRes.text();
             console.warn('OpenRouter Qwen Audio 3.0 TTS returned status:', orRes.status, errText);
@@ -491,7 +561,7 @@ async function executeVoiceSynthesis(req, res) {
               voiceCache.delete(firstKey);
             }
             voiceCache.set(cacheKey, result);
-            return result;
+            return attachGen({ ...result }, orRes, effectiveOpenRouterKey);
           } else {
             const errText = await orRes.text();
             console.warn('OpenRouter Gemini 3.1 Flash TTS returned status:', orRes.status, errText);
@@ -557,7 +627,7 @@ async function executeVoiceSynthesis(req, res) {
             voiceCache.delete(firstKey);
           }
           voiceCache.set(cacheKey, result);
-          return res.json(result);
+          return res.json(attachGen({ ...result }, orRes, effectiveOpenRouterKey));
         } else {
           const errText = await orRes.text();
           console.warn('OpenRouter Kokoro TTS returned non-200:', orRes.status, errText);
@@ -606,7 +676,7 @@ async function executeVoiceSynthesis(req, res) {
             voiceCache.delete(firstKey);
           }
           voiceCache.set(cacheKey, result);
-          return res.json(result);
+          return res.json(attachGen({ ...result }, orRes, effectiveOpenRouterKey));
         } else {
           const errText = await orRes.text();
           console.warn('OpenRouter Fish Audio returned non-200:', orRes.status, errText);
@@ -714,7 +784,7 @@ async function executeVoiceSynthesis(req, res) {
             voiceCache.delete(firstKey);
           }
           voiceCache.set(cacheKey, result);
-          return res.json(result);
+          return res.json(attachGen({ ...result }, orRes, effectiveOpenRouterKey));
         } else {
           const errText = await orRes.text();
           console.warn('OpenRouter Gemini 3.1 Flash TTS returned status:', orRes.status, errText);
@@ -1540,15 +1610,23 @@ async function chargeAndRun(req, res, action, handler) {
       if (rr && rr.ok) console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
     }
   } else if (typeof capturedBody === 'object' && !Array.isArray(capturedBody)) {
-    // LLM 用后结算：按真实成本下调这一笔，只退不补
+    // LLM 用后结算：按真实成本把这一笔改成真实积分（升/降都改）
     if (charged > 0 && ledgerId != null && capturedBody.__costUsd != null) {
       const actualPoints = pointsForCost(Number(capturedBody.__costUsd));
-      if (actualPoints < charged) {
-        const sr = await settle(user.id, ledgerId, actualPoints);
-        if (sr && sr.ok) finalCharged = actualPoints;
-      }
+      const sr = await settle(user.id, ledgerId, actualPoints, true);
+      if (sr && sr.ok) finalCharged = sr.charged ?? actualPoints;
     }
     delete capturedBody.__costUsd;
+
+    // 语音/音频：响应体没有成本，交给后台用 X-Generation-Id 查真实成本再结算（不阻塞）
+    const genId = capturedBody.__generationId;
+    const genKey = capturedBody.__orKey;
+    delete capturedBody.__generationId;
+    delete capturedBody.__orKey;
+    if (genId && genKey && charged > 0 && ledgerId != null) {
+      deferSettle(user.id, ledgerId, String(genId), String(genKey), charged, action);
+    }
+
     const w = await walletSummary(user.id);
     capturedBody.credits = { charged: finalCharged, balance: w.balance };
   }

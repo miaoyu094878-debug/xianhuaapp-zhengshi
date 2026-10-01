@@ -121,11 +121,14 @@ function usageCostUsd(usage: any): number | null {
  * OpenRouter 的 generation 记录有几十秒入账延迟，所以这里只在「后台」轮询（默认 45 秒）：
  * 查得到就按真实成本结算，查不到就保持原预扣价，绝不阻塞用户拿音频。
  */
-async function fetchGenerationCostUsd(generationId: string, apiKey: string, budgetMs = 45000): Promise<number | null> {
+async function fetchGenerationCostUsd(generationId: string, apiKey: string, budgetMs = 60000): Promise<number | null> {
   const id = String(generationId || '').trim();
   if (!id || !apiKey) return null;
   const deadline = Date.now() + budgetMs;
+  let attempts = 0;
+  let lastStatus = '';
   for (;;) {
+    attempts++;
     try {
       const res = await fetch(`https://openrouter.ai/api/v1/generation?id=${encodeURIComponent(id)}`, {
         headers: { 'Authorization': `Bearer ${apiKey}` },
@@ -134,11 +137,17 @@ async function fetchGenerationCostUsd(generationId: string, apiKey: string, budg
         const data: any = await res.json();
         const c = data?.data?.total_cost ?? data?.data?.usage;
         if (typeof c === 'number' && isFinite(c)) return c;
+        lastStatus = 'ok_but_no_cost_field';
+      } else {
+        lastStatus = 'http_' + res.status;   // 404 = 记录尚未入账，继续重试
       }
-    } catch (_e) {
-      // 网络异常忽略，继续重试
+    } catch (e) {
+      lastStatus = 'fetch_error:' + String((e as Error)?.message || e).slice(0, 80);
     }
-    if (Date.now() >= deadline) return null;
+    if (Date.now() >= deadline) {
+      console.warn(`[credits] 查真实成本超时 gen=${id} 尝试=${attempts}次 最后状态=${lastStatus}`);
+      return null;
+    }
     await new Promise((r) => setTimeout(r, 1500));
   }
 }
@@ -153,6 +162,9 @@ async function ttsResponse(orRes: Response, apiKey: string, payload: Record<stri
   if (genId && apiKey) {
     out.__generationId = genId;
     out.__orKey = apiKey;
+  } else {
+    // 没有 X-Generation-Id 就查不到这次请求的真实成本 → 只能按预扣价计费
+    console.warn(`[credits] OpenRouter 响应缺少 X-Generation-Id（provider=${payload.provider}）→ 本次不做真实成本结算`);
   }
   return new Response(JSON.stringify(out), {
     status: 200,
@@ -162,19 +174,23 @@ async function ttsResponse(orRes: Response, apiKey: string, payload: Record<stri
 
 /**
  * 后台结算（不阻塞用户）：响应返回后再去 OpenRouter 查这次请求的真实成本，
- * 拿到就把 credit_ledger 里这一条 pending 流水改成真实积分（只退不补）。
+ * 拿到就把 credit_ledger 里这一条 pending 流水改成「真实成本换算的积分」（升/降都改）。
  * 查不到（入账超时/接口异常）就保持预扣价，下次仍是同一条记录，不会产生第二条流水。
  */
-function deferSettle(userId: string, ledgerId: number, generationId: string, apiKey: string, estimated: number) {
+function deferSettle(userId: string, ledgerId: number, generationId: string, apiKey: string, estimated: number, action: string) {
   const task = (async () => {
     try {
-      const realCost = await fetchGenerationCostUsd(generationId, apiKey, 45000);
-      if (realCost == null) return;
+      const realCost = await fetchGenerationCostUsd(generationId, apiKey, 60000);
+      if (realCost == null) {
+        console.warn(`[credits] ${action} 未查到真实成本（gen=${generationId}）→ 保留预扣 ${estimated} 分，流水仍为 pending`);
+        return;
+      }
       const actualPoints = pointsForCost(realCost);
-      if (actualPoints >= estimated) return; // 真实更高 → 按已扣算，不补扣
-      const r: any = await settle(userId, ledgerId, actualPoints);
+      const r: any = await settle(userId, ledgerId, actualPoints, true);
       if (r && r.ok) {
-        console.log(`[credits] 语音后台结算 ledger=${ledgerId} 预扣=${estimated} 实际=${actualPoints} (cost=$${realCost})`);
+        console.log(`[credits] ${action} 真实成本结算 ledger=${ledgerId} 预扣=${estimated} 实际=${actualPoints} (cost=$${realCost}) 现余额=${r.balance}`);
+      } else {
+        console.warn(`[credits] ${action} 结算 RPC 失败 ledger=${ledgerId}:`, r && r.error);
       }
     } catch (e) {
       console.warn('[credits] 语音后台结算失败:', e);
@@ -184,6 +200,9 @@ function deferSettle(userId: string, ledgerId: number, generationId: string, api
   if (typeof EdgeRuntime !== 'undefined' && typeof EdgeRuntime?.waitUntil === 'function') {
     // @ts-ignore EdgeRuntime 是边缘运行时全局对象，Deno 类型里没有声明
     EdgeRuntime.waitUntil(task);
+  } else {
+    // 没有 waitUntil 时后台任务会被回收 → 结算不会发生，必须留下线索
+    console.warn(`[credits] ${action} 当前运行时没有 EdgeRuntime.waitUntil，真实成本结算无法在后台完成`);
   }
 }
 
@@ -322,12 +341,17 @@ function refund(userId: string, ledgerId: number) {
   return rpc('refund_credits', { p_user_id: userId, p_ledger_id: Number(ledgerId) || 0 });
 }
 
-/** 结算：LLM 用后按真实用量下调，只退多扣的部分（绝不补扣） */
-function settle(userId: string, ledgerId: number, actualPoints: number) {
+/**
+ * 结算：按真实成本把这一条预扣流水改成真实积分。
+ * allowTopup = true 时，真实成本高于预扣就补扣差额（最多扣到余额为 0，不产生负余额）；
+ * 默认 false = 只退多扣的，绝不补扣。
+ */
+function settle(userId: string, ledgerId: number, actualPoints: number, allowTopup = false) {
   return rpc('settle_credits', {
     p_user_id: userId,
     p_ledger_id: Number(ledgerId) || 0,
     p_actual_points: Math.max(0, Math.round(actualPoints) || 0),
+    p_allow_topup: !!allowTopup,
   });
 }
 
@@ -420,13 +444,13 @@ async function withCredits(
   try {
     const payload = await res.json();
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-      // LLM 用后结算：handler 回传真实成本（__costUsd）→ 按它下调多扣的积分，只退不补
+      // LLM 用后结算：handler 回传真实成本（__costUsd）→ 按它把积分改成真实值（升/降都改）
       let finalCharged = charged;
       if (charged > 0 && ledgerId != null && payload.__costUsd != null) {
         // 真实成本到手就结算（无论进退）：数据库会把这一条流水改成真实积分并置为 settled
         const actualPoints = pointsForCost(Number(payload.__costUsd));
-        const sr: any = await settle(user.id, ledgerId, actualPoints);
-        if (sr && sr.ok) finalCharged = Math.min(charged, actualPoints);
+        const sr: any = await settle(user.id, ledgerId, actualPoints, true);
+        if (sr && sr.ok) finalCharged = sr.charged ?? actualPoints;
       }
       delete payload.__costUsd;
 
@@ -436,7 +460,7 @@ async function withCredits(
       delete payload.__generationId;
       delete payload.__orKey;
       if (genId && genKey && charged > 0 && ledgerId != null) {
-        deferSettle(user.id, ledgerId, String(genId), String(genKey), charged);
+        deferSettle(user.id, ledgerId, String(genId), String(genKey), charged, action);
       }
       const w = await walletSummary(user.id);
       payload.credits = { charged: finalCharged, balance: w.balance };

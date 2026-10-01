@@ -247,15 +247,17 @@ export async function refund(userId, ledgerId) {
 }
 
 /**
- * 结算（LLM 用后按真实用量下调）：把多扣的积分退回，只退不补。
+ * 结算：按真实成本把这一笔预扣改成真实积分。
+ * allowTopup = true 时真实成本高于预扣就补扣差额（最多扣到余额为 0）；默认只退不补。
  * 幂等：结算流水 ref = settle:<原流水号>，同一笔只结算一次。
  */
-export async function settle(userId, ledgerId, actualPoints) {
+export async function settle(userId, ledgerId, actualPoints, allowTopup = false) {
   const actual = Math.max(0, Math.round(Number(actualPoints) || 0));
   if (LEDGER_MODE === 'supabase') {
     if (!isSupabaseUserId(userId)) return { ok: false, error: 'not_a_supabase_user' };
     return await rpc('settle_credits', {
-      p_user_id: userId, p_ledger_id: Number(ledgerId) || 0, p_actual_points: actual
+      p_user_id: userId, p_ledger_id: Number(ledgerId) || 0, p_actual_points: actual,
+      p_allow_topup: !!allowTopup
     });
   }
 
@@ -265,15 +267,27 @@ export async function settle(userId, ledgerId, actualPoints) {
   if (!rec) return { ok: false, error: 'ledger_not_settleable' };
 
   const charged = -Number(rec.delta || 0);           // 原扣费为正数
-  const back = charged - actual;                     // 多扣的部分
-  if (back <= 0) return { ok: true, balance: w.balance, settled: 0, no_adjust: true };
-
   const ref = 'settle:' + rec.id;
   if (hasRef(w, ref)) return { ok: true, balance: w.balance, duplicate: true };
 
-  localRecord(w, back, rec.action, 'refund', ref, 0);
+  let target = actual;
+  if (!allowTopup) {
+    target = Math.min(charged, target);              // 只退不补
+  } else if (target > charged) {
+    // 补扣差额，但最多扣到余额为 0
+    target = charged + Math.min(target - charged, Math.max(0, w.balance));
+  }
+
+  const diff = target - charged;                     // 正数=补扣，负数=退回
+  if (diff === 0) return { ok: true, balance: w.balance, charged: target, settled: 0, no_adjust: true };
+
+  if (diff < 0) {
+    localRecord(w, -diff, rec.action, 'refund', ref, 0);
+  } else {
+    localRecord(w, -diff, rec.action, 'consume', ref, 0);
+  }
   await saveLedger(state);
-  return { ok: true, balance: w.balance, settled: back };
+  return { ok: true, balance: w.balance, charged: target, settled: -diff };
 }
 
 /** 发放积分（管理员充值 / 补偿） */

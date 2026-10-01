@@ -218,7 +218,7 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 | `handle_new_user` | — | 注册触发器函数（新用户初始化）。**注意**：若还挂着触发器会自动送积分 |
 | `refund_credits` | `p_user_id uuid, p_ledger_id bigint` | 按扣费流水退款 |
 | `set_plan` | `p_user_id uuid, p_plan text, p_days integer DEFAULT 30` | 开通/续期 Pro（写 `profiles.plan` / `plan_expires_at`） |
-| `settle_credits` | `p_user_id uuid, p_ledger_id bigint, p_actual_points integer` | 用后按真实成本结算，只退不补 |
+| `settle_credits` | `p_user_id uuid, p_ledger_id bigint, p_actual_points integer, p_allow_topup boolean DEFAULT false` | 用后按**真实成本**结算：`false` = 只退不补；`true` = 升/降都改（补扣最多扣到余额为 0）。迁移 `20261001000000_settle_exact.sql`。**⚠️ 该迁移未应用前，边缘函数传 `p_allow_topup` 会报错** |
 | `wallet_summary` | `p_user_id uuid` | 一次返回余额 + 订阅状态（含过期自动降级） |
 
 **✖ `redeem_code` 决定不做**（2026-09-29）：产品**不提供"用户用兑换码兑换"**的功能，所以不补建该函数，也不建 `redeem_codes` 表。
@@ -384,6 +384,7 @@ select
    - ~~**【安全】修 `profiles` 的 Pro 越权**~~ ✅ 2026-09-29 已修（见 5.4）
    - ~~应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`~~ ✅ 2026-09-29 已应用（见第 2 节 credit_ledger）
    - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
+   - **【待应用】`20261001000000_settle_exact.sql`** → `settle_credits` 新增 `p_allow_topup`（真实成本可升可降）。**必须与边缘函数同批上线**，否则边缘函数调用会因函数签名不匹配报错
    - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 2026-09-29 已应用（10 列，末尾为 `plan`）
    - ~~清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`~~ ✅ 2026-09-29 已清理（见 5.5）
    - ~~补 `redeem_code` 函数~~ ✖ **决定不做**：产品不提供兑换码功能（见第 3 节说明）；代码里残留的入口可选清理
