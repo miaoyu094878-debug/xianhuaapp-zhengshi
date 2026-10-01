@@ -82,6 +82,21 @@
     return Object.assign({}, defaults);
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
+
+  // 历史遗留清理：同一 jobId 的视频被旧版轮询重复写入时，只保留最新的一条
+  (function dedupeVideoCards() {
+    if (!db || !Array.isArray(db.aiVision)) return;
+    var seen = {};
+    var before = db.aiVision.length;
+    db.aiVision = db.aiVision.filter(function (v) {
+      if (!v || !v.jobId) return true;   // 照片等无 jobId 的卡片不参与去重
+      if (seen[v.jobId]) return false;
+      seen[v.jobId] = true;
+      return true;                       // 数组最新的在前，保留第一条
+    });
+    if (db.aiVision.length !== before) save();
+  })();
+
   function todayStr() {
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -3523,7 +3538,20 @@
   function pollVideoJob(jobId, customKey, statusEl, done) {
     var tries = 0;
     var start = Date.now();
-    var timer = setInterval(function () {
+    var finished = false;   // 保证 done 只回调一次（否则同一视频会被重复写入画廊）
+    var inFlight = false;   // 上一轮探测还没返回时跳过本轮，避免请求堆积后同时命中 completed
+    var timer;
+
+    function finish(err, url) {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
+      done(err, url);
+    }
+
+    timer = setInterval(function () {
+      if (finished || inFlight) return;
+      inFlight = true;
       tries++;
       var secs = Math.round((Date.now() - start) / 1000);
 
@@ -3533,35 +3561,33 @@
       })
       .then(function (res) { return res.json(); })
       .then(function (data) {
+        inFlight = false;
+        if (finished) return;
         if (data.error && !data.status) {
-          clearInterval(timer);
-          done(data.error, null);
+          finish(data.error, null);
           return;
         }
         var st = data.status || 'processing';
         if (st === 'completed' || st === 'succeed') {
-          clearInterval(timer);
           var finalUrl = data.url;
           if (!finalUrl || finalUrl.startsWith('https://openrouter.ai/')) {
             var query = customKey ? ('?key=' + encodeURIComponent(customKey)) : '';
             finalUrl = '/api/ai/vision/video/content/' + encodeURIComponent(jobId) + query;
           }
-          done(null, finalUrl);
+          finish(null, finalUrl);
         } else if (st === 'failed') {
-          clearInterval(timer);
-          done(data.error || 'Video generation encountered an error. Please try again.', null);
+          finish(data.error || 'Video generation encountered an error. Please try again.', null);
         } else {
           aiStatus('Rendering cinematic video… ' + fmtSec(secs) + ' (' + st + ')', 'running');
           if (tries >= 120) { // 10 minutes timeout
-            clearInterval(timer);
-            done('Video rendering is taking longer than expected. Please check back shortly.', null);
+            finish('Video rendering is taking longer than expected. Please check back shortly.', null);
           }
         }
       })
       .catch(function (err) {
+        inFlight = false;
         if (tries >= 120) {
-          clearInterval(timer);
-          done(err.message || 'Network connection issue', null);
+          finish(err.message || 'Network connection issue', null);
         }
       });
     }, 5000);
@@ -3706,21 +3732,28 @@
             }
 
             db.aiVision = db.aiVision || [];
-            db.aiVision.unshift({
-              id: uid(),
-              kind: 'video',
-              model: 'minimax/hailuo-3-max',
-              duration: dur,
-              jobId: jobId,
-              cameraQuality: cameraInfo.badge,
-              qualityMode: currentCameraQuality,
-              ts: Date.now(),
-              prompt: prompt,
-              rawPrompt: data.rawPrompt || prompt,
-              optimizedPrompt: data.optimizedPrompt || null,
-              directorModel: data.directorModel || directorUsed || null,
-              url: videoUrl
-            });
+            // 同一个 jobId 只保留一张卡片：重复回调 / 重新同步时更新原卡片，不再新增
+            var dupVideo = db.aiVision.filter(function (x) { return x.jobId === jobId; })[0];
+            if (dupVideo) {
+              dupVideo.url = videoUrl;
+              dupVideo.ts = Date.now();
+            } else {
+              db.aiVision.unshift({
+                id: uid(),
+                kind: 'video',
+                model: 'minimax/hailuo-3-max',
+                duration: dur,
+                jobId: jobId,
+                cameraQuality: cameraInfo.badge,
+                qualityMode: currentCameraQuality,
+                ts: Date.now(),
+                prompt: prompt,
+                rawPrompt: data.rawPrompt || prompt,
+                optimizedPrompt: data.optimizedPrompt || null,
+                directorModel: data.directorModel || directorUsed || null,
+                url: videoUrl
+              });
+            }
             save();
             logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' }, videoUrl);
             aiStatus('Videos aren\'t saved — please download and save them now.', 'success');
