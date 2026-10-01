@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { costFor, pointsForCost } from './credits-core.js';
+import { costFor, pointsForCost, MIN_POINTS, COST_TABLE } from './credits-core.js';
 import {
   LEDGER_MODE, resolveUser, spend, grant, refund, settle, redeem, setPlan, createCodes,
   priceSheet, walletSummary, isAdmin
@@ -35,6 +35,119 @@ function getAI() {
     });
   }
   return aiClient;
+}
+
+/* ══════════ 语音真实成本结算（与 Supabase 边缘函数同一套逻辑）══════════
+ * OpenRouter 的 /audio/speech 返回二进制音频，响应体里没有成本，
+ * 只能用响应头 X-Generation-Id 去 GET /api/v1/generation?id= 反查 total_cost（美元）。
+ * 该记录入账有延迟（实测约 85 秒），所以语音改为「先交付音频、拿到真实成本后一次性扣费」。
+ */
+/** 查真实成本的轮询预算：实测 generation 记录约 85 秒才入账，预算必须给到 120 秒。 */
+const GEN_COST_BUDGET_MS = 120000;
+
+async function fetchGenerationCostUsd(generationId, apiKey, budgetMs = GEN_COST_BUDGET_MS) {
+  const id = String(generationId || '').trim();
+  if (!id || !apiKey) return null;
+  const deadline = Date.now() + budgetMs;
+  let attempts = 0;
+  let lastStatus = '';
+  for (;;) {
+    attempts++;
+    try {
+      const res = await fetch(`https://openrouter.ai/api/v1/generation?id=${encodeURIComponent(id)}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const c = data?.data?.total_cost ?? data?.data?.usage;
+        if (typeof c === 'number' && isFinite(c)) return c;
+        lastStatus = 'ok_but_no_cost_field';
+      } else {
+        lastStatus = 'http_' + res.status;   // 404 = 记录尚未入账，继续重试
+      }
+    } catch (e) {
+      lastStatus = 'fetch_error:' + String(e?.message || e).slice(0, 80);
+    }
+    if (Date.now() >= deadline) {
+      console.warn(`[credits] 查真实成本超时 gen=${id} 尝试=${attempts}次 最后状态=${lastStatus}`);
+      return null;
+    }
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+}
+
+/** 语音的「用后一次性扣费」：拿到 OpenRouter 的真实成本后扣一笔（一条流水、一次扣费） */
+function deferCharge(userId, action, generationId, apiKey, estCostUsd) {
+  (async () => {
+    try {
+      const realCost = await fetchGenerationCostUsd(generationId, apiKey);
+      const useCost = realCost == null ? estCostUsd : realCost;   // 查不到就按输入估算扣，避免白送
+      const pts = pointsForCost(useCost);
+      if (pts <= 0) return;
+      const r = await spend(userId, action, 'gen:' + generationId, useCost, pts);
+      if (r && r.ok) {
+        console.log(`[credits] ${action} 用后扣费 gen=${generationId} 积分=${pts} (cost=$${useCost}${realCost == null ? ' 估算' : ' 真实'}) 余额=${r.balance}`);
+      } else {
+        console.warn(`[credits] ${action} 用后扣费失败 gen=${generationId}:`, r && r.error, '（音频已交付，这笔未收到）');
+      }
+    } catch (e) {
+      console.warn('[credits] 语音用后扣费异常:', e);
+    }
+  })();
+}
+
+/**
+ * 旅程（剧本 LLM + 全部段落 TTS）的「用后一次性扣费」。
+ * 所有段落的音频都已交付，这里去 OpenRouter 查每一项真实成本，与 LLM 成本加总后扣一笔。
+ * 一条流水、一次扣费，与段数无关；幂等键 ref = journey:<首个 generation id>。
+ */
+function deferChargeJourney(userId, action, info, estCostUsd) {
+  (async () => {
+    try {
+      const items = Array.isArray(info?.items) ? info.items : [];
+      // 逐段 TTS：查得到真实成本就用真实值，查不到就用该段的输入估算（避免白送）
+      const realCosts = await Promise.all(items.map((it) => {
+        const key = it?.orKey || info?.orKey;
+        return it?.genId && key
+          ? fetchGenerationCostUsd(String(it.genId), String(key))
+          : Promise.resolve(null);
+      }));
+      let total = 0;
+      let estHits = 0;
+      realCosts.forEach((c, i) => {
+        if (c == null) { estHits++; total += Number(items[i]?.estCostUsd) || 0; }
+        else total += c;
+      });
+      // 剧本 LLM 那一步：拿不到真实成本就按成本表兜底
+      const llm = info?.llmCostUsd;
+      total += llm == null ? COST_TABLE.story : (Number(llm) || 0);
+      if (total <= 0) total = Number(estCostUsd) || 0;
+      const pts = pointsForCost(total);
+      if (pts <= 0) return;
+      const firstGen = items.find((it) => it?.genId)?.genId;
+      const ref = 'journey:' + (firstGen || Date.now());
+      const r = await spend(userId, action, ref, total, pts);
+      if (r && r.ok) {
+        console.log(`[credits] ${action} 用后扣费 ${items.length}段(其中${estHits}段按估算) 积分=${pts} cost=$${total.toFixed(6)} 余额=${r.balance}`);
+      } else {
+        console.warn(`[credits] ${action} 用后扣费失败:`, r && r.error, '（音频已交付，这笔未收到）');
+      }
+    } catch (e) {
+      console.warn('[credits] 旅程用后扣费异常:', e);
+    }
+  })();
+}
+
+/** 把 OpenRouter 的 X-Generation-Id 挂到返回体上（内部字段，发送前由 chargeAndRun 删除） */
+function attachGen(result, orRes, apiKey) {
+  const genId = (orRes && orRes.headers && orRes.headers.get) ? (orRes.headers.get('x-generation-id') || '') : '';
+  if (genId && apiKey) {
+    result.__generationId = genId;
+    result.__orKey = apiKey;
+  } else {
+    console.warn(`[credits] OpenRouter 响应缺少 X-Generation-Id（provider=${result.provider}）→ 本次不做真实成本结算`);
+  }
+  return result;
 }
 
 // Root redirect to landing.html
@@ -422,7 +535,7 @@ async function executeVoiceSynthesis(req, res) {
               voiceCache.delete(firstKey);
             }
             voiceCache.set(cacheKey, result);
-            return result;
+            return attachGen({ ...result }, orRes, effectiveOpenRouterKey);
           } else {
             const errText = await orRes.text();
             console.warn('OpenRouter Qwen Audio 3.0 TTS returned status:', orRes.status, errText);
@@ -491,7 +604,7 @@ async function executeVoiceSynthesis(req, res) {
               voiceCache.delete(firstKey);
             }
             voiceCache.set(cacheKey, result);
-            return result;
+            return attachGen({ ...result }, orRes, effectiveOpenRouterKey);
           } else {
             const errText = await orRes.text();
             console.warn('OpenRouter Gemini 3.1 Flash TTS returned status:', orRes.status, errText);
@@ -557,7 +670,7 @@ async function executeVoiceSynthesis(req, res) {
             voiceCache.delete(firstKey);
           }
           voiceCache.set(cacheKey, result);
-          return res.json(result);
+          return res.json(attachGen({ ...result }, orRes, effectiveOpenRouterKey));
         } else {
           const errText = await orRes.text();
           console.warn('OpenRouter Kokoro TTS returned non-200:', orRes.status, errText);
@@ -606,7 +719,7 @@ async function executeVoiceSynthesis(req, res) {
             voiceCache.delete(firstKey);
           }
           voiceCache.set(cacheKey, result);
-          return res.json(result);
+          return res.json(attachGen({ ...result }, orRes, effectiveOpenRouterKey));
         } else {
           const errText = await orRes.text();
           console.warn('OpenRouter Fish Audio returned non-200:', orRes.status, errText);
@@ -695,16 +808,17 @@ async function executeVoiceSynthesis(req, res) {
             model: 'google/gemini-3.1-flash-tts-preview',
             input: cleanText,
             voice: chosenVoice,
-            response_format: 'mp3'
+            // Gemini TTS 只支持 pcm；传 mp3 会被 OpenRouter 直接 400（2026-10-01 实测）
+            response_format: 'pcm'
           })
         });
 
         if (orRes.ok) {
           const arrayBuffer = await orRes.arrayBuffer();
-          const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+          const wavBuf = pcmToWav(Buffer.from(arrayBuffer), 24000, 1, 16);
           const result = {
-            audio: base64Audio,
-            format: 'mp3',
+            audio: wavBuf.toString('base64'),
+            format: 'wav',
             provider: 'openrouter-gemini-tts',
             model: 'google/gemini-3.1-flash-tts-preview',
             voice: chosenVoice
@@ -714,7 +828,7 @@ async function executeVoiceSynthesis(req, res) {
             voiceCache.delete(firstKey);
           }
           voiceCache.set(cacheKey, result);
-          return res.json(result);
+          return res.json(attachGen({ ...result }, orRes, effectiveOpenRouterKey));
         } else {
           const errText = await orRes.text();
           console.warn('OpenRouter Gemini 3.1 Flash TTS returned status:', orRes.status, errText);
@@ -794,6 +908,100 @@ async function executeVoiceSynthesis(req, res) {
     console.warn('Server Neural TTS not available or error:', err.message);
     return res.status(503).json({ error: err.message || 'TTS unavailable' });
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 子业务逻辑 1.5: 整条旅程一次生成
+ * 同一个请求里做两件事：① 剧本 LLM 生成文本 ② 把所有段落一次性合成 TTS
+ * 成本 = LLM 真实成本（usage.cost）+ 各段 TTS 真实成本（X-Generation-Id 反查），合并成一次扣费
+ * ───────────────────────────────────────────────────────────── */
+/** 单条旅程最多合成多少段（防止一次请求成本/耗时失控） */
+const JOURNEY_MAX_PARAGRAPHS = 8;
+
+/** 造一个「只收集 JSON 输出」的假响应对象：用于在进程内调用其他 handler 并取回它的响应体 */
+function captureJsonResponse() {
+  const cap = { statusCode: 200, body: null };
+  const fake = {
+    status(code) { cap.statusCode = code; return fake; },
+    json(payload) { cap.body = payload; return fake; },
+    send(payload) { cap.body = payload; return fake; },
+    setHeader() { return fake; },
+  };
+  return { res: fake, cap };
+}
+
+async function handleJourney(req, res) {
+  const body = req.body || {};
+  const voiceName = String(body?.voiceName || body?.voiceId || body?.voice || 'Zephyr');
+
+  // ① 剧本 LLM：executeStoryGeneration 在响应体里回传 usage.cost 真实成本 → __costUsd
+  const storyCap = captureJsonResponse();
+  await executeStoryGeneration(req, storyCap.res);
+  let storyData = storyCap.cap.body;
+  if (!storyData || typeof storyData !== 'object') storyData = {};
+  if (storyCap.cap.statusCode >= 400 || storyData.error || !storyData.story) {
+    return res.status(storyCap.cap.statusCode >= 400 ? storyCap.cap.statusCode : 500)
+      .json(storyData.error ? storyData : { error: 'story_failed', message: 'Failed to generate the guided script.' });
+  }
+  const llmCostUsd = storyData.__costUsd == null ? null : Number(storyData.__costUsd);
+  delete storyData.__costUsd;
+
+  // ② 段落切分（最多 8 段）
+  const paragraphs = String(storyData.story)
+    .split(/\n+/).map((s) => s.trim()).filter(Boolean)
+    .slice(0, JOURNEY_MAX_PARAGRAPHS);
+  if (!paragraphs.length) paragraphs.push(String(storyData.story).trim());
+
+  // 本地系统语音（local）不走 TTS：只返回文本，由浏览器自己朗读
+  if (voiceName === 'local') {
+    return res.json({
+      ...storyData, paragraphs, audios: [], voiceName,
+      __creditsDeferred: { items: [], llmCostUsd, orKey: null, estCostUsd: COST_TABLE.story },
+    });
+  }
+
+  // ③ 所有段落并行合成，一次性全部返回（与段数无关，仍只算一次旅程）
+  const ttsResults = await Promise.all(paragraphs.map((text) => {
+    // 复用原请求的 headers / 其他字段，只把 text 换成当前段落
+    const subReq = Object.create(req);
+    subReq.body = { ...body, text };
+    const c = captureJsonResponse();
+    return executeVoiceSynthesis(subReq, c.res).then(() => c.cap).catch(() => null);
+  }));
+
+  const audios = [];
+  const items = [];
+  for (let i = 0; i < ttsResults.length; i++) {
+    const c = ttsResults[i];
+    const d = c && c.body && typeof c.body === 'object' ? c.body : {};
+    if (!c || c.statusCode >= 400 || !d.audio) {
+      return res.status(502).json({
+        error: 'voice_failed',
+        message: d?.error || 'Text-to-speech failed for one of the paragraphs.',
+        paragraph: i + 1,
+      });
+    }
+    const genId = d.__generationId ? String(d.__generationId) : null;
+    const orKey = d.__orKey ? String(d.__orKey) : null;
+    delete d.__generationId;
+    delete d.__orKey;
+    items.push({ genId, orKey, estCostUsd: costFor('voice', { text: paragraphs[i] }) });
+    audios.push({ text: paragraphs[i], voiceLabel: voiceName, ...d });
+  }
+
+  const estTts = items.reduce((s, it) => s + (Number(it.estCostUsd) || 0), 0);
+  return res.json({
+    ...storyData,
+    paragraphs,
+    audios,
+    voiceName,
+    __creditsDeferred: {
+      items,
+      llmCostUsd,
+      orKey: items.find((it) => it.orKey)?.orKey || null,
+      estCostUsd: estTts + (llmCostUsd == null ? COST_TABLE.story : llmCostUsd),
+    },
+  });
 }
 
 /* ═══════════════ AI Vision: OpenRouter GPT Image 2 & MiniMax H3 Max ═══════════════ */
@@ -1495,7 +1703,24 @@ async function chargeAndRun(req, res, action, handler) {
 
   let charged = 0;
   let ledgerId = null;
-  if (!freeForPro) {
+
+  // 语音 / 旅程改为「用后一次性扣费」：调用前不预扣，等 OpenRouter 的真实成本回来再扣一笔。
+  // 但调用前仍要确认账户里"有积分"，否则 0 积分也能白拿音频。
+  const postPay = !freeForPro &&
+    (action === 'voice' || action === 'manifest-voice' || action === 'journey' || action === 'manifest-journey');
+
+  if (postPay) {
+    const bal = wallet.balance || 0;
+    if (bal < MIN_POINTS) {
+      return res.status(402).json({
+        error: 'insufficient_credits',
+        message: `Not enough credits: ${MIN_POINTS} needed, ${bal} available.`,
+        required: MIN_POINTS,
+        balance: bal,
+        prices: priceSheet()
+      });
+    }
+  } else if (!freeForPro) {
     const r = await spend(user.id, action, spendRef, costUsd, points);
     if (!r.ok) {
       if (r.error === 'insufficient') {
@@ -1540,17 +1765,40 @@ async function chargeAndRun(req, res, action, handler) {
       if (rr && rr.ok) console.warn(`[credits] ${action} 失败，已退回 ${charged} 积分给 ${user.id}`);
     }
   } else if (typeof capturedBody === 'object' && !Array.isArray(capturedBody)) {
-    // LLM 用后结算：按真实成本下调这一笔，只退不补
+    // LLM 用后结算：按真实成本把这一笔改成真实积分（升/降都改）
     if (charged > 0 && ledgerId != null && capturedBody.__costUsd != null) {
       const actualPoints = pointsForCost(Number(capturedBody.__costUsd));
-      if (actualPoints < charged) {
-        const sr = await settle(user.id, ledgerId, actualPoints);
-        if (sr && sr.ok) finalCharged = actualPoints;
-      }
+      const sr = await settle(user.id, ledgerId, actualPoints, true);
+      if (sr && sr.ok) finalCharged = sr.charged ?? actualPoints;
     }
     delete capturedBody.__costUsd;
+
+    // 语音 / 旅程：调用前没预扣，这里在后台「一次扣清」——查 OpenRouter 的真实成本后扣一笔
+    const genId = capturedBody.__generationId;
+    const genKey = capturedBody.__orKey;
+    const deferredInfo = capturedBody.__creditsDeferred;
+    delete capturedBody.__generationId;
+    delete capturedBody.__orKey;
+    delete capturedBody.__creditsDeferred;
+    let deferred = false;
+    if (postPay) {
+      if (deferredInfo && Array.isArray(deferredInfo.items)) {
+        // 旅程：剧本 LLM + 所有段落 TTS 合并成一条流水，扣一次
+        deferChargeJourney(user.id, action, deferredInfo, costUsd);
+        deferred = true;
+      } else if (genId && genKey) {
+        deferCharge(user.id, action, String(genId), String(genKey), costUsd);
+        deferred = true;
+      } else {
+        // 没有 X-Generation-Id → 查不到真实成本，退回按输入估算扣一次（不退不补）
+        console.warn(`[credits] ${action} 无 X-Generation-Id，按输入估算扣费 ref=${spendRef}`);
+        const r = await spend(user.id, action, spendRef, costUsd, points);
+        if (r && r.ok) finalCharged = r.charged || 0;
+      }
+    }
+
     const w = await walletSummary(user.id);
-    capturedBody.credits = { charged: finalCharged, balance: w.balance };
+    capturedBody.credits = { charged: finalCharged, balance: w.balance, deferred };
   }
 
   return origJson(capturedBody);
@@ -1603,6 +1851,9 @@ app.all('/api', async (req, res) => {
   }
   if (action === 'voice' || action === 'manifest-voice') {
     return await chargeAndRun(req, res, 'voice', executeVoiceSynthesis);
+  }
+  if (action === 'journey' || action === 'manifest-journey') {
+    return await chargeAndRun(req, res, 'journey', handleJourney);
   }
   if (action === 'vision-photo' || action === 'photo') {
     return await chargeAndRun(req, res, 'vision-photo', executeVisionPhoto);

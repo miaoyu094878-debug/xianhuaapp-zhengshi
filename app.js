@@ -459,6 +459,7 @@
   }
 
   var _creditToastTimer = null;
+  var _deferredCreditTimers = [];
   function toastCredits(msg) {
     var t = $('#creditToast');
     if (!t) {
@@ -479,6 +480,14 @@
     renderCredits();
     var charged = Number(data.credits.charged) || 0;
     if (charged > 0) toastCredits('−' + charged + ' ✦ · ' + creditState.balance + ' left');
+    // 语音 / 旅程是「用后按真实成本扣费」：OpenRouter 的账单要约 85 秒才入账，
+    // 扣费完成后才落账，所以这里延后刷新余额，避免用户看到没扣钱的假象。
+    if (data.credits.deferred) {
+      [30000, 120000, 150000].forEach(function (delay, i) {
+        clearTimeout(_deferredCreditTimers[i]);
+        _deferredCreditTimers[i] = setTimeout(function () { loadCredits(); }, delay);
+      });
+    }
   }
 
   function creditBlocked() {
@@ -1134,6 +1143,7 @@
   /** 软门槛：不锁导航，只在「使用时」弹可关闭的订阅框（key = 动作名） */
   var PRO_GATED_ACTIONS = {
     'story': 'AI affirmations',
+    'journey': 'Living Reality — AI audio journeys',
     'voice': 'AI voice narration',
     'vision-photo': 'AI Vision photos',
     'vision-video': 'AI Vision videos'
@@ -1291,6 +1301,38 @@
 
     pcmAudioInFlight[key] = fetchPromise;
     return await fetchPromise;
+  }
+
+  // 整条旅程一次生成：服务端已把所有段落音频一次性做完并返回。
+  // 这里直接灌进播放缓存（key 与 fetchParagraphAudio 完全一致），
+  // 播放时命中缓存 → 不再发起任何 TTS 请求，也就不会再产生额外扣费。
+  async function preloadJourneyAudio(data, voiceName, mood) {
+    if (!data || !Array.isArray(data.audios) || !data.audios.length) return;
+    var vName = voiceName || 'Zephyr';
+    var vMood = mood || 'calm';
+    if (!fsState.audioCtx) {
+      fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+    }
+    for (var i = 0; i < data.audios.length; i++) {
+      var a = data.audios[i];
+      if (!a || !a.audio) continue;
+      var key = vName + ':' + vMood + ':' + String(a.text || '').trim();
+      if (pcmAudioCache[key]) continue;
+      try {
+        var buf = null;
+        if (a.format === 'mp3' || a.format === 'wav') {
+          var bin = atob(a.audio);
+          var bytes = new Uint8Array(bin.length);
+          for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+          buf = await fsState.audioCtx.decodeAudioData(bytes.buffer.slice(0));
+        } else {
+          buf = pcmToAudioBuffer(a.audio, a.sampleRate || 24000, fsState.audioCtx);
+        }
+        if (buf) pcmAudioCache[key] = buf;
+      } catch (e) {
+        console.warn('Journey audio preload failed on paragraph ' + (i + 1), e);
+      }
+    }
   }
 
   async function playWithGeminiTTS(startIdx) {
@@ -1682,7 +1724,10 @@
     $('#fsAnchorDesc').textContent = data.sensoryAnchor || 'Gently rest your hand on your heart, feel its warm steady beat, and smile at yourself.';
 
     var rawStory = data.story || '';
-    var paragraphs = rawStory.split(/\n+/).map(function (p) { return p.trim(); }).filter(Boolean);
+    // journey 一次生成时，段落由服务端切好并与之逐段音频一一对应，直接沿用
+    var paragraphs = (data.paragraphs && data.paragraphs.length)
+      ? data.paragraphs.slice()
+      : rawStory.split(/\n+/).map(function (p) { return p.trim(); }).filter(Boolean);
     if (!paragraphs.length) paragraphs = [rawStory];
     fsState.paragraphs = paragraphs;
 
@@ -1800,13 +1845,17 @@
       var name = (db.profile && db.profile.name) || '';
       var hasChinese = /[\u4e00-\u9fa5]/.test(desire);
       var detectedLanguage = hasChinese ? 'Chinese' : 'English';
+      // 旅程一次生成：剧本 LLM + 全部段落 TTS 在同一个请求里完成，成本合并成一次扣费
+      var journeyVoice = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
 
       try {
-        var res = await callUnifiedApi('story', {
+        var res = await callUnifiedApi('journey', {
           desire: desire,
           name: name,
           mood: mood,
-          language: detectedLanguage
+          language: detectedLanguage,
+          voiceName: journeyVoice,
+          opId: uid()
         });
 
         var data = {};
@@ -1824,6 +1873,8 @@
         }
 
         applyCreditUsage(data);
+        // 先把整段音频灌进缓存再渲染，避免渲染后立刻自动播放时缓存未就绪、又去单独调 TTS
+        await preloadJourneyAudio(data, journeyVoice, mood);
         renderFsStoryUI(data);
       } catch (err) {
         console.warn('API error, using client fallback:', err);

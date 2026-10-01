@@ -218,7 +218,7 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 | `handle_new_user` | — | 注册触发器函数（新用户初始化）。**注意**：若还挂着触发器会自动送积分 |
 | `refund_credits` | `p_user_id uuid, p_ledger_id bigint` | 按扣费流水退款 |
 | `set_plan` | `p_user_id uuid, p_plan text, p_days integer DEFAULT 30` | 开通/续期 Pro（写 `profiles.plan` / `plan_expires_at`） |
-| `settle_credits` | `p_user_id uuid, p_ledger_id bigint, p_actual_points integer` | 用后按真实成本结算，只退不补 |
+| `settle_credits` | `p_user_id uuid, p_ledger_id bigint, p_actual_points integer, p_allow_topup boolean DEFAULT false` | 用后按**真实成本**结算：`false` = 只退不补；`true` = 升/降都改（补扣最多扣到余额为 0）。迁移 `20261001000000_settle_exact.sql`。**⚠️ 该迁移未应用前，边缘函数传 `p_allow_topup` 会报错** |
 | `wallet_summary` | `p_user_id uuid` | 一次返回余额 + 订阅状态（含过期自动降级） |
 
 **✖ `redeem_code` 决定不做**（2026-09-29）：产品**不提供"用户用兑换码兑换"**的功能，所以不补建该函数，也不建 `redeem_codes` 表。
@@ -283,6 +283,48 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 | 年付 | $70.00 | 10500 | 10500 × $0.001 = **$10.50** | $59.50 | **85%** |
 
 单次动作同理：story 成本 $0.006 → 扣 **6 积分**（用户视角面值 $0.06，你实花 $0.006，差 10 倍）。
+
+### 4.2 各动作的计费方式（pre-pay vs post-pay）
+
+| 动作 | 计费方式 | 成本来源 | 流水 |
+|---|---|---|---|
+| `story` | 先预扣 → 用后按真实成本结算（升/降都改） | LLM 响应 `usage.cost`（请求带 `usage:{include:true}`） | 1 条 |
+| `journey` ★ | **用后一次性扣费**：调用前不预扣，只校验余额 ≥ 1 | 剧本 LLM 真实成本 + **各段 TTS 真实成本**（逐段 `X-Generation-Id` 反查）加总 | **1 条**（与段数无关） |
+| `voice` | 用后一次性扣费 | 该次 TTS 的 `X-Generation-Id` 反查 | 1 条 |
+| `vision-photo` / `vision-video` | 先预扣（按输入估算） | 按参考图数 / 时长×分辨率估算 | 1 条 |
+
+**`journey` 动作（整条旅程一次生成）**
+
+- 一次请求内完成：① 剧本 LLM 生成文本 → ② 按 `/\n+/` 切段（最多 8 段）→ ③ 所有段落**并行**合成 TTS → ④ 一次性全部返回。
+- 扣费 = `pointsForCost(LLM 真实成本 + Σ 各段 TTS 真实成本)`，**合并成一条流水**；幂等键 `ref = journey:<首个 generation id>`。
+- 任一项查不到真实成本 → 该项退回「按输入估算」（不会白送）；LLM 拿不到 `usage.cost` → 用 `COST_TABLE.story` 兜底。
+- 前端拿到音频后灌入 `pcmAudioCache`，播放时命中缓存 → 不再产生任何 TTS 调用，因此也不会二次扣费。
+- 前端动作名：`journey`；`voiceName` 传 `local`（系统朗读）时服务端不做 TTS，只返回文本，成本仅含剧本 LLM。
+
+> 后扣类动作（`voice` / `journey`）的共同代价：音频先交付、扣费后落账，中间有数秒到数十秒窗口；
+> 若那一刻余额不足，这笔收不到（日志会打「音频已交付，这笔未收到」）。
+
+### 4.3 ✅ OpenRouter 音频接口实测（2026-10-01，用真实 key 验证过）
+
+| 项目 | 实测结果 |
+|---|---|
+| `X-Generation-Id` 响应头 | **存在** ✅（例：`gen-tts-1790860476-DpSUdISRDsnk0sVeVTDw`） |
+| 账单入账延迟 | **约 85 秒**（15/30/45/60/75 秒查均返回 404，90 秒时查到） |
+| `GET /api/v1/generation?id=` 关键字段 | `total_cost`（美元）、`usage`、`model`、`provider_name`、`tokens_prompt` / `tokens_completion` |
+| 实测样例 | 45 字符输入 → `total_cost: 0.00355`（12 prompt + 177 completion tokens，provider=Google） |
+| `response_format` | Gemini TTS **只支持 `pcm`**，传 `mp3` 直接报 400 |
+| 轮询预算 | 因此定为 `GEN_COST_BUDGET_MS = 120000`（Supabase waitUntil 后台任务上限约 150 秒） |
+
+> ⚠️ 口径提醒：`COST_TABLE.ttsPer1kChars = 0.25`（≈ $0.25/1000 字符）比实测真实成本**高约 3 倍**
+> （实测 ≈ $0.079/1000 字符）。它现在只用于「查不到真实成本」时的兜底估算，不再是主扣费依据。
+
+**由此修掉的一个真实 bug**：`handleVoice` 的「方案 C（Gemini 默认兜底）」原本给 `google/gemini-3.1-flash-tts-preview`
+传了 `response_format: 'mp3'` → 必然 400，该兜底分支等于永远失败。已改为 `pcm` 并转成 wav（与方案 A0 一致）。
+`index.ts` 与 `server.js` 同步修好。（2026-10-01）
+
+**LLM 那一半同样已实测**（2026-10-01）：`minimax/minimax-m3` 可用（provider=Together），带 `usage:{include:true}`
+时响应里确实有 `usage.cost`，取值 `0.00004758`（181 prompt + 20 completion tokens）。
+即 `handleStory` 的 `__costUsd` 来源可靠，`journey` 的「LLM 真实成本」拿得到，不必依赖兜底值。
 
 ---
 
@@ -384,6 +426,11 @@ select
    - ~~**【安全】修 `profiles` 的 Pro 越权**~~ ✅ 2026-09-29 已修（见 5.4）
    - ~~应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`~~ ✅ 2026-09-29 已应用（见第 2 节 credit_ledger）
    - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
+   - **【待部署】新增 `journey` 动作**（整条旅程一次生成：剧本 LLM + 全段 TTS，成本合并成一条流水，见 4.2）。
+     前端 `app.js` / `public/app.js`、本地 `server.js` / `credits-core.js` 已同步改好；线上要生效必须**重新部署边缘函数** + 让 Vercel 重新部署前端
+   - **【待应用】`20261001000000_settle_exact.sql`** → `settle_credits` 新增 `p_allow_topup`（真实成本可升可降）。**必须与边缘函数同批上线**，否则边缘函数调用会因函数签名不匹配报错
+   - ~~**【未验证】OpenRouter `/audio/speech` 是否返回 `X-Generation-Id`**~~ ✅ 2026-10-01 已用真实 key 实测：**存在**，且账单约 85 秒入账（见 4.3）。
+     轮询预算已从 60s 上调到 `GEN_COST_BUDGET_MS = 120000`（index.ts 与 server.js 同步）
    - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 2026-09-29 已应用（10 列，末尾为 `plan`）
    - ~~清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`~~ ✅ 2026-09-29 已清理（见 5.5）
    - ~~补 `redeem_code` 函数~~ ✖ **决定不做**：产品不提供兑换码功能（见第 3 节说明）；代码里残留的入口可选清理
