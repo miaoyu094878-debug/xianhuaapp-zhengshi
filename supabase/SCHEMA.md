@@ -322,6 +322,10 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 传了 `response_format: 'mp3'` → 必然 400，该兜底分支等于永远失败。已改为 `pcm` 并转成 wav（与方案 A0 一致）。
 `index.ts` 与 `server.js` 同步修好。（2026-10-01）
 
+**LLM 那一半同样已实测**（2026-10-01）：`minimax/minimax-m3` 可用（provider=Together），带 `usage:{include:true}`
+时响应里确实有 `usage.cost`，取值 `0.00004758`（181 prompt + 20 completion tokens）。
+即 `handleStory` 的 `__costUsd` 来源可靠，`journey` 的「LLM 真实成本」拿得到，不必依赖兜底值。
+
 ---
 
 ## 五、RLS 与权限
