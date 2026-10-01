@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { costFor, pointsForCost } from './credits-core.js';
+import { costFor, pointsForCost, MIN_POINTS } from './credits-core.js';
 import {
   LEDGER_MODE, resolveUser, spend, grant, refund, settle, redeem, setPlan, createCodes,
   priceSheet, walletSummary, isAdmin
@@ -73,24 +73,22 @@ async function fetchGenerationCostUsd(generationId, apiKey, budgetMs = 60000) {
   }
 }
 
-/** 后台结算：不阻塞用户，拿到真实成本后把这笔 pending 流水改成真实积分 */
-function deferSettle(userId, ledgerId, generationId, apiKey, estimated, action) {
+/** 语音的「用后一次性扣费」：拿到 OpenRouter 的真实成本后扣一笔（一条流水、一次扣费） */
+function deferCharge(userId, action, generationId, apiKey, estCostUsd) {
   (async () => {
     try {
       const realCost = await fetchGenerationCostUsd(generationId, apiKey, 60000);
-      if (realCost == null) {
-        console.warn(`[credits] ${action} 未查到真实成本（gen=${generationId}）→ 保留预扣 ${estimated} 分，流水仍为 pending`);
-        return;
-      }
-      const actualPoints = pointsForCost(realCost);
-      const r = await settle(userId, ledgerId, actualPoints, true);
+      const useCost = realCost == null ? estCostUsd : realCost;   // 查不到就按输入估算扣，避免白送
+      const pts = pointsForCost(useCost);
+      if (pts <= 0) return;
+      const r = await spend(userId, action, 'gen:' + generationId, useCost, pts);
       if (r && r.ok) {
-        console.log(`[credits] ${action} 真实成本结算 ledger=${ledgerId} 预扣=${estimated} 实际=${actualPoints} (cost=$${realCost}) 现余额=${r.balance}`);
+        console.log(`[credits] ${action} 用后扣费 gen=${generationId} 积分=${pts} (cost=$${useCost}${realCost == null ? ' 估算' : ' 真实'}) 余额=${r.balance}`);
       } else {
-        console.warn(`[credits] ${action} 结算失败 ledger=${ledgerId}:`, r && r.error);
+        console.warn(`[credits] ${action} 用后扣费失败 gen=${generationId}:`, r && r.error, '（音频已交付，这笔未收到）');
       }
     } catch (e) {
-      console.warn('[credits] 语音后台结算异常:', e);
+      console.warn('[credits] 语音用后扣费异常:', e);
     }
   })();
 }
@@ -1565,7 +1563,23 @@ async function chargeAndRun(req, res, action, handler) {
 
   let charged = 0;
   let ledgerId = null;
-  if (!freeForPro) {
+
+  // 语音改为「用后一次性扣费」：调用前不预扣，等 OpenRouter 的真实成本回来再扣一笔。
+  // 但调用前仍要确认账户里"有积分"，否则 0 积分也能白拿音频。
+  const postPayVoice = !freeForPro && (action === 'voice' || action === 'manifest-voice');
+
+  if (postPayVoice) {
+    const bal = wallet.balance || 0;
+    if (bal < MIN_POINTS) {
+      return res.status(402).json({
+        error: 'insufficient_credits',
+        message: `Not enough credits: ${MIN_POINTS} needed, ${bal} available.`,
+        required: MIN_POINTS,
+        balance: bal,
+        prices: priceSheet()
+      });
+    }
+  } else if (!freeForPro) {
     const r = await spend(user.id, action, spendRef, costUsd, points);
     if (!r.ok) {
       if (r.error === 'insufficient') {
@@ -1618,17 +1632,24 @@ async function chargeAndRun(req, res, action, handler) {
     }
     delete capturedBody.__costUsd;
 
-    // 语音/音频：响应体没有成本，交给后台用 X-Generation-Id 查真实成本再结算（不阻塞）
+    // 语音：调用前没预扣，这里在后台「一次扣清」——查 OpenRouter 的真实成本后扣一笔
     const genId = capturedBody.__generationId;
     const genKey = capturedBody.__orKey;
     delete capturedBody.__generationId;
     delete capturedBody.__orKey;
-    if (genId && genKey && charged > 0 && ledgerId != null) {
-      deferSettle(user.id, ledgerId, String(genId), String(genKey), charged, action);
+    if (postPayVoice) {
+      if (genId && genKey) {
+        deferCharge(user.id, action, String(genId), String(genKey), costUsd);
+      } else {
+        // 没有 X-Generation-Id → 查不到真实成本，退回按输入估算扣一次（不退不补）
+        console.warn(`[credits] ${action} 无 X-Generation-Id，按输入估算扣费 ref=${spendRef}`);
+        const r = await spend(user.id, action, spendRef, costUsd, points);
+        if (r && r.ok) finalCharged = r.charged || 0;
+      }
     }
 
     const w = await walletSummary(user.id);
-    capturedBody.credits = { charged: finalCharged, balance: w.balance };
+    capturedBody.credits = { charged: finalCharged, balance: w.balance, deferred: postPayVoice && !!genId };
   }
 
   return origJson(capturedBody);

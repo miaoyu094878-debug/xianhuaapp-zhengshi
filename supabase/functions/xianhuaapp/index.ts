@@ -173,27 +173,26 @@ async function ttsResponse(orRes: Response, apiKey: string, payload: Record<stri
 }
 
 /**
- * 后台结算（不阻塞用户）：响应返回后再去 OpenRouter 查这次请求的真实成本，
- * 拿到就把 credit_ledger 里这一条 pending 流水改成「真实成本换算的积分」（升/降都改）。
- * 查不到（入账超时/接口异常）就保持预扣价，下次仍是同一条记录，不会产生第二条流水。
+ * 语音的「用后一次性扣费」（不阻塞用户）：
+ * 音频已经交给用户了，这里再去 OpenRouter 查本次请求的真实成本 → 换算积分 → 扣一笔。
+ * 一条流水、一次扣费，没有预扣/找零两步。
+ * 幂等键 ref = gen:<GenerationId>，同一个 generation 只会扣一次。
  */
-function deferSettle(userId: string, ledgerId: number, generationId: string, apiKey: string, estimated: number, action: string) {
+function deferCharge(userId: string, action: string, generationId: string, apiKey: string, estCostUsd: number) {
   const task = (async () => {
     try {
       const realCost = await fetchGenerationCostUsd(generationId, apiKey, 60000);
-      if (realCost == null) {
-        console.warn(`[credits] ${action} 未查到真实成本（gen=${generationId}）→ 保留预扣 ${estimated} 分，流水仍为 pending`);
-        return;
-      }
-      const actualPoints = pointsForCost(realCost);
-      const r: any = await settle(userId, ledgerId, actualPoints, true);
+      const useCost = realCost == null ? estCostUsd : realCost;   // 查不到就按输入估算扣，避免白送
+      const pts = pointsForCost(useCost);
+      if (pts <= 0) return;
+      const r: any = await spend(userId, action, 'gen:' + generationId, useCost, pts);
       if (r && r.ok) {
-        console.log(`[credits] ${action} 真实成本结算 ledger=${ledgerId} 预扣=${estimated} 实际=${actualPoints} (cost=$${realCost}) 现余额=${r.balance}`);
+        console.log(`[credits] ${action} 用后扣费 gen=${generationId} 积分=${pts} (cost=$${useCost}${realCost == null ? ' 估算' : ' 真实'}) 余额=${r.balance}`);
       } else {
-        console.warn(`[credits] ${action} 结算 RPC 失败 ledger=${ledgerId}:`, r && r.error);
+        console.warn(`[credits] ${action} 用后扣费失败 gen=${generationId}:`, r && r.error, '（音频已交付，这笔未收到）');
       }
     } catch (e) {
-      console.warn('[credits] 语音后台结算失败:', e);
+      console.warn('[credits] 语音用后扣费异常:', e);
     }
   })();
   // Supabase Edge Runtime 提供 waitUntil：响应发出后继续跑，最长到函数 wall-clock 上限
@@ -201,8 +200,7 @@ function deferSettle(userId: string, ledgerId: number, generationId: string, api
     // @ts-ignore EdgeRuntime 是边缘运行时全局对象，Deno 类型里没有声明
     EdgeRuntime.waitUntil(task);
   } else {
-    // 没有 waitUntil 时后台任务会被回收 → 结算不会发生，必须留下线索
-    console.warn(`[credits] ${action} 当前运行时没有 EdgeRuntime.waitUntil，真实成本结算无法在后台完成`);
+    console.warn(`[credits] ${action} 当前运行时没有 EdgeRuntime.waitUntil，用后扣费无法在后台完成`);
   }
 }
 
@@ -410,7 +408,23 @@ async function withCredits(
 
   let charged = 0;
   let ledgerId: number | null = null;
-  if (!freeForPro) {
+
+  // 语音改为「用后一次性扣费」：调用前不预扣，等 OpenRouter 的真实成本回来再扣一笔。
+  // 但调用前仍要确认账户里"有积分"，否则 0 积分也能白拿音频。
+  const postPayVoice = !freeForPro && (action === 'voice' || action === 'manifest-voice');
+
+  if (postPayVoice) {
+    const bal = wallet.balance || 0;
+    if (bal < MIN_POINTS) {
+      return json({
+        error: 'insufficient_credits',
+        message: `Not enough credits: ${MIN_POINTS} needed, ${bal} available.`,
+        required: MIN_POINTS,
+        balance: bal,
+        prices: priceSheet(),
+      }, 402, cors);
+    }
+  } else if (!freeForPro) {
     const r: any = await spend(user.id, action, spendRef, costUsd, points);
     if (!r.ok) {
       if (r.error === 'insufficient') {
@@ -444,26 +458,32 @@ async function withCredits(
   try {
     const payload = await res.json();
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-      // LLM 用后结算：handler 回传真实成本（__costUsd）→ 按它把积分改成真实值（升/降都改）
+      // LLM / 生图：响应体自带真实成本（__costUsd）→ 按它把积分改成真实值（升/降都改）
       let finalCharged = charged;
       if (charged > 0 && ledgerId != null && payload.__costUsd != null) {
-        // 真实成本到手就结算（无论进退）：数据库会把这一条流水改成真实积分并置为 settled
         const actualPoints = pointsForCost(Number(payload.__costUsd));
         const sr: any = await settle(user.id, ledgerId, actualPoints, true);
         if (sr && sr.ok) finalCharged = sr.charged ?? actualPoints;
       }
       delete payload.__costUsd;
 
-      // 语音/音频类：响应体里没有成本，交给后台用 X-Generation-Id 查真实成本再结算（不阻塞）
+      // 语音：调用前没预扣，这里在后台「一次扣清」——查 OpenRouter 的真实成本后扣一笔
       const genId = payload.__generationId;
       const genKey = payload.__orKey;
       delete payload.__generationId;
       delete payload.__orKey;
-      if (genId && genKey && charged > 0 && ledgerId != null) {
-        deferSettle(user.id, ledgerId, String(genId), String(genKey), charged, action);
+      if (postPayVoice) {
+        if (genId && genKey) {
+          deferCharge(user.id, action, String(genId), String(genKey), costUsd);
+        } else {
+          // 没有 X-Generation-Id → 查不到真实成本，退回按输入估算扣一次（不退不补）
+          console.warn(`[credits] ${action} 无 X-Generation-Id，按输入估算扣费 ref=${spendRef}`);
+          const r: any = await spend(user.id, action, spendRef, costUsd, points);
+          if (r && r.ok) finalCharged = r.charged || 0;
+        }
       }
       const w = await walletSummary(user.id);
-      payload.credits = { charged: finalCharged, balance: w.balance };
+      payload.credits = { charged: finalCharged, balance: w.balance, deferred: postPayVoice && !!genId };
     }
     return json(payload, res.status, cors);
   } catch (_e) {

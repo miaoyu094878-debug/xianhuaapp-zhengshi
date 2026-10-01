@@ -459,6 +459,7 @@
   }
 
   var _creditToastTimer = null;
+  var _deferredCreditTimers = [];
   function toastCredits(msg) {
     var t = $('#creditToast');
     if (!t) {
@@ -479,6 +480,14 @@
     renderCredits();
     var charged = Number(data.credits.charged) || 0;
     if (charged > 0) toastCredits('−' + charged + ' ✦ · ' + creditState.balance + ' left');
+    // 语音是「用后按真实成本扣费」：这笔在音频返回后几秒~几十秒才落账，
+    // 所以这里延后刷新两次余额，避免用户看到没扣钱的假象。
+    if (data.credits.deferred) {
+      [20000, 75000].forEach(function (delay, i) {
+        clearTimeout(_deferredCreditTimers[i]);
+        _deferredCreditTimers[i] = setTimeout(function () { loadCredits(); }, delay);
+      });
+    }
   }
 
   function creditBlocked() {
