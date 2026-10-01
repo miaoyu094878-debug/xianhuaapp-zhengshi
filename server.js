@@ -40,9 +40,12 @@ function getAI() {
 /* ══════════ 语音真实成本结算（与 Supabase 边缘函数同一套逻辑）══════════
  * OpenRouter 的 /audio/speech 返回二进制音频，响应体里没有成本，
  * 只能用响应头 X-Generation-Id 去 GET /api/v1/generation?id= 反查 total_cost（美元）。
- * 该记录入账有延迟，所以先预扣、拿到真实成本后再把这笔流水改成真实积分（升降都改）。
+ * 该记录入账有延迟（实测约 85 秒），所以语音改为「先交付音频、拿到真实成本后一次性扣费」。
  */
-async function fetchGenerationCostUsd(generationId, apiKey, budgetMs = 60000) {
+/** 查真实成本的轮询预算：实测 generation 记录约 85 秒才入账，预算必须给到 120 秒。 */
+const GEN_COST_BUDGET_MS = 120000;
+
+async function fetchGenerationCostUsd(generationId, apiKey, budgetMs = GEN_COST_BUDGET_MS) {
   const id = String(generationId || '').trim();
   if (!id || !apiKey) return null;
   const deadline = Date.now() + budgetMs;
@@ -69,7 +72,7 @@ async function fetchGenerationCostUsd(generationId, apiKey, budgetMs = 60000) {
       console.warn(`[credits] 查真实成本超时 gen=${id} 尝试=${attempts}次 最后状态=${lastStatus}`);
       return null;
     }
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 2500));
   }
 }
 
@@ -77,7 +80,7 @@ async function fetchGenerationCostUsd(generationId, apiKey, budgetMs = 60000) {
 function deferCharge(userId, action, generationId, apiKey, estCostUsd) {
   (async () => {
     try {
-      const realCost = await fetchGenerationCostUsd(generationId, apiKey, 60000);
+      const realCost = await fetchGenerationCostUsd(generationId, apiKey);
       const useCost = realCost == null ? estCostUsd : realCost;   // 查不到就按输入估算扣，避免白送
       const pts = pointsForCost(useCost);
       if (pts <= 0) return;
@@ -106,7 +109,7 @@ function deferChargeJourney(userId, action, info, estCostUsd) {
       const realCosts = await Promise.all(items.map((it) => {
         const key = it?.orKey || info?.orKey;
         return it?.genId && key
-          ? fetchGenerationCostUsd(String(it.genId), String(key), 60000)
+          ? fetchGenerationCostUsd(String(it.genId), String(key))
           : Promise.resolve(null);
       }));
       let total = 0;
@@ -805,16 +808,17 @@ async function executeVoiceSynthesis(req, res) {
             model: 'google/gemini-3.1-flash-tts-preview',
             input: cleanText,
             voice: chosenVoice,
-            response_format: 'mp3'
+            // Gemini TTS 只支持 pcm；传 mp3 会被 OpenRouter 直接 400（2026-10-01 实测）
+            response_format: 'pcm'
           })
         });
 
         if (orRes.ok) {
           const arrayBuffer = await orRes.arrayBuffer();
-          const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+          const wavBuf = pcmToWav(Buffer.from(arrayBuffer), 24000, 1, 16);
           const result = {
-            audio: base64Audio,
-            format: 'mp3',
+            audio: wavBuf.toString('base64'),
+            format: 'wav',
             provider: 'openrouter-gemini-tts',
             model: 'google/gemini-3.1-flash-tts-preview',
             voice: chosenVoice

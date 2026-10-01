@@ -304,6 +304,24 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 > 后扣类动作（`voice` / `journey`）的共同代价：音频先交付、扣费后落账，中间有数秒到数十秒窗口；
 > 若那一刻余额不足，这笔收不到（日志会打「音频已交付，这笔未收到」）。
 
+### 4.3 ✅ OpenRouter 音频接口实测（2026-10-01，用真实 key 验证过）
+
+| 项目 | 实测结果 |
+|---|---|
+| `X-Generation-Id` 响应头 | **存在** ✅（例：`gen-tts-1790860476-DpSUdISRDsnk0sVeVTDw`） |
+| 账单入账延迟 | **约 85 秒**（15/30/45/60/75 秒查均返回 404，90 秒时查到） |
+| `GET /api/v1/generation?id=` 关键字段 | `total_cost`（美元）、`usage`、`model`、`provider_name`、`tokens_prompt` / `tokens_completion` |
+| 实测样例 | 45 字符输入 → `total_cost: 0.00355`（12 prompt + 177 completion tokens，provider=Google） |
+| `response_format` | Gemini TTS **只支持 `pcm`**，传 `mp3` 直接报 400 |
+| 轮询预算 | 因此定为 `GEN_COST_BUDGET_MS = 120000`（Supabase waitUntil 后台任务上限约 150 秒） |
+
+> ⚠️ 口径提醒：`COST_TABLE.ttsPer1kChars = 0.25`（≈ $0.25/1000 字符）比实测真实成本**高约 3 倍**
+> （实测 ≈ $0.079/1000 字符）。它现在只用于「查不到真实成本」时的兜底估算，不再是主扣费依据。
+
+**由此修掉的一个真实 bug**：`handleVoice` 的「方案 C（Gemini 默认兜底）」原本给 `google/gemini-3.1-flash-tts-preview`
+传了 `response_format: 'mp3'` → 必然 400，该兜底分支等于永远失败。已改为 `pcm` 并转成 wav（与方案 A0 一致）。
+`index.ts` 与 `server.js` 同步修好。（2026-10-01）
+
 ---
 
 ## 五、RLS 与权限
@@ -407,8 +425,8 @@ select
    - **【待部署】新增 `journey` 动作**（整条旅程一次生成：剧本 LLM + 全段 TTS，成本合并成一条流水，见 4.2）。
      前端 `app.js` / `public/app.js`、本地 `server.js` / `credits-core.js` 已同步改好；线上要生效必须**重新部署边缘函数** + 让 Vercel 重新部署前端
    - **【待应用】`20261001000000_settle_exact.sql`** → `settle_credits` 新增 `p_allow_topup`（真实成本可升可降）。**必须与边缘函数同批上线**，否则边缘函数调用会因函数签名不匹配报错
-   - **【未验证】OpenRouter `/audio/speech` 是否返回 `X-Generation-Id`** → 若不返回，"按真实成本扣费"整条链路失效，会退回按输入估算。
-     验证命令：`curl -sS -D - -o /tmp/tts.mp3 -X POST https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer sk-or-v1-KEY" -H "Content-Type: application/json" -d '{"model":"google/gemini-3.1-flash-tts-preview","input":"test","voice":"Zephyr","response_format":"mp3"}' | grep -i generation`
+   - ~~**【未验证】OpenRouter `/audio/speech` 是否返回 `X-Generation-Id`**~~ ✅ 2026-10-01 已用真实 key 实测：**存在**，且账单约 85 秒入账（见 4.3）。
+     轮询预算已从 60s 上调到 `GEN_COST_BUDGET_MS = 120000`（index.ts 与 server.js 同步）
    - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 2026-09-29 已应用（10 列，末尾为 `plan`）
    - ~~清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`~~ ✅ 2026-09-29 已清理（见 5.5）
    - ~~补 `redeem_code` 函数~~ ✖ **决定不做**：产品不提供兑换码功能（见第 3 节说明）；代码里残留的入口可选清理

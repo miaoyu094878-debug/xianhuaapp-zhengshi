@@ -480,10 +480,10 @@
     renderCredits();
     var charged = Number(data.credits.charged) || 0;
     if (charged > 0) toastCredits('−' + charged + ' ✦ · ' + creditState.balance + ' left');
-    // 语音是「用后按真实成本扣费」：这笔在音频返回后几秒~几十秒才落账，
-    // 所以这里延后刷新两次余额，避免用户看到没扣钱的假象。
+    // 语音 / 旅程是「用后按真实成本扣费」：OpenRouter 的账单要约 85 秒才入账，
+    // 扣费完成后才落账，所以这里延后刷新余额，避免用户看到没扣钱的假象。
     if (data.credits.deferred) {
-      [20000, 75000].forEach(function (delay, i) {
+      [30000, 120000, 150000].forEach(function (delay, i) {
         clearTimeout(_deferredCreditTimers[i]);
         _deferredCreditTimers[i] = setTimeout(function () { loadCredits(); }, delay);
       });
