@@ -434,9 +434,9 @@
       }
     } else {
       if ($('#pwTitle')) $('#pwTitle').textContent = 'Not enough credits';
-      if ($('#pwIntro')) $('#pwIntro').textContent = 'AI generation is billed by the model\'s real cost, so it needs credits.';
+      if ($('#pwIntro')) $('#pwIntro').textContent = 'AI generation is billed by the model\'s real cost. You need a minimum balance to start a generation.';
       if ($('#pwCost')) {
-        $('#pwCost').innerHTML = 'This generation needs <span class="pw-req">' + (opts.required || 0) + ' ✦</span>' +
+        $('#pwCost').innerHTML = 'Minimum required: <span class="pw-req">' + (opts.required || 0) + ' ✦</span>' +
           (opts.balance != null ? ' · you have ' + opts.balance + ' ✦' : '');
       }
     }
@@ -3684,7 +3684,8 @@
         quality: cameraInfo.qualityParam,
         quality_mode: currentCameraQuality,
         image: aiPhotoRefB64 || undefined,
-        aspect_ratio: aiPhotoAspectSel || '3:4'
+        aspect_ratio: aiPhotoAspectSel || '3:4',
+        opId: uid()   // 幂等键：同一笔生成的重复提交不会重复扣费
       };
       if (userKey) photoPayload.openrouterKey = userKey;
 

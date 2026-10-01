@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { costFor, pointsForCost, MIN_POINTS, COST_TABLE } from './credits-core.js';
+import { costFor, pointsForCost, POSTPAY_MIN_BALANCE, COST_TABLE } from './credits-core.js';
 import {
   LEDGER_MODE, resolveUser, spend, grant, refund, settle, redeem, setPlan, createCodes,
   priceSheet, walletSummary, isAdmin
@@ -1704,18 +1704,20 @@ async function chargeAndRun(req, res, action, handler) {
   let charged = 0;
   let ledgerId = null;
 
-  // 语音 / 旅程改为「用后一次性扣费」：调用前不预扣，等 OpenRouter 的真实成本回来再扣一笔。
-  // 但调用前仍要确认账户里"有积分"，否则 0 积分也能白拿音频。
+  // 语音 / 旅程 / 生图改为「用后一次性扣费」：调用前不预扣，等真实成本回来再扣一笔。
+  // 但调用前仍要做最低余额门槛（POSTPAY_MIN_BALANCE），否则余额很少也能反复白拿。
   const postPay = !freeForPro &&
-    (action === 'voice' || action === 'manifest-voice' || action === 'journey' || action === 'manifest-journey');
+    (action === 'voice' || action === 'manifest-voice' ||
+     action === 'journey' || action === 'manifest-journey' ||
+     action === 'vision-photo');
 
   if (postPay) {
     const bal = wallet.balance || 0;
-    if (bal < MIN_POINTS) {
+    if (bal < POSTPAY_MIN_BALANCE) {
       return res.status(402).json({
         error: 'insufficient_credits',
-        message: `Not enough credits: ${MIN_POINTS} needed, ${bal} available.`,
-        required: MIN_POINTS,
+        message: `Not enough credits: ${POSTPAY_MIN_BALANCE} needed, ${bal} available.`,
+        required: POSTPAY_MIN_BALANCE,
         balance: bal,
         prices: priceSheet()
       });
@@ -1766,14 +1768,16 @@ async function chargeAndRun(req, res, action, handler) {
     }
   } else if (typeof capturedBody === 'object' && !Array.isArray(capturedBody)) {
     // LLM 用后结算：按真实成本把这一笔改成真实积分（升/降都改）
-    if (charged > 0 && ledgerId != null && capturedBody.__costUsd != null) {
-      const actualPoints = pointsForCost(Number(capturedBody.__costUsd));
+    // 「先用后扣」的生图动作还要用这个值直接扣一笔，所以先取出来再删字段。
+    const bodyCostUsd = capturedBody.__costUsd == null ? null : Number(capturedBody.__costUsd);
+    if (charged > 0 && ledgerId != null && bodyCostUsd != null) {
+      const actualPoints = pointsForCost(bodyCostUsd);
       const sr = await settle(user.id, ledgerId, actualPoints, true);
       if (sr && sr.ok) finalCharged = sr.charged ?? actualPoints;
     }
     delete capturedBody.__costUsd;
 
-    // 语音 / 旅程：调用前没预扣，这里在后台「一次扣清」——查 OpenRouter 的真实成本后扣一笔
+    // 语音 / 旅程 / 生图：调用前没预扣，这里「一次扣清」——按真实成本扣一笔
     const genId = capturedBody.__generationId;
     const genKey = capturedBody.__orKey;
     const deferredInfo = capturedBody.__creditsDeferred;
@@ -1789,9 +1793,15 @@ async function chargeAndRun(req, res, action, handler) {
       } else if (genId && genKey) {
         deferCharge(user.id, action, String(genId), String(genKey), costUsd);
         deferred = true;
+      } else if (bodyCostUsd != null) {
+        // 生图：真实成本就在响应体里（usage.cost），无需等待，同步一次扣清
+        const realPts = pointsForCost(bodyCostUsd);
+        console.log(`[credits] ${action} 用后扣费（响应体真实成本）积分=${realPts} cost=$${bodyCostUsd}`);
+        const r = await spend(user.id, action, spendRef, bodyCostUsd, realPts);
+        if (r && r.ok) finalCharged = r.charged || 0;
       } else {
-        // 没有 X-Generation-Id → 查不到真实成本，退回按输入估算扣一次（不退不补）
-        console.warn(`[credits] ${action} 无 X-Generation-Id，按输入估算扣费 ref=${spendRef}`);
+        // 既没有响应体成本、也没有 X-Generation-Id → 退回按输入估算扣一次
+        console.warn(`[credits] ${action} 无真实成本，按输入估算扣费 ref=${spendRef}`);
         const r = await spend(user.id, action, spendRef, costUsd, points);
         if (r && r.ok) finalCharged = r.charged || 0;
       }

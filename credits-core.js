@@ -25,6 +25,14 @@ export const SAFETY_FACTOR = 1.0;
 /** 单次调用最低扣分（避免极便宜调用扣 0 分） */
 export const MIN_POINTS = 1;
 
+/**
+ * 「先用后扣」动作（语音 / 旅程 / 生图）的最低余额门槛。
+ * 这类动作调用前不预扣，等真实成本回来才落账，所以必须用余额门槛挡住白拿：
+ * 余额 < 20 分 → 直接拒绝生成并提示充值。
+ * 视频 / 故事仍是「预扣 + 结算」，不适用本门槛（由预扣本身兜底）。
+ */
+export const POSTPAY_MIN_BALANCE = 20;
+
 /** 新用户注册赠送积分（当前按产品决策：不赠送，一律先订阅或充值） */
 export const SIGNUP_BONUS_POINTS = 0;
 
