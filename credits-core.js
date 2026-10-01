@@ -128,6 +128,12 @@ export function costFor(action, payload = {}, result = {}) {
     case 'manifest-story':
       return COST_TABLE.story;
 
+    // 旅程 = 剧本 LLM + 全部段落 TTS。真实成本由 handleJourney 回传后合并扣费，
+    // 这里的值只是「完全拿不到真实成本」时的兜底估算。
+    case 'journey':
+    case 'manifest-journey':
+      return COST_TABLE.story;
+
     case 'voice':
     case 'manifest-voice': {
       // 优先按真实合成的文本长度计费（含重试开销）

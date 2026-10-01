@@ -284,6 +284,26 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 
 单次动作同理：story 成本 $0.006 → 扣 **6 积分**（用户视角面值 $0.06，你实花 $0.006，差 10 倍）。
 
+### 4.2 各动作的计费方式（pre-pay vs post-pay）
+
+| 动作 | 计费方式 | 成本来源 | 流水 |
+|---|---|---|---|
+| `story` | 先预扣 → 用后按真实成本结算（升/降都改） | LLM 响应 `usage.cost`（请求带 `usage:{include:true}`） | 1 条 |
+| `journey` ★ | **用后一次性扣费**：调用前不预扣，只校验余额 ≥ 1 | 剧本 LLM 真实成本 + **各段 TTS 真实成本**（逐段 `X-Generation-Id` 反查）加总 | **1 条**（与段数无关） |
+| `voice` | 用后一次性扣费 | 该次 TTS 的 `X-Generation-Id` 反查 | 1 条 |
+| `vision-photo` / `vision-video` | 先预扣（按输入估算） | 按参考图数 / 时长×分辨率估算 | 1 条 |
+
+**`journey` 动作（整条旅程一次生成）**
+
+- 一次请求内完成：① 剧本 LLM 生成文本 → ② 按 `/\n+/` 切段（最多 8 段）→ ③ 所有段落**并行**合成 TTS → ④ 一次性全部返回。
+- 扣费 = `pointsForCost(LLM 真实成本 + Σ 各段 TTS 真实成本)`，**合并成一条流水**；幂等键 `ref = journey:<首个 generation id>`。
+- 任一项查不到真实成本 → 该项退回「按输入估算」（不会白送）；LLM 拿不到 `usage.cost` → 用 `COST_TABLE.story` 兜底。
+- 前端拿到音频后灌入 `pcmAudioCache`，播放时命中缓存 → 不再产生任何 TTS 调用，因此也不会二次扣费。
+- 前端动作名：`journey`；`voiceName` 传 `local`（系统朗读）时服务端不做 TTS，只返回文本，成本仅含剧本 LLM。
+
+> 后扣类动作（`voice` / `journey`）的共同代价：音频先交付、扣费后落账，中间有数秒到数十秒窗口；
+> 若那一刻余额不足，这笔收不到（日志会打「音频已交付，这笔未收到」）。
+
 ---
 
 ## 五、RLS 与权限
@@ -384,7 +404,11 @@ select
    - ~~**【安全】修 `profiles` 的 Pro 越权**~~ ✅ 2026-09-29 已修（见 5.4）
    - ~~应用 `20260929000000_ledger_single_row.sql` → 给 `credit_ledger` 加 `status` / `estimated_points`~~ ✅ 2026-09-29 已应用（见第 2 节 credit_ledger）
    - **【待部署】重新部署边缘函数 `xianhuaapp`** → 生图/语音按真实成本结算、settle 时机修正才会生效
+   - **【待部署】新增 `journey` 动作**（整条旅程一次生成：剧本 LLM + 全段 TTS，成本合并成一条流水，见 4.2）。
+     前端 `app.js` / `public/app.js`、本地 `server.js` / `credits-core.js` 已同步改好；线上要生效必须**重新部署边缘函数** + 让 Vercel 重新部署前端
    - **【待应用】`20261001000000_settle_exact.sql`** → `settle_credits` 新增 `p_allow_topup`（真实成本可升可降）。**必须与边缘函数同批上线**，否则边缘函数调用会因函数签名不匹配报错
+   - **【未验证】OpenRouter `/audio/speech` 是否返回 `X-Generation-Id`** → 若不返回，"按真实成本扣费"整条链路失效，会退回按输入估算。
+     验证命令：`curl -sS -D - -o /tmp/tts.mp3 -X POST https://openrouter.ai/api/v1/audio/speech -H "Authorization: Bearer sk-or-v1-KEY" -H "Content-Type: application/json" -d '{"model":"google/gemini-3.1-flash-tts-preview","input":"test","voice":"Zephyr","response_format":"mp3"}' | grep -i generation`
    - ~~修正 `profiles_overview` 的余额口径（排除 `void`）~~ ✅ 2026-09-29 已应用（10 列，末尾为 `plan`）
    - ~~清理 `credit_ledger` 重复的 SELECT 策略 `own credit_ledger read`~~ ✅ 2026-09-29 已清理（见 5.5）
    - ~~补 `redeem_code` 函数~~ ✖ **决定不做**：产品不提供兑换码功能（见第 3 节说明）；代码里残留的入口可选清理
