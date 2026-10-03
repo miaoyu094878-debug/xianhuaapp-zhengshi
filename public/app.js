@@ -260,6 +260,8 @@
     $$('#tab-plans [data-price]').forEach(function (el) { el.hidden = el.dataset.price !== mode; });
     $$('#tab-plans [data-note]').forEach(function (el) { el.hidden = el.dataset.note !== mode; });
     $$('#tab-plans [data-credits]').forEach(function (el) { el.hidden = el.dataset.credits !== mode; });
+    var saveBadge = $('#plansSave');
+    if (saveBadge) saveBadge.hidden = mode !== 'yearly';
   }
   $$('.plans-toggle-btn').forEach(function (b) {
     b.addEventListener('click', function () { setBillingMode(b.dataset.billing); });
