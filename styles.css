@@ -205,7 +205,7 @@ body {
   }
   #tab-today .hero-stats { display: none; }
   #tab-today > .focus-card { display: none; }
-  .hero-quick {
+  #tab-today .hero-quick {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
     margin-top: auto; padding-top: 18px;
   }
