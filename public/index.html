@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.04.today-dockstyle">
+  <link rel="stylesheet" href="styles.css?v=2026.10.04.today-icons22">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -225,29 +225,29 @@ body {
 
   /* Mobile: Today page — hero fills down to dock, quick grid replaces stats */
   #tab-today .hero {
-    min-height: calc(100dvh - 162px - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 142px - env(safe-area-inset-bottom));
     display: flex; flex-direction: column;
   }
   #tab-today .hero-stats { display: none; }
   #tab-today > .focus-card { display: none; }
   #tab-today .hero-quick {
-    display: flex; align-items: center; justify-content: space-around;
-    margin-top: auto; padding: 10px;
-    background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 999px;
-    box-shadow: 0 10px 26px -14px rgba(24,12,48,0.35);
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-rows: 1fr; gap: 10px;
+    margin-top: auto; padding-top: 18px;
   }
   .hq-btn {
-    border: none; background: none; color: var(--text-dim); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px; border-radius: 999px; padding: 0;
-    font-family: inherit; -webkit-tap-highlight-color: transparent;
-    transition: color .3s cubic-bezier(.2,.7,.3,1), transform .3s cubic-bezier(.2,.7,.3,1);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+    text-align: left; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 13px 14px; cursor: pointer; font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .3s cubic-bezier(.2,.7,.3,1), background .3s;
   }
-  .hq-btn:active { transform: scale(.88); }
-  .hq-btn:hover { color: var(--text); }
-  .hq-btn .tb-icon { display: block; width: 24px; height: 24px; }
-  .hq-btn .tb-icon svg { display: block; width: 100%; height: 100%; }
+  .hq-btn:active { transform: scale(.95); }
+  .hq-btn:hover { background: var(--surface-hover); }
+  .hq-ico { display: block; width: 24px; height: 24px; color: var(--accent); }
+  .hq-ico svg { display: block; width: 100%; height: 100%; }
+  .hq-name { font-size: 12.5px; line-height: 1.35; font-weight: 600; color: var(--text); letter-spacing: .3px; }
 }
 
 /* Install guide modal */
@@ -3390,18 +3390,22 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             </div>
           </div>
           <div class="hero-quick" aria-label="Quick features">
-            <button class="hq-btn" data-goto="tab-future" aria-label="Living Reality" type="button">
-              <span class="tb-icon"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3A7 7 0 0 0 21 12.8Z"/></svg></span>
-            </button>
-            <button class="hq-btn" data-goto="tab-wallpaper" aria-label="Wallpaper" type="button">
-              <span class="tb-icon"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.4" y="4.4" width="17.2" height="15.2" rx="4.2"/><path d="M3.7 15.7l4.2-4.1 3.4 3.3 3.2-3.7 5.9 5.3"/><circle cx="8.6" cy="9.1" r="1.5"/></svg></span>
-            </button>
-            <button class="hq-btn" data-goto="tab-affirm" aria-label="Affirmations" type="button">
-              <span class="tb-icon"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6 C13.8 8.4 15.6 10.2 20.4 12 C15.6 13.8 13.8 15.6 12 20.4 C10.2 15.6 8.4 13.8 3.6 12 C8.4 10.2 10.2 8.4 12 3.6 Z"/></svg></span>
-            </button>
-            <button class="hq-btn" data-goto="tab-ai-vision" aria-label="AI Photo &amp; Video" type="button">
-              <span class="tb-icon"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.2" y="5" width="17.6" height="14" rx="4.2"/><path d="M10.4 9.3l5 3.05-5 3.05V9.3Z"/></svg></span>
-            </button>
+            <div class="hq-btn" data-goto="tab-future" role="button" tabindex="0">
+              <span class="hq-ico"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3A7 7 0 0 0 21 12.8Z"/></svg></span>
+              <span class="hq-name">Living Reality</span>
+            </div>
+            <div class="hq-btn" data-goto="tab-wallpaper" role="button" tabindex="0">
+              <span class="hq-ico"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.4" y="4.4" width="17.2" height="15.2" rx="4.2"/><path d="M3.7 15.7l4.2-4.1 3.4 3.3 3.2-3.7 5.9 5.3"/><circle cx="8.6" cy="9.1" r="1.5"/></svg></span>
+              <span class="hq-name">Wallpaper</span>
+            </div>
+            <div class="hq-btn" data-goto="tab-ai-vision" role="button" tabindex="0">
+              <span class="hq-ico"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.2" y="5" width="17.6" height="14" rx="4.2"/><path d="M10.4 9.3l5 3.05-5 3.05V9.3Z"/></svg></span>
+              <span class="hq-name">AI Photo &amp; Video</span>
+            </div>
+            <div class="hq-btn" data-goto="tab-affirm" role="button" tabindex="0">
+              <span class="hq-ico"><svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6 C13.8 8.4 15.6 10.2 20.4 12 C15.6 13.8 13.8 15.6 12 20.4 C10.2 15.6 8.4 13.8 3.6 12 C8.4 10.2 10.2 8.4 12 3.6 Z"/></svg></span>
+              <span class="hq-name">Affirmations</span>
+            </div>
           </div>
         </div>
 
