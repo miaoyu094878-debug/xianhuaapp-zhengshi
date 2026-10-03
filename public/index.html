@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.02.tabbar-dock">
+  <link rel="stylesheet" href="styles.css?v=2026.10.03.header-mobile">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -210,6 +210,19 @@ body {
 }
 .install-btn .ib-ico { font-size: 14px; line-height: 1; }
 .install-btn:hover { background: var(--surface-hover); }
+
+/* Mobile: compact header (brand + wallet pill + install + avatar) */
+@media (max-width: 580px) {
+  .app-header { padding: 14px 12px 10px; }
+  .brand { gap: 6px; }
+  .brand-logo { font-size: 21px; }
+  .brand-name { font-size: 18px; letter-spacing: 1px; }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .wallet-pill { height: 30px; padding: 0 10px; gap: 5px; font-size: 12px; }
+  .install-btn { padding: 6px 12px; font-size: 11px; gap: 4px; }
+  .install-btn .ib-ico { font-size: 12px; }
+  .header-profile { width: 32px; height: 32px; }
+}
 
 /* Install guide modal */
 .install-guide { text-align: left; margin: 6px 0 14px; display: flex; flex-direction: column; gap: 10px; }
