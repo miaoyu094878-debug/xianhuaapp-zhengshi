@@ -154,6 +154,10 @@
 | 9 | duration | integer | YES | `0` |
 | 10 | created_at | timestamptz | YES | `now()` |
 
+> **写入口径（2026-10 起）**：前端只写「轻量生成记录」——`kind` / `prompt` / `status` / `aspect_ratio` / `duration` / `created_at`；
+> `image_url`、`video_url` **始终写空字符串**，不再把图片、视频内容（base64 文本）存进本表，避免表体积随生成量膨胀。
+> 注意事项：画廊显示走客户端本地缓存（`localStorage` 的 `db.aiVision`），**任何地方都不读取本表内容**，所以留空不影响功能。
+
 ### wallpapers
 | pos | 列 | 类型 | 可空 | 默认 |
 |---|---|---|---|---|
