@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.9.30.avatar-refresh">
+  <link rel="stylesheet" href="styles.css?v=2026.10.02.tabbar-dock">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -226,17 +226,28 @@ main { padding: 10px 18px 0; }
 @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
 
 .tab-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-  display: flex; justify-content: space-around;
-  background: var(--surface-2); backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid var(--border); padding: 8px 2px calc(8px + env(safe-area-inset-bottom));
+  position: fixed; left: 14px; right: 14px;
+  bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10;
+  display: flex; align-items: center; justify-content: space-around;
+  background: var(--surface-2); backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid var(--border); border-radius: 999px; padding: 10px;
+  box-shadow: 0 18px 44px -18px rgba(24,12,48,0.4), inset 0 1px 0 rgba(255,255,255,0.45);
 }
-.tab-btn { border: none; background: none; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 6px 6px; border-radius: 14px; transition: 0.3s; flex: 1; max-width: 74px; }
-.tab-btn .tb-icon { font-size: 20px; transition: 0.3s; line-height: 1; }
-.tab-btn .tb-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; max-height: 0; opacity: 0; overflow: hidden; transition: 0.3s; white-space: nowrap; }
-.tab-btn.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.tab-btn.active .tb-label { max-height: 14px; opacity: 1; font-weight: 600; margin-top: 1px; }
-.tab-btn.active .tb-icon { transform: translateY(-1px); }
+.tab-btn {
+  border: none; background: none; color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  height: 46px; border-radius: 999px; flex: 1; max-width: 68px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .3s cubic-bezier(.2,.7,.3,1), transform .3s cubic-bezier(.2,.7,.3,1);
+}
+.tab-btn .tb-icon { display: block; width: 24px; height: 24px; }
+.tab-btn .tb-icon svg { display: block; width: 100%; height: 100%; }
+.tab-btn .tb-icon .i-fill { display: none; }
+.tab-btn.active { color: var(--text); }
+.tab-btn.active .tb-icon .i-line { display: none; }
+.tab-btn.active .tb-icon .i-fill { display: block; }
+.tab-btn:active { transform: scale(.88); }
 
 /* ---------- GLASS CARD ---------- */
 .glass, .card {
@@ -3048,14 +3059,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.45), 0 10px 26px rgba(0,122,255,0.35);
 }
 :root[data-theme="ios"] .tab-bar {
-  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.32));
-  backdrop-filter: blur(30px) saturate(1.8);
-  -webkit-backdrop-filter: blur(30px) saturate(1.8);
-  border: 1px solid rgba(255,255,255,0.7);
-  border-top-color: rgba(255,255,255,0.9);
-  border-radius: 30px;
-  margin: 0 14px calc(10px + env(safe-area-inset-bottom));
-  box-shadow: 0 8px 30px rgba(80,110,180,0.18), inset 0 1px 1px rgba(255,255,255,0.9);
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.5));
+  box-shadow: 0 12px 32px rgba(80,110,180,0.24), inset 0 1px 1px rgba(255,255,255,0.9);
 }
 :root[data-theme="ios"] input, :root[data-theme="ios"] select, :root[data-theme="ios"] textarea {
   background: rgba(255,255,255,0.55);
@@ -4536,11 +4541,31 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </section>
     </main>
 
-    <nav class="tab-bar">
-      <button class="tab-btn active" data-tab="tab-future"><span class="tb-icon">🌌</span><span class="tb-label">Living Reality</span></button>
-      <button class="tab-btn" data-tab="tab-wallpaper"><span class="tb-icon">🖼</span><span class="tb-label">Wallpaper</span></button>
-      <button class="tab-btn" data-tab="tab-affirm"><span class="tb-icon">❋</span><span class="tb-label">Affirm</span></button>
-      <button class="tab-btn" data-tab="tab-ai-vision"><span class="tb-icon">🎬</span><span class="tb-label">AI Vision</span></button>
+            <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-future" aria-label="Living Reality">
+        <span class="tb-icon">
+          <svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3A7 7 0 0 0 21 12.8Z"/><path d="M17.3 4.3c.35 1.16.84 1.65 2 2-1.16.35-1.65.84-2 2-.35-1.16-.84-1.65-2-2 1.16-.35 1.65-.84 2-2Z"/></svg>
+          <svg class="i-fill" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3A7 7 0 0 0 21 12.8Z"/><path d="M17.3 4.3c.35 1.16.84 1.65 2 2-1.16.35-1.65.84-2 2-.35-1.16-.84-1.65-2-2 1.16-.35 1.65-.84 2-2Z"/></svg>
+        </span>
+      </button>
+      <button class="tab-btn" data-tab="tab-wallpaper" aria-label="Wallpaper">
+        <span class="tb-icon">
+          <svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.4" y="4.4" width="17.2" height="15.2" rx="4.2"/><path d="M3.7 15.7l4.2-4.1 3.4 3.3 3.2-3.7 5.9 5.3"/><circle cx="8.6" cy="9.1" r="1.5"/></svg>
+          <svg class="i-fill" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 4.4 H16.4 A4.2 4.2 0 0 1 20.6 8.6 V15.4 A4.2 4.2 0 0 1 16.4 19.6 H7.6 A4.2 4.2 0 0 1 3.4 15.4 V8.6 A4.2 4.2 0 0 1 7.6 4.4 Z M6.2 16.2 L9.9 12.1 12.7 14.8 15.2 11.9 17.8 16.2 Z M7.2 9 a1.6 1.6 0 1 0 3.2 0 a1.6 1.6 0 1 0 -3.2 0 Z"/></svg>
+        </span>
+      </button>
+      <button class="tab-btn" data-tab="tab-affirm" aria-label="Affirm">
+        <span class="tb-icon">
+          <svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6 C13.8 8.4 15.6 10.2 20.4 12 C15.6 13.8 13.8 15.6 12 20.4 C10.2 15.6 8.4 13.8 3.6 12 C8.4 10.2 10.2 8.4 12 3.6 Z"/></svg>
+          <svg class="i-fill" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3.6 C13.8 8.4 15.6 10.2 20.4 12 C15.6 13.8 13.8 15.6 12 20.4 C10.2 15.6 8.4 13.8 3.6 12 C8.4 10.2 10.2 8.4 12 3.6 Z"/></svg>
+        </span>
+      </button>
+      <button class="tab-btn" data-tab="tab-ai-vision" aria-label="AI Vision">
+        <span class="tb-icon">
+          <svg class="i-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.2" y="5" width="17.6" height="14" rx="4.2"/><path d="M10.4 9.3l5 3.05-5 3.05V9.3Z"/></svg>
+          <svg class="i-fill" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path fill-rule="evenodd" d="M7.4 5 H16.6 A4.2 4.2 0 0 1 20.8 9.2 V14.8 A4.2 4.2 0 0 1 16.6 19 H7.4 A4.2 4.2 0 0 1 3.2 14.8 V9.2 A4.2 4.2 0 0 1 7.4 5 Z M10.7 9.1 V14.9 L15.5 12 Z"/></svg>
+        </span>
+      </button>
     </nav>
 
     <!-- Theme Switcher -->

@@ -213,17 +213,28 @@ main { padding: 10px 18px 0; }
 @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
 
 .tab-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-  display: flex; justify-content: space-around;
-  background: var(--surface-2); backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid var(--border); padding: 8px 2px calc(8px + env(safe-area-inset-bottom));
+  position: fixed; left: 14px; right: 14px;
+  bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10;
+  display: flex; align-items: center; justify-content: space-around;
+  background: var(--surface-2); backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid var(--border); border-radius: 999px; padding: 10px;
+  box-shadow: 0 18px 44px -18px rgba(24,12,48,0.4), inset 0 1px 0 rgba(255,255,255,0.45);
 }
-.tab-btn { border: none; background: none; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 6px 6px; border-radius: 14px; transition: 0.3s; flex: 1; max-width: 74px; }
-.tab-btn .tb-icon { font-size: 20px; transition: 0.3s; line-height: 1; }
-.tab-btn .tb-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; max-height: 0; opacity: 0; overflow: hidden; transition: 0.3s; white-space: nowrap; }
-.tab-btn.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.tab-btn.active .tb-label { max-height: 14px; opacity: 1; font-weight: 600; margin-top: 1px; }
-.tab-btn.active .tb-icon { transform: translateY(-1px); }
+.tab-btn {
+  border: none; background: none; color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  height: 46px; border-radius: 999px; flex: 1; max-width: 68px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .3s cubic-bezier(.2,.7,.3,1), transform .3s cubic-bezier(.2,.7,.3,1);
+}
+.tab-btn .tb-icon { display: block; width: 24px; height: 24px; }
+.tab-btn .tb-icon svg { display: block; width: 100%; height: 100%; }
+.tab-btn .tb-icon .i-fill { display: none; }
+.tab-btn.active { color: var(--text); }
+.tab-btn.active .tb-icon .i-line { display: none; }
+.tab-btn.active .tb-icon .i-fill { display: block; }
+.tab-btn:active { transform: scale(.88); }
 
 /* ---------- GLASS CARD ---------- */
 .glass, .card {
@@ -2918,14 +2929,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.45), 0 10px 26px rgba(0,122,255,0.35);
 }
 :root[data-theme="ios"] .tab-bar {
-  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.32));
-  backdrop-filter: blur(30px) saturate(1.8);
-  -webkit-backdrop-filter: blur(30px) saturate(1.8);
-  border: 1px solid rgba(255,255,255,0.7);
-  border-top-color: rgba(255,255,255,0.9);
-  border-radius: 30px;
-  margin: 0 14px calc(10px + env(safe-area-inset-bottom));
-  box-shadow: 0 8px 30px rgba(80,110,180,0.18), inset 0 1px 1px rgba(255,255,255,0.9);
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.5));
+  box-shadow: 0 12px 32px rgba(80,110,180,0.24), inset 0 1px 1px rgba(255,255,255,0.9);
 }
 :root[data-theme="ios"] input, :root[data-theme="ios"] select, :root[data-theme="ios"] textarea {
   background: rgba(255,255,255,0.55);
