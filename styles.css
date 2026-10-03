@@ -197,6 +197,30 @@ body {
   .install-btn { padding: 6px 12px; font-size: 11px; gap: 4px; }
   .install-btn .ib-ico { font-size: 12px; }
   .header-profile { width: 32px; height: 32px; }
+
+  /* Mobile: Today page — hero fills down to dock, quick grid replaces stats */
+  #tab-today .hero {
+    min-height: calc(100dvh - 162px - env(safe-area-inset-bottom));
+    display: flex; flex-direction: column;
+  }
+  #tab-today .hero-stats { display: none; }
+  #tab-today > .focus-card { display: none; }
+  .hero-quick {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-top: auto; padding-top: 18px;
+  }
+  .hq-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+    text-align: left; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 13px 14px; cursor: pointer; font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .3s cubic-bezier(.2,.7,.3,1), background .3s;
+  }
+  .hq-btn:active { transform: scale(.95); }
+  .hq-btn:hover { background: var(--surface-hover); }
+  .hq-ico { font-size: 19px; line-height: 1; }
+  .hq-name { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: .3px; }
 }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .header-profile {
@@ -349,6 +373,7 @@ main { padding: 10px 18px 0; }
   color: var(--text-soft); border: 1px solid var(--border);
 }
 .hero-stats { display: flex; justify-content: space-around; margin-top: 20px; text-align: center; }
+.hero-quick { display: none; }
 .stat { position: relative; }
 .stat-num { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 26px; font-weight: 600; display: block; color: var(--stat-color); }
 .stat-label { font-size: 10px; color: var(--text-soft); text-transform: uppercase; letter-spacing: 1px; }
