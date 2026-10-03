@@ -185,6 +185,19 @@ body {
   font-size: 12px; cursor: pointer; transition: 0.35s; backdrop-filter: blur(10px);
 }
 .install-btn:hover { background: var(--surface-hover); }
+
+/* Mobile: compact header (brand + wallet pill + install + avatar) */
+@media (max-width: 580px) {
+  .app-header { padding: 14px 12px 10px; }
+  .brand { gap: 6px; }
+  .brand-logo { font-size: 21px; }
+  .brand-name { font-size: 18px; letter-spacing: 1px; }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .wallet-pill { height: 30px; padding: 0 10px; gap: 5px; font-size: 12px; }
+  .install-btn { padding: 6px 12px; font-size: 11px; gap: 4px; }
+  .install-btn .ib-ico { font-size: 12px; }
+  .header-profile { width: 32px; height: 32px; }
+}
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .header-profile {
   display: inline-flex; align-items: center; justify-content: center;
