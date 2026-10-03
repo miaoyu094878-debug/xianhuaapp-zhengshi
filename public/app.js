@@ -2633,13 +2633,15 @@
   }
 
   // AI Vision uses existing table visions.
-  async function logVision(v, url) {
+  // 只写轻量生成记录（类型/提示词/状态/参数/时间），不把图片、视频内容（base64）存进表，
+  // 否则 visions 表会随每次生成膨胀到几 MB~十几 MB。画廊显示仍走本地缓存，不依赖此表。
+  async function logVision(v) {
     var body = {
       kind: v.kind || '',
       prompt: v.prompt || '',
       status: 'completed',
-      image_url: v.kind === 'photo' ? (url || '') : '',
-      video_url: v.kind === 'video' ? (url || '') : '',
+      image_url: '',
+      video_url: '',
       aspect_ratio: v.aspect || '',
       duration: v.duration || 0
     };
@@ -3716,7 +3718,7 @@
           url: data.url
         });
         save();
-        logVision({ kind: 'photo', prompt: prompt, aspect: photoPayload.aspect_ratio || '3:4' }, data.url);
+        logVision({ kind: 'photo', prompt: prompt, aspect: photoPayload.aspect_ratio || '3:4' });
         aiStatus('Photos aren\'t saved — please download and save them now.', 'success');
         updateUseRecentPhotoBtn();
         renderAiResults();
@@ -3807,7 +3809,7 @@
               });
             }
             save();
-            logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' }, videoUrl);
+            logVision({ kind: 'video', prompt: prompt, duration: dur, aspect: videoPayload.aspect_ratio || '3:4' });
             aiStatus('Videos aren\'t saved — please download and save them now.', 'success');
             renderAiResults();
           });
