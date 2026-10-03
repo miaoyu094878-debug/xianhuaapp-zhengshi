@@ -236,7 +236,7 @@
     if (id === 'tab-future' && typeof loadSavedVoices === 'function') loadSavedVoices();
     window.scrollTo(0, 0);
   }
-  $$('.mini-card, .focus-card, .more-card').forEach(function (c) {
+  $$('.mini-card, .focus-card, .more-card, .hq-btn').forEach(function (c) {
     c.addEventListener('click', function () { goTab(c.dataset.goto); });
   });
   $$('.side-link').forEach(function (b) {
