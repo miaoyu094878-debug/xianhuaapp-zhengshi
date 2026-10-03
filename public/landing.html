@@ -270,8 +270,8 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
       <h2>One plan. Everything unlocked.</h2>
     </div>
     <div class="lp-toggle">
-      <button type="button" class="lp-toggle-btn active" data-billing="yearly">Yearly</button>
       <button type="button" class="lp-toggle-btn" data-billing="monthly">Monthly</button>
+      <button type="button" class="lp-toggle-btn active" data-billing="yearly">Yearly</button>
       <span class="lp-save">Save 41%</span>
     </div>
     <div class="lp-price">
@@ -316,6 +316,8 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
     document.querySelectorAll('#pricing [data-lp-price]').forEach(function (el) { el.hidden = el.dataset.lpPrice !== mode; });
     document.querySelectorAll('#pricing [data-lp-note]').forEach(function (el) { el.hidden = el.dataset.lpNote !== mode; });
     document.querySelectorAll('#pricing [data-lp-credits]').forEach(function (el) { el.hidden = el.dataset.lpCredits !== mode; });
+    var saveBadge = document.querySelector('.lp-save');
+    if (saveBadge) saveBadge.hidden = mode !== 'yearly';
   }
   btns.forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.billing); }); });
 })();
