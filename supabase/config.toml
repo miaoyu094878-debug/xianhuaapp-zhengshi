@@ -1,0 +1,12 @@
+# Supabase Edge Functions 配置
+#
+# 关键：verify_jwt = false
+# Dodo Payments 的 webhook 回调不会携带 Supabase 的 Authorization / JWT，
+# 而 Edge Function 默认开启 JWT 校验，结果就是回调全部被 401 拦掉 —— 用户付了钱却不开通。
+# 关掉后由代码自己把关：
+#   - dodo-webhook  ：用 HMAC 验签（whsec_），签名不对直接 401，比 JWT 更严格
+#   - create-checkout：内部 resolveUser() 校验登录态，未登录返回 401
+#   - 其余 action   ：行为不变（anon key 本来就公开在前端，JWT 门禁在这里没有额外意义）
+
+[functions.xianhuaapp]
+verify_jwt = false
