@@ -254,7 +254,9 @@
   });
 
   /* ═══════ Subscriptions / Pricing ═══════ */
+  var currentBilling = 'yearly';
   function setBillingMode(mode) {
+    currentBilling = mode === 'monthly' ? 'monthly' : 'yearly';
     var btns = $$('.plans-toggle-btn');
     btns.forEach(function (b) { b.classList.toggle('active', b.dataset.billing === mode); });
     $$('#tab-plans [data-price]').forEach(function (el) { el.hidden = el.dataset.price !== mode; });
@@ -266,8 +268,40 @@
   $$('.plans-toggle-btn').forEach(function (b) {
     b.addEventListener('click', function () { setBillingMode(b.dataset.billing); });
   });
+  /* Dodo Payments 结账：必须登录，否则 webhook 回来无法把订阅对上账号 */
+  var checkoutBusy = false;
+  function setPlanBtnBusy(busy) {
+    $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
+      b.disabled = busy || isPro();
+      b.textContent = busy ? 'Opening checkout…' : (isPro() ? 'Pro active' : 'Activate Pro');
+    });
+  }
+  async function startCheckout(period) {
+    if (checkoutBusy) return;
+    if (!creditState.signedIn) {
+      openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
+      return;
+    }
+    checkoutBusy = true;
+    setPlanBtnBusy(true);
+    try {
+      var res = await callUnifiedApi('create-checkout', { period: period || currentBilling });
+      var data = await res.json().catch(function () { return {}; });
+      if (data && data.checkout_url) { window.location.href = data.checkout_url; return; }
+      if (data && data.error === 'auth_required') {
+        openLoginModal('Please sign in again, then subscribe ✦');
+        return;
+      }
+      toastCredits(data && data.error ? ('Checkout unavailable (' + data.error + ')') : 'Checkout is not available yet.');
+    } catch (e) {
+      toastCredits('Network error — please try again.');
+    } finally {
+      checkoutBusy = false;
+      setPlanBtnBusy(false);
+    }
+  }
   $$('#tab-plans .plan-card .plan-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () { openPaywall('pro'); });
+    btn.addEventListener('click', function () { startCheckout(currentBilling); });
   });
   if ($('#gateSignIn')) $('#gateSignIn').addEventListener('click', function () {
     openLoginModal('Sign in or create an account to subscribe ✦');
@@ -6285,4 +6319,8 @@
   initSwipe();
   loadCredits();
   maybeShowQuiz();
+  // 从落地页「Get started」进来（index.html?subscribe=1）时直接落到订阅页
+  if (/[?&]subscribe=1\b/.test(location.search)) {
+    setTimeout(function () { goTab('tab-plans'); }, 400);
+  }
 })();
