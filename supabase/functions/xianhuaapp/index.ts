@@ -654,7 +654,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const body = await req.json().catch(() => ({}));
+    // 先取原始 body 文本：Dodo webhook 的签名是对未经解析的字节做的 HMAC，
+    // 若先 req.json() 再 JSON.stringify 会因键序/空白变化导致验签失败。
+    const rawBody = await req.text();
+    let body: any = {};
+    if (rawBody) {
+      try { body = JSON.parse(rawBody); } catch { body = {}; }
+    }
     const action = body.action || url.searchParams.get('action') || url.pathname.split('/').pop() || '';
 
     switch (action) {
@@ -721,7 +727,16 @@ Deno.serve(async (req: Request) => {
         return await handleVisionVideoContent(body);
 
       // ══════════════════════════════════════════════════════════
-      // 模块 5: 网关连通性与密钥诊断
+      // 模块 5: Dodo Payments 订阅（创建结账会话 / 接收支付回调）
+      // ══════════════════════════════════════════════════════════
+      case 'create-checkout':
+        return await handleCreateCheckout(req, body, corsHeaders);
+
+      case 'dodo-webhook':
+        return await handleDodoWebhook(req, rawBody, corsHeaders);
+
+      // ══════════════════════════════════════════════════════════
+      // 模块 6: 网关连通性与密钥诊断
       // ══════════════════════════════════════════════════════════
       case 'health':
       case 'ping':
@@ -1994,4 +2009,209 @@ async function handleVisionVideoContent(body: any): Promise<Response> {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
+}
+
+/* ───────────────────────── Dodo Payments 订阅 ───────────────────────── */
+
+const DODO_API_KEY = Deno.env.get('DODO_API_KEY') || '';
+const DODO_WEBHOOK_KEY = Deno.env.get('DODO_WEBHOOK_KEY') || '';
+const DODO_API_BASE = (Deno.env.get('DODO_API_BASE') || 'https://live.dodopayments.com').replace(/\/+$/, '');
+const DODO_RETURN_URL = Deno.env.get('DODO_RETURN_URL') || 'https://www.alyema.com/index.html';
+const DODO_PRODUCT_MONTHLY = Deno.env.get('DODO_PRODUCT_ID_MONTHLY') || '';
+const DODO_PRODUCT_YEARLY = Deno.env.get('DODO_PRODUCT_ID_YEARLY') || '';
+
+function b64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function bytesToB64(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+function constTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * Standard Webhooks 规范验签：
+ *   HMAC-SHA256(base64decode(secret 去掉 whsec_ 前缀), "{webhook-id}.{timestamp}.{rawBody}")
+ * 必须用未经解析的原始 body 字符串，先 JSON.parse 再 stringify 会改变字节导致验签失败。
+ */
+async function verifyDodoSignature(rawBody: string, h: Headers): Promise<boolean> {
+  if (!DODO_WEBHOOK_KEY) return false;
+  const id = h.get('webhook-id') || '';
+  const ts = h.get('webhook-timestamp') || '';
+  const sigHeader = h.get('webhook-signature') || '';
+  if (!id || !ts || !sigHeader) return false;
+
+  const tsNum = Number(ts);
+  if (!Number.isFinite(tsNum)) return false;
+  // 拒绝 5 分钟以外的投递，防重放
+  if (Math.abs(Math.floor(Date.now() / 1000) - tsNum) > 300) return false;
+
+  let keyBytes: Uint8Array;
+  try {
+    keyBytes = b64ToBytes(DODO_WEBHOOK_KEY.replace(/^whsec_/, ''));
+  } catch {
+    return false;
+  }
+
+  // Uint8Array 的 buffer 类型在 TS 5.7+ 下与 BufferSource 不完全兼容，这里显式断言；
+  // Deno 运行时接受 ArrayBufferView，行为不变。
+  const key = await crypto.subtle.importKey('raw', keyBytes as unknown as ArrayBuffer, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const signed = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${id}.${ts}.${rawBody}`));
+  const expected = bytesToB64(new Uint8Array(signed));
+
+  return sigHeader.split(' ').some((part) => {
+    const idx = part.indexOf(',');
+    if (idx < 0) return false;
+    return part.slice(0, idx) === 'v1' && constTimeEqual(part.slice(idx + 1), expected);
+  });
+}
+
+/** 幂等占位：主键冲突 = 重复投递。表不存在时降级放行，不阻塞用户开通 */
+async function claimWebhookEvent(id: string, type: string): Promise<boolean> {
+  if (!id || !SERVICE_KEY || !SUPABASE_URL) return true;
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/dodo_webhook_events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SERVICE_KEY,
+        Authorization: 'Bearer ' + SERVICE_KEY,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ webhook_id: id, event_type: type }),
+    });
+    return res.ok;
+  } catch (_e) {
+    return true;
+  }
+}
+
+/** 兜底：metadata 里没带 user_id 时，用邮箱反查 profiles */
+async function findUserIdByEmail(email: string): Promise<string | null> {
+  if (!email || !SERVICE_KEY || !SUPABASE_URL) return null;
+  try {
+    const res = await fetch(
+      SUPABASE_URL + '/rest/v1/profiles?select=id&email=eq.' + encodeURIComponent(email) + '&limit=1',
+      { headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows && rows[0] && rows[0].id ? rows[0].id : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function periodFromProductId(data: any): 'monthly' | 'yearly' | '' {
+  const pid = String(
+    data?.product_id || (data?.product && data.product.product_id) ||
+    (data?.subscription && data.subscription.product_id) || ''
+  );
+  if (pid && pid === DODO_PRODUCT_YEARLY) return 'yearly';
+  if (pid && pid === DODO_PRODUCT_MONTHLY) return 'monthly';
+  return '';
+}
+
+/** 创建 Dodo 结账会话：API key 只在服务端，不暴露给前端 */
+async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record<string, string>) {
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+  if (!DODO_API_KEY) return json({ error: 'checkout_not_configured' }, 503);
+
+  // 必须登录：未登录拿不到 user_id，webhook 回来无法对上账号
+  const user = await resolveUser(req);
+  if (!user) return json({ error: 'auth_required' }, 401);
+
+  const period: 'monthly' | 'yearly' = body && body.period === 'monthly' ? 'monthly' : 'yearly';
+  const productId = period === 'monthly' ? DODO_PRODUCT_MONTHLY : DODO_PRODUCT_YEARLY;
+  if (!productId) return json({ error: 'product_not_configured', period }, 503);
+
+  try {
+    const res = await fetch(DODO_API_BASE + '/checkouts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + DODO_API_KEY },
+      body: JSON.stringify({
+        product_cart: [{ product_id: productId, quantity: 1 }],
+        customer: { email: user.email || '', name: (body && body.name) || '' },
+        return_url: (body && body.return_url) || DODO_RETURN_URL,
+        // metadata 会原样回传到该订阅的每一个 webhook，是关联用户的可靠依据
+        metadata: { user_id: user.id, period: period, email: user.email || '' },
+      }),
+    });
+    const text = await res.text();
+    let out: any = null;
+    try { out = text ? JSON.parse(text) : null; } catch { out = { raw: text }; }
+    if (!res.ok) return json({ error: 'dodo_checkout_failed', detail: out }, 502);
+    if (!out || !out.checkout_url) return json({ error: 'no_checkout_url', detail: out }, 502);
+    return json({ ok: true, checkout_url: out.checkout_url, session_id: out.session_id || '' });
+  } catch (err: any) {
+    return json({ error: err.message || 'checkout_failed' }, 500);
+  }
+}
+
+/** 接收 Dodo webhook：验签 → 去重 → 开通/续期/降级 */
+async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Record<string, string>) {
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+  if (!(await verifyDodoSignature(rawBody, req.headers))) {
+    return json({ error: 'invalid_signature' }, 401);
+  }
+
+  let evt: any = {};
+  try { evt = JSON.parse(rawBody); } catch { return json({ error: 'bad_payload' }, 400); }
+
+  const type: string = evt.type || '';
+  const data: any = evt.data || {};
+  const webhookId = req.headers.get('webhook-id') || '';
+
+  // 幂等：同一事件重试时 webhook-id 不变，第二次插入会主键冲突
+  const first = await claimWebhookEvent(webhookId, type);
+  if (!first) return json({ ok: true, duplicate: true });
+
+  const md: any = data.metadata || {};
+  let userId: string = md.user_id || md.userId || '';
+  let period: 'monthly' | 'yearly' | '' =
+    md.period === 'monthly' ? 'monthly' : (md.period === 'yearly' ? 'yearly' : '');
+
+  if (!userId) {
+    const email = (data.customer && data.customer.email) || md.email || '';
+    if (email) userId = (await findUserIdByEmail(email)) || '';
+  }
+  if (!period) period = periodFromProductId(data);
+
+  try {
+    if (type === 'subscription.active' || type === 'subscription.renewed') {
+      if (!userId) {
+        console.error('[dodo] cannot resolve user for', type, JSON.stringify(md));
+        return json({ ok: false, error: 'user_not_found' });
+      }
+      const r = await rpc('activate_subscription', { p_user_id: userId, p_period: period || 'monthly' });
+      console.log('[dodo]', type, userId, period, JSON.stringify(r));
+    } else if (type === 'subscription.expired' || type === 'subscription.failed') {
+      // 注意：cancelled 不在这里 —— 用户已付到本期末，应保留到 plan_expires_at 自然到期，
+      // 到期后 wallet_summary 会自动降级。只有真正到期/创建失败才立刻收回 Pro。
+      if (userId) {
+        await rpc('set_plan', { p_user_id: userId, p_plan: 'free', p_days: 0 });
+        console.log('[dodo] downgrade', type, userId);
+      }
+    }
+  } catch (err: any) {
+    console.error('[dodo] handler error', err);
+    return json({ error: err.message || 'handler_failed' }, 500);
+  }
+
+  return json({ ok: true });
 }
