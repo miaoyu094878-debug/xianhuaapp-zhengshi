@@ -50,10 +50,22 @@ const SIGNUP_BONUS_POINTS = 0;
 const SUBSCRIPTION = {
   monthlyUsd: 9.9,
   yearlyUsd: 70,
-  /** 订阅随附积分：月付 990 / 年付 10500（发放口径见迁移 20260930120000_activate_subscription.sql） */
+  /** 订阅随附积分：月付 990 / 年付 10500（发放口径见迁移 20261007120000_lite_plan.sql） */
   monthlyCredits: 990,
   yearlyCredits: 10500,
   yearlySavePct: Math.round((1 - 70 / (9.9 * 12)) * 100),
+};
+
+/**
+ * Lite 档：只解锁内容类功能（收藏 / 自定义肯定语 / 壁纸下载 / Studio），
+ * 不含任何 AI 能力，因此【不发放积分】。发放口径见迁移 20261007120000_lite_plan.sql。
+ */
+const SUBSCRIPTION_LITE = {
+  monthlyUsd: 5,
+  yearlyUsd: 29,
+  monthlyCredits: 0,
+  yearlyCredits: 0,
+  yearlySavePct: Math.round((1 - 29 / (5 * 12)) * 100),
 };
 
 /**
@@ -335,6 +347,7 @@ function priceSheet() {
     signupBonus: SIGNUP_BONUS_POINTS,
     margin: POINT_MARGIN,
     subscription: SUBSCRIPTION,
+    subscriptionLite: SUBSCRIPTION_LITE,
     packages: PACKAGES,
     /** 兜底固定价（仅参考，实际扣费按成本算） */
     costs: { ...CREDIT_COSTS },
@@ -2019,6 +2032,8 @@ const DODO_API_BASE = (Deno.env.get('DODO_API_BASE') || 'https://live.dodopaymen
 const DODO_RETURN_URL = Deno.env.get('DODO_RETURN_URL') || 'https://www.alyema.com/index.html';
 const DODO_PRODUCT_MONTHLY = Deno.env.get('DODO_PRODUCT_ID_MONTHLY') || '';
 const DODO_PRODUCT_YEARLY = Deno.env.get('DODO_PRODUCT_ID_YEARLY') || '';
+const DODO_PRODUCT_LITE_MONTHLY = Deno.env.get('DODO_PRODUCT_ID_LITE_MONTHLY') || '';
+const DODO_PRODUCT_LITE_YEARLY = Deno.env.get('DODO_PRODUCT_ID_LITE_YEARLY') || '';
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64);
@@ -2113,14 +2128,28 @@ async function findUserIdByEmail(email: string): Promise<string | null> {
   }
 }
 
-function periodFromProductId(data: any): 'monthly' | 'yearly' | '' {
+/**
+ * 由 Dodo 事件里的 product_id 反查「档位 + 周期」。
+ * 四个产品（lite/pro × monthly/yearly）各自一个 product_id。
+ * 配不全时返回空，调用方按 period 兜底、plan 兜底 pro。
+ */
+function planPeriodFromProductId(data: any): { plan: 'lite' | 'pro' | ''; period: 'monthly' | 'yearly' | '' } {
   const pid = String(
     data?.product_id || (data?.product && data.product.product_id) ||
     (data?.subscription && data.subscription.product_id) || ''
   );
-  if (pid && pid === DODO_PRODUCT_YEARLY) return 'yearly';
-  if (pid && pid === DODO_PRODUCT_MONTHLY) return 'monthly';
-  return '';
+  if (!pid) return { plan: '', period: '' };
+  if (pid === DODO_PRODUCT_YEARLY) return { plan: 'pro', period: 'yearly' };
+  if (pid === DODO_PRODUCT_MONTHLY) return { plan: 'pro', period: 'monthly' };
+  if (pid === DODO_PRODUCT_LITE_YEARLY) return { plan: 'lite', period: 'yearly' };
+  if (pid === DODO_PRODUCT_LITE_MONTHLY) return { plan: 'lite', period: 'monthly' };
+  return { plan: '', period: '' };
+}
+
+/** 档位 + 周期 → product_id（create-checkout 用） */
+function productIdFor(plan: 'lite' | 'pro', period: 'monthly' | 'yearly'): string {
+  if (plan === 'lite') return period === 'monthly' ? DODO_PRODUCT_LITE_MONTHLY : DODO_PRODUCT_LITE_YEARLY;
+  return period === 'monthly' ? DODO_PRODUCT_MONTHLY : DODO_PRODUCT_YEARLY;
 }
 
 /** 创建 Dodo 结账会话：API key 只在服务端，不暴露给前端 */
@@ -2135,8 +2164,10 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
   if (!user) return json({ error: 'auth_required' }, 401);
 
   const period: 'monthly' | 'yearly' = body && body.period === 'monthly' ? 'monthly' : 'yearly';
-  const productId = period === 'monthly' ? DODO_PRODUCT_MONTHLY : DODO_PRODUCT_YEARLY;
-  if (!productId) return json({ error: 'product_not_configured', period }, 503);
+  // 档位：lite（内容档，无 AI、无积分）或 pro（全功能，随附积分）
+  const plan: 'lite' | 'pro' = body && body.plan === 'lite' ? 'lite' : 'pro';
+  const productId = productIdFor(plan, period);
+  if (!productId) return json({ error: 'product_not_configured', plan, period }, 503);
 
   try {
     const res = await fetch(DODO_API_BASE + '/checkouts', {
@@ -2147,7 +2178,7 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
         customer: { email: user.email || '', name: (body && body.name) || '' },
         return_url: (body && body.return_url) || DODO_RETURN_URL,
         // metadata 会原样回传到该订阅的每一个 webhook，是关联用户的可靠依据
-        metadata: { user_id: user.id, period: period, email: user.email || '' },
+        metadata: { user_id: user.id, period: period, plan: plan, email: user.email || '' },
       }),
     });
     const text = await res.text();
@@ -2185,12 +2216,18 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
   let userId: string = md.user_id || md.userId || '';
   let period: 'monthly' | 'yearly' | '' =
     md.period === 'monthly' ? 'monthly' : (md.period === 'yearly' ? 'yearly' : '');
+  // 档位优先取 metadata（结账时写入），取不到再用 product_id 反查
+  let plan: 'lite' | 'pro' | '' = md.plan === 'lite' ? 'lite' : (md.plan === 'pro' ? 'pro' : '');
 
   if (!userId) {
     const email = (data.customer && data.customer.email) || md.email || '';
     if (email) userId = (await findUserIdByEmail(email)) || '';
   }
-  if (!period) period = periodFromProductId(data);
+  if (!period || !plan) {
+    const fromPid = planPeriodFromProductId(data);
+    if (!period) period = fromPid.period;
+    if (!plan) plan = fromPid.plan;
+  }
 
   try {
     if (type === 'subscription.active' || type === 'subscription.renewed') {
@@ -2198,8 +2235,11 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
         console.error('[dodo] cannot resolve user for', type, JSON.stringify(md));
         return json({ ok: false, error: 'user_not_found' });
       }
-      const r = await rpc('activate_subscription', { p_user_id: userId, p_period: period || 'monthly' });
-      console.log('[dodo]', type, userId, period, JSON.stringify(r));
+      const r = await rpc(
+        'activate_subscription',
+        { p_user_id: userId, p_period: period || 'monthly', p_plan: plan || 'pro' }
+      );
+      console.log('[dodo]', type, userId, plan || 'pro', period, JSON.stringify(r));
     } else if (type === 'subscription.expired' || type === 'subscription.failed') {
       // 注意：cancelled 不在这里 —— 用户已付到本期末，应保留到 plan_expires_at 自然到期，
       // 到期后 wallet_summary 会自动降级。只有真正到期/创建失败才立刻收回 Pro。
