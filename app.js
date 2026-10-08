@@ -270,13 +270,32 @@
   });
   /* Dodo Payments 结账：必须登录，否则 webhook 回来无法把订阅对上账号 */
   var checkoutBusy = false;
-  function setPlanBtnBusy(busy) {
+
+  /** 订阅按钮文案：按卡片档位 + 当前订阅状态 */
+  function planBtnLabel(plan) {
+    if (isPro()) return plan === 'lite' ? 'Included in Pro' : 'Pro active';
+    if (isLite()) return plan === 'lite' ? 'Lite active' : 'Upgrade to Pro';
+    return plan === 'lite' ? 'Get Lite' : 'Activate Pro';
+  }
+  /** 刷新两张卡的按钮状态（Lite 已激活时，Lite 卡禁用、Pro 卡引导升级） */
+  function refreshPlanBtns() {
     $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
-      b.disabled = busy || isPro();
-      b.textContent = busy ? 'Opening checkout…' : (isPro() ? 'Pro active' : 'Activate Pro');
+      var plan = b.dataset.plan === 'lite' ? 'lite' : 'pro';
+      b.disabled = plan === 'pro' ? isPro() : isPaid();
+      b.textContent = planBtnLabel(plan);
     });
   }
-  async function startCheckout(period) {
+  function setPlanBtnBusy(busy) {
+    if (busy) {
+      $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
+        b.disabled = true;
+        b.textContent = 'Opening checkout…';
+      });
+    } else {
+      refreshPlanBtns();
+    }
+  }
+  async function startCheckout(period, plan) {
     if (checkoutBusy) return;
     if (!creditState.signedIn) {
       openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
@@ -285,7 +304,10 @@
     checkoutBusy = true;
     setPlanBtnBusy(true);
     try {
-      var res = await callUnifiedApi('create-checkout', { period: period || currentBilling });
+      var res = await callUnifiedApi('create-checkout', {
+        period: period || currentBilling,
+        plan: plan === 'lite' ? 'lite' : 'pro'
+      });
       var data = await res.json().catch(function () { return {}; });
       if (data && data.checkout_url) { window.location.href = data.checkout_url; return; }
       if (data && data.error === 'auth_required') {
@@ -301,7 +323,9 @@
     }
   }
   $$('#tab-plans .plan-card .plan-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () { startCheckout(currentBilling); });
+    btn.addEventListener('click', function () {
+      startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro');
+    });
   });
   if ($('#gateSignIn')) $('#gateSignIn').addEventListener('click', function () {
     openLoginModal('Sign in or create an account to subscribe ✦');
@@ -331,6 +355,13 @@
   }
 
   function isPro() { return String(creditState.plan || '').toLowerCase() === 'pro'; }
+  /** 已付费（Lite 或 Pro）：内容类功能（收藏 / 自定义 / 壁纸下载 / Studio）的门槛 */
+  function isPaid() {
+    var p = String(creditState.plan || '').toLowerCase();
+    return p === 'pro' || p === 'lite';
+  }
+  function isLite() { return String(creditState.plan || '').toLowerCase() === 'lite'; }
+  function planLabel() { return isPro() ? 'Pro' : (isLite() ? 'Lite' : 'Free'); }
   function usd(n) { return '$' + Number(n || 0).toFixed(2); }
 
   async function creditRequest(action, payload) {
@@ -362,38 +393,45 @@
   function renderCredits() {
     // 顶部余额药丸
     if ($('#walletBalance')) $('#walletBalance').textContent = String(creditState.balance);
-    if ($('#walletPlan')) $('#walletPlan').classList.toggle('hidden', !isPro());
-    if ($('#walletPill')) $('#walletPill').classList.toggle('low', creditState.signedIn && !isPro() && creditState.balance <= 0);
+    if ($('#walletPlan')) {
+      $('#walletPlan').classList.toggle('hidden', !isPaid());
+      $('#walletPlan').textContent = planLabel().toUpperCase();
+    }
+    if ($('#walletPill')) $('#walletPill').classList.toggle('low', creditState.signedIn && !isPaid() && creditState.balance <= 0);
 
     // 侧栏余额入口（桌面端）
     if ($('#dsWalletBalance')) $('#dsWalletBalance').textContent = String(creditState.balance);
-    if ($('#dsWalletPlan')) $('#dsWalletPlan').classList.toggle('hidden', !isPro());
-    if ($('#dsWallet')) $('#dsWallet').classList.toggle('low', creditState.signedIn && !isPro() && creditState.balance <= 0);
+    if ($('#dsWalletPlan')) {
+      $('#dsWalletPlan').classList.toggle('hidden', !isPaid());
+      $('#dsWalletPlan').textContent = planLabel().toUpperCase();
+    }
+    if ($('#dsWallet')) $('#dsWallet').classList.toggle('low', creditState.signedIn && !isPaid() && creditState.balance <= 0);
 
     // 钱包卡
     if ($('#cwBalance')) $('#cwBalance').textContent = String(creditState.balance);
     var cwPlan = $('#cwPlan');
     if (cwPlan) {
-      cwPlan.textContent = isPro()
-        ? ('Pro · until ' + fmtDay(creditState.planExpiresAt))
+      cwPlan.textContent = isPaid()
+        ? (planLabel() + ' · until ' + fmtDay(creditState.planExpiresAt))
         : 'Not subscribed';
-      cwPlan.classList.toggle('pro', isPro());
+      cwPlan.classList.toggle('pro', isPaid());
     }
 
     // 订阅状态行 / 按钮
     if ($('#planStatusLine')) {
-      $('#planStatusLine').textContent = isPro()
-        ? 'Pro is active — unlimited affirmations and wallpapers.'
-        : (creditState.signedIn
-            ? 'You are not subscribed — subscribe below to unlock everything.'
-            : 'Please sign in, then subscribe to unlock everything.');
+      if (isPro()) {
+        $('#planStatusLine').textContent = 'Pro is active — everything unlocked, including AI features.';
+      } else if (isLite()) {
+        $('#planStatusLine').textContent =
+          'Lite is active — favourites, your own affirmations and wallpaper downloads. Upgrade to Pro for AI features.';
+      } else {
+        $('#planStatusLine').textContent = creditState.signedIn
+          ? 'You are not subscribed — pick Lite or Pro below.'
+          : 'Please sign in, then subscribe to unlock everything.';
+      }
     }
-    if ($('#gateSignIn')) $('#gateSignIn').classList.toggle('hidden', isPro() || creditState.signedIn);
-    var proBtn = $('#proSubscribeBtn');
-    if (proBtn) {
-      proBtn.textContent = isPro() ? 'Pro active' : 'Activate Pro';
-      proBtn.disabled = isPro();
-    }
+    if ($('#gateSignIn')) $('#gateSignIn').classList.toggle('hidden', isPaid() || creditState.signedIn);
+    refreshPlanBtns();
 
     updateCostBadges();
   }
@@ -454,19 +492,50 @@
   function openPaywall(kind, opts) {
     opts = opts || {};
     if (!paywall) return;
-    if (kind === 'pro') {
-      if ($('#pwTitle')) $('#pwTitle').textContent = 'Unlock with Pro ✦';
+    var prices = creditState.prices || {};
+    var sub = prices.subscription || null;
+    var lite = prices.subscriptionLite || null;
+
+    if (kind === 'content') {
+      // 内容类功能（收藏 / 自定义肯定语 / 壁纸下载 / Studio）：Lite 与 Pro 都能解锁
+      if ($('#pwTitle')) $('#pwTitle').textContent = 'Unlock with Lite or Pro ✦';
       if ($('#pwIntro')) {
         $('#pwIntro').textContent = opts.feature
-          ? (opts.feature + ' is a Pro feature — subscribe to use it without limits.')
+          ? (opts.feature + ' is included with Lite and Pro.')
           : 'Unlimited affirmations, wallpapers and downloads.';
       }
       if ($('#pwCost')) {
-        var sub = creditState.prices && creditState.prices.subscription;
+        var lm = lite ? lite.monthlyUsd : 5;
+        var pm = sub ? sub.monthlyUsd : 9.9;
+        $('#pwCost').innerHTML = 'Lite ' + usd(lm) + ' / month · Pro ' + usd(pm) + ' / month';
+      }
+    } else if (kind === 'pro') {
+      // AI 能力，未订阅用户：Lite 不含 AI，只能上 Pro
+      if ($('#pwTitle')) $('#pwTitle').textContent = 'Unlock with Pro ✦';
+      if ($('#pwIntro')) {
+        $('#pwIntro').textContent = opts.feature
+          ? (opts.feature + ' is a Pro feature — AI tools are not included in Lite.')
+          : 'AI journeys, AI vision and monthly credits.';
+      }
+      if ($('#pwCost')) {
         var m = sub ? sub.monthlyUsd : 9.9;
         var y = sub ? sub.yearlyUsd : 70;
         var save = sub ? sub.yearlySavePct : 41;
         $('#pwCost').innerHTML = usd(m) + ' / month · ' + usd(y) + ' / year (save ' + save + '%)';
+      }
+    } else if (kind === 'upgrade') {
+      // 已买 Lite 的用户点 AI 功能：引导升级到 Pro
+      if ($('#pwTitle')) $('#pwTitle').textContent = 'Upgrade to Pro ✦';
+      if ($('#pwIntro')) {
+        $('#pwIntro').textContent = opts.feature
+          ? (opts.feature + ' is a Pro feature — upgrade to unlock AI tools and monthly credits.')
+          : 'Upgrade to Pro for AI journeys, AI vision and monthly credits.';
+      }
+      if ($('#pwCost')) {
+        var um = sub ? sub.monthlyUsd : 9.9;
+        var uy = sub ? sub.yearlyUsd : 70;
+        var usave = sub ? sub.yearlySavePct : 41;
+        $('#pwCost').innerHTML = usd(um) + ' / month · ' + usd(uy) + ' / year (save ' + usave + '%)';
       }
     } else {
       if ($('#pwTitle')) $('#pwTitle').textContent = 'Not enough credits';
@@ -487,10 +556,17 @@
   if (paywall) paywall.addEventListener('click', function (e) { if (e.target === paywall) closePaywall(); });
   if ($('#walletPill')) $('#walletPill').addEventListener('click', function () { goTab('tab-plans'); });
 
-  /** 需要订阅的功能入口统一走这里 */
+  /** 需要 Pro 的功能入口（全部 AI 能力）统一走这里；Lite 用户会看到「升级 Pro」 */
   function requirePro(feature) {
     if (isPro()) return true;
-    openPaywall('pro', { feature: feature });
+    openPaywall(isLite() ? 'upgrade' : 'pro', { feature: feature });
+    return false;
+  }
+
+  /** 需要付费档的功能入口：Lite 与 Pro 都能用，只有 free 被拦 */
+  function requirePaid(feature) {
+    if (isPaid()) return true;
+    openPaywall('content', { feature: feature });
     return false;
   }
 
@@ -611,7 +687,7 @@
   });
   $('#affirmAdd').addEventListener('click', function () {
     if (!requireLogin('Sign in to add your own affirmations ✦')) return;
-    if (!requirePro('Your own affirmations')) return;
+    if (!requirePaid('Your own affirmations')) return;
     var t = $('#affirmNew').value.trim();
     if (!t) return;
     var isNew = db.affirmCustom.indexOf(t) === -1;
@@ -727,7 +803,7 @@
       favBtn.title = fav ? 'Unfavorite' : 'Favorite';
       favBtn.addEventListener('click', function () {
         if (!requireLogin('Sign in to favorite affirmations ✦')) return;
-        if (!requirePro('Favourites')) return;
+        if (!requirePaid('Favourites')) return;
         var i = db.affirmFavs.indexOf(text);
         var was = i !== -1;
         if (!was) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
@@ -784,7 +860,7 @@
   }
   $('#swipeSave').addEventListener('click', function () {
     if (!requireLogin('Sign in to save affirmations ♥')) return;
-    if (!requirePro('Favourites')) return;
+    if (!requirePaid('Favourites')) return;
     var text = swipeQueue[swipeQueue.length - 1];
     swipeOut('save', function () {
       swipeQueue.pop();
@@ -1189,7 +1265,8 @@
     // 未订阅 Pro：生成类动作直接弹订阅框（可关闭，关掉后可继续浏览）
     var gateLabel = PRO_GATED_ACTIONS[action];
     if (gateLabel && !isPro()) {
-      openPaywall('pro', { feature: gateLabel });
+      // AI 能力仅 Pro 提供：Lite 用户看到「升级 Pro」，未订阅用户看到「订阅 Pro」
+      openPaywall(isLite() ? 'upgrade' : 'pro', { feature: gateLabel });
       return new Response(JSON.stringify({ error: 'pro_required' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
@@ -5535,7 +5612,7 @@
     // Gate: exporting/saving a wallpaper requires an account
     if (!requireLogin('Sign in to save & download your wallpaper ✨')) return;
     // Gate: unlimited wallpaper downloads are a Pro benefit
-    if (!requirePro('Wallpaper downloads')) return;
+    if (!requirePaid('Wallpaper downloads')) return;
     // 1. Render clean canvas without UI selection boxes or handles
     renderWallpaper(true);
     var cnv = $('#wpCanvas');
@@ -5791,7 +5868,7 @@
       showCanvasExpandBtn();
     });
     wpCanvasExpandBtn.addEventListener('click', function () {
-      if (!requirePro('Wallpaper Studio')) return;
+      if (!requirePaid('Wallpaper Studio')) return;
       openWallpaperFullscreen();
     });
   }
