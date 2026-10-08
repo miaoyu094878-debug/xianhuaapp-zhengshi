@@ -327,6 +327,25 @@
       startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro');
     });
   });
+
+  /* ---------- 订阅卡选中态：点卡切换高亮（featured 样式跟人走），按钮才去支付 ---------- */
+  function setSelectedPlan(plan) {
+    $$('#tab-plans .plan-card').forEach(function (card) {
+      var sel = card.dataset.planCard === plan;
+      card.classList.toggle('plan-card-featured', sel);
+      var badge = card.querySelector('[data-plan-badge]');
+      if (badge) badge.hidden = !sel;
+      var btn = card.querySelector('.plan-btn');
+      if (btn) btn.classList.toggle('plan-btn-cta', sel);
+    });
+  }
+  setSelectedPlan('pro'); // 默认 Pro 高亮
+  $$('#tab-plans .plan-card').forEach(function (card) {
+    card.addEventListener('click', function (e) {
+      if (e.target.closest('.plan-btn')) return; // 按钮自己负责支付，不触发选中
+      setSelectedPlan(card.dataset.planCard);
+    });
+  });
   if ($('#gateSignIn')) $('#gateSignIn').addEventListener('click', function () {
     openLoginModal('Sign in or create an account to subscribe ✦');
   });
@@ -489,8 +508,10 @@
   /* ---------- 付费墙 & 提示 ---------- */
 
   var paywall = $('#paywallModal');
+  var _pwKind = 'pro';
   function openPaywall(kind, opts) {
     opts = opts || {};
+    _pwKind = kind === 'content' ? 'lite' : 'pro'; // 记住拦截类型：内容功能推 Lite，AI 功能推 Pro
     if (!paywall) return;
     var prices = creditState.prices || {};
     var sub = prices.subscription || null;
@@ -552,7 +573,11 @@
   }
   function closePaywall() { if (paywall) paywall.classList.add('hidden'); }
   if ($('#pwClose')) $('#pwClose').addEventListener('click', closePaywall);
-  if ($('#pwGoPlans')) $('#pwGoPlans').addEventListener('click', function () { closePaywall(); goTab('tab-plans'); });
+  if ($('#pwGoPlans')) $('#pwGoPlans').addEventListener('click', function () {
+    closePaywall();
+    goTab('tab-plans');
+    setSelectedPlan(_pwKind); // 从付费墙过来时，预选它推荐的那档
+  });
   if (paywall) paywall.addEventListener('click', function (e) { if (e.target === paywall) closePaywall(); });
   if ($('#walletPill')) $('#walletPill').addEventListener('click', function () { goTab('tab-plans'); });
 
