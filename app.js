@@ -271,11 +271,9 @@
   /* Dodo Payments 结账：必须登录，否则 webhook 回来无法把订阅对上账号 */
   var checkoutBusy = false;
 
-  /** 订阅按钮文案：按卡片档位 + 当前订阅状态 */
+  /** 订阅按钮文案：固定为 Get Lite / Get Pro（与落地页一致，月付/年付同文案） */
   function planBtnLabel(plan) {
-    if (isPro()) return plan === 'lite' ? 'Included in Pro' : 'Pro active';
-    if (isLite()) return plan === 'lite' ? 'Lite active' : 'Upgrade to Pro';
-    return plan === 'lite' ? 'Get Lite' : 'Activate Pro';
+    return plan === 'lite' ? 'Get Lite' : 'Get Pro';
   }
   /** 刷新两张卡的按钮状态（Lite 已激活时，Lite 卡禁用、Pro 卡引导升级） */
   function refreshPlanBtns() {
