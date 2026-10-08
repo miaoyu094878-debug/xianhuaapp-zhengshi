@@ -652,6 +652,16 @@ Deno.serve(async (req: Request) => {
           tts: hasElevenLabs ? 'elevenlabs:eleven_multilingual_v2' : (hasGemini ? 'gemini-3.1-flash-tts' : 'none')
         },
         credits: { enabled: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), prices: priceSheet() },
+        dodo: {
+          apiKey: !!DODO_API_KEY,
+          webhookKey: !!DODO_WEBHOOK_KEY,
+          products: {
+            proMonthly: !!DODO_PRODUCT_MONTHLY,
+            proYearly: !!DODO_PRODUCT_YEARLY,
+            liteMonthly: !!DODO_PRODUCT_LITE_MONTHLY,
+            liteYearly: !!DODO_PRODUCT_LITE_YEARLY
+          }
+        },
         supportedActions: ['credits', 'credits-redeem', 'story', 'journey', 'voice', 'vision-photo', 'vision-video', 'health']
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -2025,15 +2035,24 @@ async function handleVisionVideoContent(body: any): Promise<Response> {
 }
 
 /* ───────────────────────── Dodo Payments 订阅 ───────────────────────── */
+// 变量命名以 Supabase secrets 里实际存储的 DODO_ALYEMA_* 为准；
+// 旧的无前缀名（DODO_API_KEY 等）保留为兜底，便于本地/其他环境复用。
+const envAny = (...names: string[]): string => {
+  for (const n of names) {
+    const v = Deno.env.get(n);
+    if (v && v.trim()) return v.trim();
+  }
+  return '';
+};
 
-const DODO_API_KEY = Deno.env.get('DODO_API_KEY') || '';
-const DODO_WEBHOOK_KEY = Deno.env.get('DODO_WEBHOOK_KEY') || '';
+const DODO_API_KEY = envAny('DODO_ALYEMA_API_KEY', 'DODO_API_KEY');
+const DODO_WEBHOOK_KEY = envAny('DODO_ALYEMA_WEBHOOK_SECRET', 'DODO_WEBHOOK_KEY');
 const DODO_API_BASE = (Deno.env.get('DODO_API_BASE') || 'https://live.dodopayments.com').replace(/\/+$/, '');
 const DODO_RETURN_URL = Deno.env.get('DODO_RETURN_URL') || 'https://www.alyema.com/index.html';
-const DODO_PRODUCT_MONTHLY = Deno.env.get('DODO_PRODUCT_ID_MONTHLY') || '';
-const DODO_PRODUCT_YEARLY = Deno.env.get('DODO_PRODUCT_ID_YEARLY') || '';
-const DODO_PRODUCT_LITE_MONTHLY = Deno.env.get('DODO_PRODUCT_ID_LITE_MONTHLY') || '';
-const DODO_PRODUCT_LITE_YEARLY = Deno.env.get('DODO_PRODUCT_ID_LITE_YEARLY') || '';
+const DODO_PRODUCT_MONTHLY = envAny('DODO_ALYEMA_PRO_MONTHLY_PRODUCT_ID', 'DODO_PRODUCT_ID_MONTHLY');
+const DODO_PRODUCT_YEARLY = envAny('DODO_ALYEMA_PRO_YEARLY_PRODUCT_ID', 'DODO_PRODUCT_ID_YEARLY');
+const DODO_PRODUCT_LITE_MONTHLY = envAny('DODO_ALYEMA_LITE_MONTHLY_PRODUCT_ID', 'DODO_PRODUCT_ID_LITE_MONTHLY');
+const DODO_PRODUCT_LITE_YEARLY = envAny('DODO_ALYEMA_LITE_YEARLY_PRODUCT_ID', 'DODO_PRODUCT_ID_LITE_YEARLY');
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64);
