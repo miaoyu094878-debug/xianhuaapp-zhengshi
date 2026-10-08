@@ -47,6 +47,18 @@ export const SUBSCRIPTION = {
   yearlySavePct: Math.round((1 - 70 / (9.9 * 12)) * 100),
 };
 
+/**
+ * Lite 订阅价：只解锁内容类功能（收藏 / 自定义肯定语 / 壁纸下载 / Studio），
+ * 不含任何 AI 能力，因此【不发放积分】。发放口径见迁移 20261007120000_lite_plan.sql。
+ */
+export const SUBSCRIPTION_LITE = {
+  monthlyUsd: 5,
+  yearlyUsd: 29,
+  monthlyCredits: 0,
+  yearlyCredits: 0,
+  yearlySavePct: Math.round((1 - 29 / (5 * 12)) * 100),
+};
+
 /** 1 / (1 − 目标毛利率) */
 export const MARGIN_MULTIPLIER = 1 / (1 - TARGET_MARGIN);
 
@@ -193,6 +205,7 @@ export function clientPriceSheet() {
     minPoints: MIN_POINTS,
     margin: TARGET_MARGIN,
     subscription: SUBSCRIPTION,
+    subscriptionLite: SUBSCRIPTION_LITE,
     packages: PACKAGES,
     /** 成本表：前端据此估算"这次要花多少分" */
     costTable: Object.assign({}, COST_TABLE),

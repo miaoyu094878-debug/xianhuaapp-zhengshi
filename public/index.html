@@ -4533,10 +4533,31 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <div class="plans-toggle">
           <button type="button" class="plans-toggle-btn" data-billing="monthly">Monthly</button>
           <button type="button" class="plans-toggle-btn active" data-billing="yearly">Yearly</button>
-          <span class="plans-save" id="plansSave">Save 41%</span>
+          <span class="plans-save" id="plansSave">Save up to 52%</span>
         </div>
 
         <div class="plans-grid">
+          <article class="plan-card">
+            <h3 class="plan-name">Lite</h3>
+            <p class="plan-tag">Daily practice, without AI.</p>
+            <div class="plan-price">
+              <span class="plan-amount" data-price="yearly">$2.42</span>
+              <span class="plan-amount" data-price="monthly" hidden>$5.00</span>
+              <span class="plan-period">/ month</span>
+            </div>
+            <p class="plan-note" data-note="yearly">Billed $29.00 yearly</p>
+            <p class="plan-note" data-note="monthly" hidden>Billed monthly</p>
+            <ul class="plan-feats">
+              <li>Daily affirmations</li>
+              <li><strong>Favourites &amp; your own affirmations</strong></li>
+              <li>Wallpaper downloads</li>
+              <li>Cloud sync across devices</li>
+              <li>No ads</li>
+              <li>No AI journeys or AI vision</li>
+            </ul>
+            <button type="button" class="plan-btn" data-plan="lite" id="liteSubscribeBtn">Get Lite</button>
+          </article>
+
           <article class="plan-card plan-card-featured">
             <div class="plan-badge plan-badge-pro">Pro</div>
             <h3 class="plan-name">Pro</h3>

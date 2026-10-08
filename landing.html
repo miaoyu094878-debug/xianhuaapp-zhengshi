@@ -118,7 +118,7 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
 .lp-quote .who b { color: var(--purple); }
 
 /* Pricing */
-.lp-price { display: grid; grid-template-columns: 1fr; gap: 22px; max-width: 520px; margin: 0 auto; }
+.lp-price { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; max-width: 880px; margin: 0 auto; align-items: stretch; }
 .price {
   background: var(--card); backdrop-filter: blur(18px) saturate(1.6);
   border: 1px solid rgba(255,255,255,0.72); border-radius: var(--radius);
@@ -268,14 +268,29 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
   <div class="container">
     <div class="lp-sec-head">
       <p class="lp-kicker">Plans</p>
-      <h2>One plan. Everything unlocked.</h2>
+      <h2>Two plans — pick your pace.</h2>
     </div>
     <div class="lp-toggle">
       <button type="button" class="lp-toggle-btn" data-billing="monthly">Monthly</button>
       <button type="button" class="lp-toggle-btn active" data-billing="yearly">Yearly</button>
-      <span class="lp-save">Save 41%</span>
+      <span class="lp-save">Save up to 52%</span>
     </div>
     <div class="lp-price">
+      <div class="price">
+        <h3>Lite</h3>
+        <div class="amt"><span data-lp-price="yearly">$2.42</span><span data-lp-price="monthly" hidden>$5.00</span><small> / month</small></div>
+        <p class="price-sub" style="font-size:12.5px;color:var(--text3);margin-top:-4px;"><span data-lp-note="yearly">Billed $29.00 yearly</span><span data-lp-note="monthly" hidden>Billed monthly</span></p>
+        <ul>
+          <li>Daily affirmations</li>
+          <li><strong>Favourites &amp; your own affirmations</strong></li>
+          <li>Affirmation wallpapers — downloads</li>
+          <li>Cloud sync across devices</li>
+          <li>No ads</li>
+          <li>No AI journeys or AI vision</li>
+        </ul>
+        <a class="btn" href="index.html?subscribe=1">Get Lite</a>
+      </div>
+
       <div class="price pro">
         <span class="best">Best value</span>
         <h3>Pro</h3>
@@ -291,7 +306,7 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
           <li data-lp-credits="yearly"><strong>10,500 AI credits</strong> / year</li>
           <li data-lp-credits="monthly" hidden><strong>990 AI credits</strong> / month</li>
         </ul>
-        <a class="btn btn-gold" href="index.html?subscribe=1">Get started</a>
+        <a class="btn btn-gold" href="index.html?subscribe=1">Get Pro</a>
       </div>
     </div>
     <p class="lp-price-note">Billing, cancellation or refund questions? Email <a href="mailto:admin@alyema.com">admin@alyema.com</a> — we reply within 1 business day.</p>
