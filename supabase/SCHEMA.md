@@ -214,14 +214,14 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 
 | 函数 | 参数 | 说明 |
 |---|---|---|
-| `activate_subscription` | `p_user_id uuid, p_period text DEFAULT 'monthly'` | 开通/续期 Pro **并发放随附积分**（月付 990 / 年付 10500），幂等。迁移 `20260930120000_activate_subscription.sql`。**2026-09-30 已应用到线上** |
+| `activate_subscription` | `p_user_id uuid, p_period text DEFAULT 'monthly', p_plan text DEFAULT 'pro'` | 开通/续期**指定档位**：`pro` 发随附积分（月付 990 / 年付 10500），`lite` **不发积分**；已是 pro 未过期时传 `lite` 不降级。幂等。迁移 `20261007120000_lite_plan.sql`（覆盖 `20260930120000` 的旧两参数版本） |
 | `admin_set_balance` | `p_email text, p_target integer` | 按邮箱直接把余额设为某值（管理用） |
 | `consume_credits` | `p_user_id uuid, p_action text, p_ref text DEFAULT NULL, p_cost_usd numeric DEFAULT 0, p_points integer DEFAULT NULL` | 原子扣费；顾问锁 + 幂等 ref。截图里后半段被截断，按迁移定义应为上表 |
 | `credit_balance` | `p_user_id uuid` | 返回余额 = `sum(amount)` |
 | `grant_credits` | `p_user_id uuid, p_amount integer, p_reason text DEFAULT 'admin_grant', p_ref text DEFAULT NULL` | 发放积分（充值/补偿），幂等 |
 | `handle_new_user` | — | 注册触发器函数（新用户初始化）。**注意**：若还挂着触发器会自动送积分 |
 | `refund_credits` | `p_user_id uuid, p_ledger_id bigint` | 按扣费流水退款 |
-| `set_plan` | `p_user_id uuid, p_plan text, p_days integer DEFAULT 30` | 开通/续期 Pro（写 `profiles.plan` / `plan_expires_at`） |
+| `set_plan` | `p_user_id uuid, p_plan text, p_days integer DEFAULT 30` | 设置档位（`lite` / `pro` / `free`）并延长有效期；**非 lite/pro 一律归 free** |
 | `settle_credits` | `p_user_id uuid, p_ledger_id bigint, p_actual_points integer, p_allow_topup boolean DEFAULT false` | 用后按**真实成本**结算：`false` = 只退不补；`true` = 升/降都改（补扣最多扣到余额为 0）。迁移 `20261001000000_settle_exact.sql`。**⚠️ 该迁移未应用前，边缘函数传 `p_allow_topup` 会报错** |
 | `wallet_summary` | `p_user_id uuid` | 一次返回余额 + 订阅状态（含过期自动降级） |
 
