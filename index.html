@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.04.today-icons22">
+  <link rel="stylesheet" href="styles.css?v=2026.10.08.plan-select1">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4537,7 +4537,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         </div>
 
         <div class="plans-grid">
-          <article class="plan-card">
+          <article class="plan-card" data-plan-card="lite">
+            <div class="plan-badge plan-badge-pro" data-plan-badge hidden>Lite</div>
             <h3 class="plan-name">Lite</h3>
             <p class="plan-tag">Daily practice, without AI.</p>
             <div class="plan-price">
@@ -4558,8 +4559,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <button type="button" class="plan-btn" data-plan="lite" id="liteSubscribeBtn">Get Lite</button>
           </article>
 
-          <article class="plan-card plan-card-featured">
-            <div class="plan-badge plan-badge-pro">Pro</div>
+          <article class="plan-card plan-card-featured" data-plan-card="pro">
+            <div class="plan-badge plan-badge-pro" data-plan-badge>Pro</div>
             <h3 class="plan-name">Pro</h3>
             <p class="plan-tag">One plan. Everything unlocked.</p>
             <div class="plan-price">
