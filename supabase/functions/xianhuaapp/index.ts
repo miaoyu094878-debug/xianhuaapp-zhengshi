@@ -2188,13 +2188,21 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
   const productId = productIdFor(plan, period);
   if (!productId) return json({ error: 'product_not_configured', plan, period }, 503);
 
+  // 客户信息：只从档案里取真实姓名，拿不到就干脆不传 name。
+  // 传空字符串或与该邮箱存档不一致的姓名，会让 Dodo 在付款确认时抛
+  // "Customer name provided doesn't match the one in session"。
+  // 不传 name 时由 Dodo 在结账页自行收集，首次付款后按邮箱归属客户，不再做姓名比对。
+  const customer: Record<string, string> = { email: user.email || '' };
+  const customerName = String((body && body.name) || '').trim();
+  if (customerName) customer.name = customerName;
+
   try {
     const res = await fetch(DODO_API_BASE + '/checkouts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + DODO_API_KEY },
       body: JSON.stringify({
         product_cart: [{ product_id: productId, quantity: 1 }],
-        customer: { email: user.email || '', name: (body && body.name) || '' },
+        customer: customer,
         return_url: (body && body.return_url) || DODO_RETURN_URL,
         // metadata 会原样回传到该订阅的每一个 webhook，是关联用户的可靠依据
         metadata: { user_id: user.id, period: period, plan: plan, email: user.email || '' },
