@@ -2125,8 +2125,19 @@ async function claimWebhookEvent(id: string, type: string): Promise<boolean> {
       },
       body: JSON.stringify({ webhook_id: id, event_type: type }),
     });
-    return res.ok;
-  } catch (_e) {
+    if (res.ok) return true;
+    const detail = await res.text().catch(() => '');
+    // 409 = 主键冲突，同一事件的重试 → 真重复，安全跳过。
+    // 其他非 2xx（表缺失 / 权限 / 字段问题）属于基础设施故障：
+    // 宁可重复处理，也不能静默把事件当重复丢掉。
+    if (res.status === 409) {
+      console.log('[dodo] duplicate event skipped:', id, type);
+      return false;
+    }
+    console.error('[dodo] claim failed, fail-open:', res.status, detail.slice(0, 200), id, type);
+    return true;
+  } catch (e) {
+    console.error('[dodo] claim network error, fail-open:', e, id, type);
     return true;
   }
 }
@@ -2145,6 +2156,44 @@ async function findUserIdByEmail(email: string): Promise<string | null> {
   } catch (_e) {
     return null;
   }
+}
+
+/**
+ * 二级兜底：profiles.email 可能是空的（历史行从未回填过 email），
+ * 此时用 service role 直接查 auth.users，保证「邮箱 → 用户」这条路不会断。
+ */
+async function findAuthUserIdByEmail(email: string): Promise<string | null> {
+  if (!email || !SERVICE_KEY || !SUPABASE_URL) return null;
+  try {
+    const res = await fetch(
+      SUPABASE_URL + '/auth/v1/admin/users?email=' + encodeURIComponent(email),
+      { headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } }
+    );
+    if (!res.ok) return null;
+    const data: any = await res.json();
+    const list = Array.isArray(data) ? data : (data && Array.isArray(data.users) ? data.users : []);
+    const target = String(email || '').toLowerCase();
+    const hit = list.find((u: any) => String(u && u.email || '').toLowerCase() === target);
+    return hit && hit.id ? hit.id : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/** 邮箱 → user_id：先查 profiles，查不到再查 auth.users，并留日志说明走了哪条路 */
+async function resolveUserIdByEmail(email: string): Promise<string | null> {
+  const byProfile = await findUserIdByEmail(email);
+  if (byProfile) {
+    console.log('[dodo] user resolved via profiles:', email, byProfile);
+    return byProfile;
+  }
+  const byAuth = await findAuthUserIdByEmail(email);
+  if (byAuth) {
+    console.log('[dodo] user resolved via auth.users:', email, byAuth);
+    return byAuth;
+  }
+  console.error('[dodo] user NOT resolvable by email:', email);
+  return null;
 }
 
 /**
@@ -2234,6 +2283,8 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
   const type: string = evt.type || '';
   const data: any = evt.data || {};
   const webhookId = req.headers.get('webhook-id') || '';
+  // 入口日志：每条到达且验签通过的事件都留痕，便于和 Dodo 投递记录对账
+  console.log('[dodo] event received:', type, evt.id || '', webhookId || '(no webhook-id)');
 
   // 幂等：同一事件重试时 webhook-id 不变，第二次插入会主键冲突
   const first = await claimWebhookEvent(webhookId, type);
@@ -2248,7 +2299,7 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
 
   if (!userId) {
     const email = (data.customer && data.customer.email) || md.email || '';
-    if (email) userId = (await findUserIdByEmail(email)) || '';
+    if (email) userId = (await resolveUserIdByEmail(email)) || '';
   }
   if (!period || !plan) {
     const fromPid = planPeriodFromProductId(data);
@@ -2260,13 +2311,20 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
     if (type === 'subscription.active' || type === 'subscription.renewed') {
       if (!userId) {
         console.error('[dodo] cannot resolve user for', type, JSON.stringify(md));
-        return json({ ok: false, error: 'user_not_found' });
+        // 必须返回 5xx：Dodo 会重试并在后台标红；返回 2xx 会让它以为成功、永不重试，
+        // 结果是用户付了钱、订阅没开通、且没有任何告警。
+        return json({ ok: false, error: 'user_not_found' }, 500);
       }
       const r = await rpc(
         'activate_subscription',
         { p_user_id: userId, p_period: period || 'monthly', p_plan: plan || 'pro' }
       );
       console.log('[dodo]', type, userId, plan || 'pro', period, JSON.stringify(r));
+      // RPC 失败必须让 Dodo 看到失败（500），否则它认为投递成功、永不重试，
+      // 用户付了钱订阅却没开通且无从察觉
+      if (!r || r.ok === false) {
+        return json({ ok: false, error: (r && r.error) || 'activate_failed' }, 500);
+      }
     } else if (type === 'subscription.expired' || type === 'subscription.failed') {
       // 注意：cancelled 不在这里 —— 用户已付到本期末，应保留到 plan_expires_at 自然到期，
       // 到期后 wallet_summary 会自动降级。只有真正到期/创建失败才立刻收回 Pro。
