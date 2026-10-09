@@ -2839,26 +2839,42 @@
   // Ensure a profiles row exists for the current user (upsert).
   // Only non-empty fields are sent: with merge-duplicates a partial payload touches
   // just those columns, so a blank local profile can never wipe a saved name.
+  // email 也一并落库：后端建行时不写 email，缺了它按邮箱查 profiles 会查不到。
+  // 返回 true/false 表示服务端写入是否成功（失败必须让调用方知道，不能静默）。
   async function seedProfile(session) {
     var cfg = supabaseCfg();
-    if (!cfg.url || !cfg.key || !session) return;
+    if (!cfg.url || !cfg.key || !session) return false;
     var uid = session.user && session.user.id;
-    if (!uid) return;
+    if (!uid) return false;
     var p = db.profile || {};
     var body = { id: uid }, hasValue = false;
     ['name', 'area', 'desire'].forEach(function (k) {
       var v = (p[k] || '').trim();
       if (v) { body[k] = v; hasValue = true; }
     });
-    if (!hasValue) return;
-    await sbFetch('/rest/v1/profiles?on_conflict=id', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify(body)
-    });
+    var email = session.user && session.user.email ? String(session.user.email).trim() : '';
+    if (email) { body.email = email; hasValue = true; }
+    if (!hasValue) return true;
+    try {
+      var res = await sbFetch('/rest/v1/profiles?on_conflict=id', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        var detail = '';
+        try { detail = await res.text(); } catch (e) {}
+        console.error('[profile] sync failed:', res.status, detail);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('[profile] sync error:', e);
+      return false;
+    }
   }
 
   // Save name/area/desire: write local always, upsert to Supabase when signed in
@@ -2866,9 +2882,13 @@
     var s = savedSession();
     if (s && supabaseCfg().url && supabaseCfg().key) {
       try {
-        await seedProfile(s);
-      } catch (e) {}
+        return await seedProfile(s);
+      } catch (e) {
+        console.error('[profile] persist error:', e);
+        return false;
+      }
     }
+    return true; // 未登录：只存本地，不算失败
   }
 
   // Pull the saved profile back from Supabase and merge it into local state.
@@ -2941,9 +2961,15 @@
     db.profile.name = $('#pfName').value.trim();
     db.profile.desire = $('#pfDesire').value.trim();
     save(); renderProfile(); renderToday();
-    persistProfile();
     var ok = $('#pfSaved');
-    if (ok) { ok.classList.remove('hidden'); setTimeout(function () { ok.classList.add('hidden'); }, 1600); }
+    persistProfile().then(function (synced) {
+      // synced=false 表示服务端写入失败（401/403/网络等，详情看控制台 [profile] 日志）
+      if (ok) {
+        ok.textContent = synced ? 'Saved ✓' : 'Saved locally — sync failed';
+        ok.classList.remove('hidden');
+        setTimeout(function () { ok.classList.add('hidden'); }, 2400);
+      }
+    });
   });
   var _profileFromTab = null;
   if ($('#profileBtn')) $('#profileBtn').addEventListener('click', function () {
