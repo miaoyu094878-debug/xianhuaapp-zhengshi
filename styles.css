@@ -561,6 +561,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .acct-hint { font-size: 12px; color: var(--text-soft); margin: 10px 0 0; text-align: center; }
 .acct-empty { text-align: center; color: var(--text-soft); font-size: 13px; padding: 8px 0; }
 
+/* ---------- Subscription status (inside account card) ---------- */
+.acct-sub {
+  margin-top: 12px; padding: 12px 14px;
+  border: 1px solid var(--border-strong); border-radius: 14px;
+  background: var(--surface-2);
+}
+.acct-sub-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; padding: 3px 0;
+}
+.acct-sub-label { font-size: 12px; color: var(--text-soft); }
+.acct-sub-val { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.acct-sub-note, .acct-sub-hint {
+  font-size: 11.5px; color: var(--text-soft); line-height: 1.55; margin: 8px 0 0;
+}
+.acct-sub-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.acct-manage, .acct-cancel {
+  display: block; width: 100%; box-sizing: border-box;
+  text-align: center; margin: 0;
+  text-transform: none; text-decoration: none;
+}
+/* 取消按钮必须清晰可见、与「换卡/发票」同级 —— 合规底线是取消不能比注册难，
+   把取消做成灰色小字或藏在二级菜单里属于 dark pattern。 */
+.acct-cancel { color: var(--text); border-color: var(--border-strong); }
+.acct-cancel:hover { border-color: var(--accent2); color: var(--accent2); }
+/* 已排定取消：明确提示生效时间，避免用户误以为没取消成功而去找银行 */
+.acct-sub-sched {
+  font-size: 11.5px; line-height: 1.55; margin: 8px 0 0;
+  color: var(--accent2); font-weight: 600;
+}
+@media (max-width: 420px) {
+  .acct-sub { padding: 11px 12px; }
+}
+
 /* ---------- LISTS ---------- */
 .list-item {
   background: var(--surface); backdrop-filter: blur(12px);
