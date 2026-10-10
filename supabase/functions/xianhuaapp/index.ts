@@ -401,7 +401,9 @@ async function rpc(fn: string, args: Record<string, unknown>) {
   return data || { ok: true };
 }
 
-/** 读取账户：余额 + 订阅状态（过期自动降级在 RPC 里处理） */
+/** 读取账户：余额 + 订阅状态（过期自动降级在 RPC 里处理）
+ *  cancel_scheduled：用户已在产品内排定「本期末取消」，前端据此提示到期后转 Free。
+ *  （Dodo 不为 cancel_at_next_billing_date 发 webhook，这个状态由我们自己落库） */
 async function walletSummary(userId: string) {
   const w: any = await rpc('wallet_summary', { p_user_id: userId });
   return {
@@ -409,6 +411,7 @@ async function walletSummary(userId: string) {
     balance: w.balance ?? 0,
     plan: w.plan || 'free',
     plan_expires_at: w.plan_expires_at || null,
+    cancel_scheduled: !!w.cancel_scheduled,
   };
 }
 
@@ -754,6 +757,10 @@ Deno.serve(async (req: Request) => {
       // ══════════════════════════════════════════════════════════
       case 'create-checkout':
         return await handleCreateCheckout(req, body, corsHeaders);
+
+      // 产品内取消订阅：不需要跳 Dodo 门户、不用收邮件，一键完成
+      case 'cancel-subscription':
+        return await handleCancelSubscription(req, corsHeaders);
 
       case 'dodo-webhook':
         return await handleDodoWebhook(req, rawBody, corsHeaders);
@@ -2268,6 +2275,63 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
   }
 }
 
+/** 产品内取消订阅（方案 C）
+ *
+ *  为什么需要它：原先只有「跳 Dodo 门户 → 输邮箱 → 收 magic link 邮件」这一条路，
+ *  步骤比注册还多，落在加州 ARL / CCPA「取消不能比注册难」的红线边缘。
+ *
+ *  行为：标记本期末取消（cancel_at_next_billing_date），权益保留到 plan_expires_at 自然到期。
+ *  —— 不立刻收回权益：用户已付到本期末，这是行业惯例，立刻收回反而容易引发退款与差评。
+ *
+ *  ⚠️ Dodo 明确不会为这个操作发送 webhook（只有真正取消时才发 subscription.cancelled），
+ *  所以「已排定取消」状态必须由我们自己在返回前落库，否则前端无从显示。
+ */
+async function handleCancelSubscription(req: Request, cors: Record<string, string>) {
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+
+  // 必须登录：取消动作按 user_id 定位订阅，不能凭前端传任何 ID，否则可被用来取消别人的订阅
+  const user = await resolveUser(req);
+  if (!user) return json({ ok: false, error: 'auth_required' }, 401);
+
+  const sub: any = await rpc('dodo_subscription_of', { p_user_id: user.id });
+  const subId = String((sub && sub.subscription_id) || '');
+  if (!subId) {
+    // 字段为空 = 这笔订阅发生在本迁移之前，webhook 没存过 ID。
+    // 提示前端退回门户路径，而不是静默失败让用户以为取消成功了。
+    return json({ ok: false, error: 'no_subscription_on_file' }, 400);
+  }
+  if (!DODO_API_KEY) return json({ ok: false, error: 'dodo_not_configured' }, 503);
+
+  try {
+    const res = await fetch(DODO_API_BASE + '/subscriptions/' + encodeURIComponent(subId), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + DODO_API_KEY },
+      body: JSON.stringify({ cancel_at_next_billing_date: true }),
+    });
+    const text = await res.text();
+    let out: any = null;
+    try { out = text ? JSON.parse(text) : null; } catch { out = { raw: text }; }
+    if (!res.ok) {
+      console.error('[dodo] cancel failed', user.id, res.status, text.slice(0, 400));
+      return json({ ok: false, error: 'dodo_cancel_failed', detail: out }, 502);
+    }
+
+    await rpc('set_dodo_cancel_scheduled', { p_user_id: user.id, p_scheduled: true });
+    const w = await walletSummary(user.id);
+    console.log('[dodo] cancel scheduled', user.id, subId, 'active until', w.plan_expires_at);
+    return json({
+      ok: true,
+      cancel_scheduled: true,
+      plan: w.plan,
+      plan_expires_at: w.plan_expires_at,
+    }, 200);
+  } catch (err: any) {
+    console.error('[dodo] cancel error', user.id, err);
+    return json({ ok: false, error: err.message || 'cancel_failed' }, 500);
+  }
+}
+
 /** 接收 Dodo webhook：验签 → 去重 → 开通/续期/降级 */
 async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Record<string, string>) {
   const json = (obj: unknown, status = 200) =>
@@ -2324,6 +2388,27 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
       // 用户付了钱订阅却没开通且无从察觉
       if (!r || r.ok === false) {
         return json({ ok: false, error: (r && r.error) || 'activate_failed' }, 500);
+      }
+
+      // 记下 Dodo 订阅 ID：产品内取消（PATCH /subscriptions/{id}）必须用到它，
+      // 而 webhook 的 subscription.active / renewed 是唯一能稳定拿到它的时机。
+      // 存失败不阻断开通 —— 开通已经成功，只记 error 待排查（否则会因小失大）。
+      const subId = String(
+        data.subscription_id || (data.subscription && data.subscription.id) || data.id || ''
+      );
+      const cusId = String(
+        (data.customer && (data.customer.customer_id || data.customer.id)) ||
+        data.customer_id || ''
+      );
+      if (subId) {
+        const s: any = await rpc('set_dodo_subscription', {
+          p_user_id: userId,
+          p_customer_id: cusId || null,
+          p_subscription_id: subId,
+        });
+        console.log('[dodo] saved dodo ids', type, userId, subId, JSON.stringify(s));
+      } else {
+        console.error('[dodo] subscription_id missing in payload — in-app cancel unavailable for', userId);
       }
     } else if (type === 'subscription.expired' || type === 'subscription.failed') {
       // 注意：cancelled 不在这里 —— 用户已付到本期末，应保留到 plan_expires_at 自然到期，
