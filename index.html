@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.08.plan-btn-disabled1">
+  <link rel="stylesheet" href="styles.css?v=2026.10.10.in-app-cancel1">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4428,6 +4428,26 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <p class="acct-desc" id="acctEmailLabel">…</p>
               </div>
             </div>
+
+            <!-- Subscription status + self-serve management (Dodo Customer Portal) -->
+            <div class="acct-sub hidden" id="acctSubBox">
+              <div class="acct-sub-row">
+                <span class="acct-sub-label">Current plan</span>
+                <span class="acct-sub-val" id="acctPlanVal">Free</span>
+              </div>
+              <div class="acct-sub-row hidden" id="acctExpiryRow">
+                <span class="acct-sub-label">Active until</span>
+                <span class="acct-sub-val" id="acctExpiryVal">—</span>
+              </div>
+              <p class="acct-sub-note hidden" id="acctSubNote"></p>
+              <p class="acct-sub-sched hidden" id="acctScheduledNote"></p>
+              <div class="acct-sub-actions">
+                <button class="chip acct-cancel hidden" id="acctCancelSub" type="button">Cancel subscription</button>
+                <a class="chip acct-manage hidden" id="acctManageSub" href="#" target="_blank" rel="noopener">Billing &amp; invoices ↗</a>
+              </div>
+              <p class="acct-sub-hint hidden" id="acctManageHint"></p>
+            </div>
+
             <div class="acct-actions">
               <button id="acctLogout" class="chip" type="button">Sign out</button>
             </div>
@@ -4588,10 +4608,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
         <!-- AI 积分 -->
         <h2 class="page-title" style="margin-top:28px">AI Credits</h2>
-        <p class="page-sub">
-          Living Reality &amp; AI Vision are billed by the AI's own cost — you only pay for what is generated.
-          1 credit = $0.01. Unused credits never expire.
-        </p>
 
         <div class="credit-wallet glass">
           <div>
@@ -4613,11 +4629,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </div>
           <p class="acct-hint hidden" id="redeemMsg"></p>
         </div>
-
-        <p class="plans-fineprint">
-          Subscriptions and credit top-ups are not live yet — the operator can add credits or
-          Pro time to your account directly. AI generations are billed by their real model cost.
-        </p>
       </section>
     </main>
 
@@ -4744,6 +4755,21 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </div>
     </div>
 
+    <!-- 产品内取消订阅：一屏确认 + 温和挽留。
+         合规要点：取消不能比注册难，最多一屏确认，不做确认羞辱、不隐藏「继续取消」按钮。 -->
+    <div id="cancelSubModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Cancel subscription">
+      <div class="quiz-card glass">
+        <h3 class="lm-title" id="csTitle">Before you go</h3>
+        <p class="quiz-q" id="csIntro"></p>
+        <p class="acct-hint" id="csRetention"></p>
+        <p class="acct-hint hidden" id="csMsg"></p>
+        <div class="lm-actions">
+          <button id="csKeep" class="btn-primary" type="button">Keep my subscription</button>
+          <button id="csConfirm" class="chip" type="button">Continue cancelling</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Wallpaper Full Screen Immersive Preview Modal -->
     <div id="wpFullscreenModal" class="wp-fs-modal hidden" role="dialog" aria-modal="true" aria-label="Wallpaper Fullscreen Preview">
       <div class="wp-fs-backdrop" id="wpFsBackdrop"></div>
@@ -4833,7 +4859,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261003savebadge" defer></script>
+  <script src="app.js?v=20261010inappcancel1" defer></script>
 
 </body>
 </html>

@@ -356,7 +356,9 @@
 
   var creditState = {
     loaded: false, signedIn: false,
-    balance: 0, plan: 'free', planExpiresAt: null, prices: null
+    balance: 0, plan: 'free', planExpiresAt: null, prices: null,
+    // 已排定「本期末取消」：Dodo 不会为这个动作发 webhook，状态由后端落库后下发
+    cancelScheduled: false
   };
 
   /** 本地模式（未配 Supabase）用设备号作为账本主键 */
@@ -397,6 +399,7 @@
       creditState.balance = Number(d.balance) || 0;
       creditState.plan = d.plan || 'free';
       creditState.planExpiresAt = d.plan_expires_at || null;
+      creditState.cancelScheduled = !!d.cancel_scheduled;
     } catch (e) {
       creditState.signedIn = false;
     }
@@ -451,12 +454,166 @@
     refreshPlanBtns();
 
     updateCostBadges();
+    renderSubscription();
   }
 
   function fmtDay(iso) {
     if (!iso) return '—';
     var d = new Date(iso);
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+  }
+
+  /* ─── 订阅状态 + 取消订阅（产品在内部完成） ─────────────
+     取消走我们自己的后端（action = cancel-subscription）：一键完成、不跳门户、不用收邮件。
+     换卡 / 下载发票仍需 Dodo 门户，因此保留门户链接作为次级入口。
+     Dodo 后台 Sales → Customer → Share invite 可拿到 business_id（形如 bus_xxx）。 */
+  var DODO_PORTAL_URL = 'https://customer.dodopayments.com/login/bus_0NbJZu7wc0bWokMQNX9u0';
+
+  function portalReady() {
+    return DODO_PORTAL_URL.indexOf('REPLACE_ME') === -1;
+  }
+
+  function acctEmail() {
+    try {
+      var s = savedSession();
+      if (s && s.user && s.user.email) return String(s.user.email);
+    } catch (e) { /* session helper unavailable */ }
+    return '';
+  }
+
+  function renderSubscription() {
+    var box = $('#acctSubBox');
+    if (!box) return;
+    box.classList.toggle('hidden', !creditState.signedIn);
+    if (!creditState.signedIn) return;
+
+    var paid = isPaid();
+    var label = planLabel();
+    var expiry = fmtDay(creditState.planExpiresAt);
+    var hasExpiry = paid && expiry && expiry !== '—';
+
+    if ($('#acctPlanVal')) $('#acctPlanVal').textContent = label;
+    if ($('#acctExpiryRow')) $('#acctExpiryRow').classList.toggle('hidden', !hasExpiry);
+    if ($('#acctExpiryVal')) $('#acctExpiryVal').textContent = expiry;
+
+    var note = $('#acctSubNote');
+    if (note) {
+      if (hasExpiry) {
+        note.textContent = 'Cancel anytime — you keep ' + label + ' until ' + expiry + ', then it returns to Free.';
+        note.classList.remove('hidden');
+      } else if (paid) {
+        note.textContent = 'Cancel anytime — you keep ' + label + ' until the end of the current period.';
+        note.classList.remove('hidden');
+      } else {
+        note.classList.add('hidden');
+      }
+    }
+
+    // 已排定取消：必须明确告知生效时间。
+    // 用户若看不到任何反馈，会以为没取消成功、下个月被扣款，进而找银行发起拒付 ——
+    // 那是比退订贵得多的结果（拒付费 $15~25 + 拒付率上升）。
+    var sched = $('#acctScheduledNote');
+    if (sched) {
+      if (paid && creditState.cancelScheduled) {
+        sched.textContent = 'Cancellation scheduled — ' + label + ' stays active until ' +
+          (hasExpiry ? expiry : 'the end of the current period') +
+          ', then switches to Free. No further charges.';
+        sched.classList.remove('hidden');
+      } else {
+        sched.classList.add('hidden');
+      }
+    }
+
+    // 取消在产品内一键完成；排定后不再重复显示按钮
+    var showCancel = paid && !creditState.cancelScheduled;
+    var cancelBtn = $('#acctCancelSub');
+    if (cancelBtn) cancelBtn.classList.toggle('hidden', !showCancel);
+
+    // 换卡 / 下载发票仍需 Dodo 门户；地址未配置时不展示，避免跳到无效页面
+    var showBill = paid && portalReady();
+    var btn = $('#acctManageSub');
+    if (btn) {
+      btn.classList.toggle('hidden', !showBill);
+      if (showBill) btn.href = DODO_PORTAL_URL;
+    }
+
+    var hint = $('#acctManageHint');
+    if (hint) {
+      if (showBill) {
+        var em = acctEmail();
+        hint.textContent = em
+          ? 'Billing portal — update your card or download invoices using ' + em
+          : 'Billing portal — update your card or download invoices.';
+        hint.classList.remove('hidden');
+      } else {
+        hint.classList.add('hidden');
+      }
+    }
+  }
+
+  /* ─── 取消订阅：一屏确认 + 温和挽留 ─────────────
+     合规红线：取消不能比注册难。因此只一屏、两个按钮都清晰可见，
+     不做确认羞辱、不把「继续取消」藏成灰色小字。挽留靠给理由，不靠设障碍。 */
+  function openCancelModal() {
+    var m = $('#cancelSubModal');
+    if (!m) return;
+    var label = planLabel();
+    var expiry = fmtDay(creditState.planExpiresAt);
+    var until = (isPaid() && expiry && expiry !== '—') ? expiry : 'the end of the current period';
+
+    if ($('#csIntro')) {
+      $('#csIntro').textContent = 'Your ' + label + ' stays active until ' + until +
+        '. After that it returns to Free and you will not be charged again.';
+    }
+    if ($('#csRetention')) {
+      $('#csRetention').textContent = 'Credits already in your account stay there, and you can resubscribe anytime.';
+    }
+    var msg = $('#csMsg');
+    if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
+    var confirm = $('#csConfirm');
+    if (confirm) { confirm.disabled = false; confirm.textContent = 'Continue cancelling'; }
+    m.classList.remove('hidden');
+  }
+
+  function closeCancelModal() {
+    var m = $('#cancelSubModal');
+    if (m) m.classList.add('hidden');
+  }
+
+  async function confirmCancelSubscription() {
+    var btn = $('#csConfirm');
+    var msg = $('#csMsg');
+    if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+    try {
+      var out = await creditRequest('cancel-subscription');
+      var d = out.data || {};
+      if (!out.res.ok || !d.ok) {
+        var err = d.error || 'cancel_failed';
+        // 本迁移之前开通的订阅没存过 ID —— 退回门户路径，绝不静默失败
+        // （用户以为取消了、下月照扣，是最容易引发拒付的情况）
+        if (err === 'no_subscription_on_file' && portalReady()) {
+          closeCancelModal();
+          window.open(DODO_PORTAL_URL, '_blank', 'noopener');
+          return;
+        }
+        if (msg) {
+          msg.textContent = 'Could not cancel just now. Please try again, or use the Billing & invoices link below.';
+          msg.classList.remove('hidden');
+        }
+        if (btn) { btn.disabled = false; btn.textContent = 'Continue cancelling'; }
+        return;
+      }
+      creditState.cancelScheduled = true;
+      if (d.plan_expires_at != null) creditState.planExpiresAt = d.plan_expires_at;
+      closeCancelModal();
+      renderSubscription();
+    } catch (e) {
+      if (msg) {
+        msg.textContent = 'Network problem — please try again.';
+        msg.classList.remove('hidden');
+      }
+      if (btn) { btn.disabled = false; btn.textContent = 'Continue cancelling'; }
+    }
   }
 
   /** 成本（美元）→ 积分：与后端 credits-core.js 的 pointsForCost 完全一致 */
@@ -578,6 +735,15 @@
   });
   if (paywall) paywall.addEventListener('click', function (e) { if (e.target === paywall) closePaywall(); });
   if ($('#walletPill')) $('#walletPill').addEventListener('click', function () { goTab('tab-plans'); });
+
+  // 取消订阅弹窗（产品内完成，不跳门户）
+  if ($('#acctCancelSub')) $('#acctCancelSub').addEventListener('click', openCancelModal);
+  if ($('#csKeep')) $('#csKeep').addEventListener('click', closeCancelModal);
+  if ($('#csConfirm')) $('#csConfirm').addEventListener('click', confirmCancelSubscription);
+  var cancelModal = $('#cancelSubModal');
+  if (cancelModal) cancelModal.addEventListener('click', function (e) {
+    if (e.target === cancelModal) closeCancelModal();
+  });
 
   /** 需要 Pro 的功能入口（全部 AI 能力）统一走这里；Lite 用户会看到「升级 Pro」 */
   function requirePro(feature) {
