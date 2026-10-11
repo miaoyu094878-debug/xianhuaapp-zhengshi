@@ -431,10 +431,22 @@
     if ($('#cwBalance')) $('#cwBalance').textContent = String(creditState.balance);
     var cwPlan = $('#cwPlan');
     if (cwPlan) {
-      cwPlan.textContent = isPaid()
-        ? (planLabel() + ' · until ' + fmtDay(creditState.planExpiresAt))
-        : 'Not subscribed';
-      cwPlan.classList.toggle('pro', isPaid());
+      // 平时（付费未取消）不显示任何日期 —— 「Pro · until 2026/11/8」会被误读成"那天就结束"。
+      // 只在已取消时出现完整说明：权益保留到哪天、之后变免费、不再扣钱。
+      if (isPaid() && creditState.cancelScheduled) {
+        var cwExp = fmtDayLong(creditState.planExpiresAt);
+        cwPlan.textContent = 'Your ' + planLabel() + ' plan stays active until ' +
+          (cwExp || 'the end of your current billing period') +
+          '. After that, your account switches to Free and you will not be charged again.';
+        cwPlan.classList.add('pro');
+        cwPlan.classList.remove('hidden');
+      } else if (isPaid()) {
+        cwPlan.classList.add('hidden');
+      } else {
+        cwPlan.textContent = 'Not subscribed';
+        cwPlan.classList.remove('pro');
+        cwPlan.classList.remove('hidden');
+      }
     }
 
     // 订阅状态行 / 按钮
@@ -463,6 +475,19 @@
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
   }
 
+  /* 订阅日期一律用「月份全拼 + 日 + 年」的固定英文格式（November 8, 2026）。
+     不要依赖 toLocaleDateString()：它在不同 locale 下会输出 11/8/2026 或 8/11/2026，
+     「到底是 11 月 8 日还是 8 月 11 日」的歧义会直接变成
+     「我以为那天就停了 / 我以为那天才扣钱」的误解 → 拒付。全拼零歧义。 */
+  var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  function fmtDayLong(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return MONTH_NAMES[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
   /* ─── 订阅状态 + 取消订阅（产品在内部完成） ─────────────
      取消走我们自己的后端（action = cancel-subscription）：一键完成、不跳门户、不用收邮件。
      换卡 / 下载发票仍需 Dodo 门户，因此保留门户链接作为次级入口。
@@ -489,43 +514,39 @@
 
     var paid = isPaid();
     var label = planLabel();
-    var expiry = fmtDay(creditState.planExpiresAt);
-    var hasExpiry = paid && expiry && expiry !== '—';
+    var expiry = fmtDayLong(creditState.planExpiresAt);
+    var hasExpiry = paid && !!expiry;
+    var cancelled = paid && !!creditState.cancelScheduled;
+    var until = hasExpiry ? expiry : 'the end of your current billing period';
 
-    if ($('#acctPlanVal')) $('#acctPlanVal').textContent = label;
+    if ($('#acctPlanVal')) $('#acctPlanVal').textContent = cancelled ? label + ' (cancelled)' : label;
     if ($('#acctExpiryRow')) $('#acctExpiryRow').classList.toggle('hidden', !hasExpiry);
+    // 同一个日期在两种状态下含义完全相反，标签必须跟着变：
+    // 未取消 = 下次自动扣费日（Renews on）；已取消 = 权益结束日（Access ends）。
+    // 写成固定的「Active until」两头都会被误读，这正是之前让人看不懂的原因。
+    if ($('#acctExpiryLabel')) $('#acctExpiryLabel').textContent = cancelled ? 'Access ends' : 'Renews on';
     if ($('#acctExpiryVal')) $('#acctExpiryVal').textContent = expiry;
 
+    // 未取消：日期已经由上面「Renews on」那行讲清楚，取消入口也在按钮上，
+    // 这里不需要再额外加一句说明，保持干净反而更不容易让人多想。
     var note = $('#acctSubNote');
-    if (note) {
-      if (hasExpiry) {
-        note.textContent = 'Cancel anytime — you keep ' + label + ' until ' + expiry + ', then it returns to Free.';
-        note.classList.remove('hidden');
-      } else if (paid) {
-        note.textContent = 'Cancel anytime — you keep ' + label + ' until the end of the current period.';
-        note.classList.remove('hidden');
-      } else {
-        note.classList.add('hidden');
-      }
-    }
+    if (note) note.classList.add('hidden');
 
-    // 已排定取消：必须明确告知生效时间。
-    // 用户若看不到任何反馈，会以为没取消成功、下个月被扣款，进而找银行发起拒付 ——
-    // 那是比退订贵得多的结果（拒付费 $15~25 + 拒付率上升）。
-    var sched = $('#acctScheduledNote');
-    if (sched) {
-      if (paid && creditState.cancelScheduled) {
-        sched.textContent = 'Cancellation scheduled — ' + label + ' stays active until ' +
-          (hasExpiry ? expiry : 'the end of the current period') +
-          ', then switches to Free. No further charges.';
-        sched.classList.remove('hidden');
+    // 已取消：给一份明确的成功回执 —— 说到哪天停、之后变什么、不会再扣钱。
+    // 用户点完确认如果看不到「成了」，会以为没生效（重复取消 / 找银行拒付）。
+    var done = $('#acctCancelDone');
+    if (done) {
+      if (cancelled) {
+        done.textContent = '✓ Subscription cancelled — you keep ' + label + ' until ' + until +
+          ', then your account switches to Free. No further charges.';
+        done.classList.remove('hidden');
       } else {
-        sched.classList.add('hidden');
+        done.classList.add('hidden');
       }
     }
 
     // 取消在产品内一键完成；排定后不再重复显示按钮
-    var showCancel = paid && !creditState.cancelScheduled;
+    var showCancel = paid && !cancelled;
     var cancelBtn = $('#acctCancelSub');
     if (cancelBtn) cancelBtn.classList.toggle('hidden', !showCancel);
 
@@ -558,15 +579,16 @@
     var m = $('#cancelSubModal');
     if (!m) return;
     var label = planLabel();
-    var expiry = fmtDay(creditState.planExpiresAt);
-    var until = (isPaid() && expiry && expiry !== '—') ? expiry : 'the end of the current period';
+    var expiry = fmtDayLong(creditState.planExpiresAt);
+    var until = (isPaid() && expiry) ? expiry : 'the end of your current billing period';
 
     if ($('#csIntro')) {
-      $('#csIntro').textContent = 'Your ' + label + ' stays active until ' + until +
-        '. After that it returns to Free and you will not be charged again.';
+      // 三件事必须一次说清：保留到哪天、之后变什么、不会再扣钱。
+      $('#csIntro').textContent = 'Your ' + label + ' plan stays active until ' + until +
+        '. After that, your account switches to Free and you will not be charged again.';
     }
     if ($('#csRetention')) {
-      $('#csRetention').textContent = 'Credits already in your account stay there, and you can resubscribe anytime.';
+      $('#csRetention').textContent = 'Credits already in your account stay there.';
     }
     var msg = $('#csMsg');
     if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
@@ -607,6 +629,8 @@
       if (d.plan_expires_at != null) creditState.planExpiresAt = d.plan_expires_at;
       closeCancelModal();
       renderSubscription();
+      // 即时成功回执：弹窗一关就没了，必须再给一次「操作已生效」的确认
+      toastCredits('Subscription cancelled ✓', 4200);
     } catch (e) {
       if (msg) {
         msg.textContent = 'Network problem — please try again.';
@@ -761,7 +785,7 @@
 
   var _creditToastTimer = null;
   var _deferredCreditTimers = [];
-  function toastCredits(msg) {
+  function toastCredits(msg, ms) {
     var t = $('#creditToast');
     if (!t) {
       t = el('div', 'credit-toast');
@@ -771,7 +795,7 @@
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(_creditToastTimer);
-    _creditToastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
+    _creditToastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 2600);
   }
 
   /** AI 调用成功：用响应里带回来的 charged / balance 更新 UI，无需再查一次 */

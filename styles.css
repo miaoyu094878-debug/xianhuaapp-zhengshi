@@ -586,10 +586,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    把取消做成灰色小字或藏在二级菜单里属于 dark pattern。 */
 .acct-cancel { color: var(--text); border-color: var(--border-strong); }
 .acct-cancel:hover { border-color: var(--accent2); color: var(--accent2); }
-/* 已排定取消：明确提示生效时间，避免用户误以为没取消成功而去找银行 */
-.acct-sub-sched {
+/* 取消已完成：明确的成功回执（保留到哪天 / 之后变什么 / 不再扣钱）。
+   和上面的 note 是互斥的两态，绝不同时出现，避免正常订阅看起来像已取消。 */
+.acct-sub-done {
   font-size: 11.5px; line-height: 1.55; margin: 8px 0 0;
+  padding: 8px 10px; border-radius: 10px;
   color: var(--accent2); font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--border-strong);
 }
 @media (max-width: 420px) {
   .acct-sub { padding: 11px 12px; }
