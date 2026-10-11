@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.10.in-app-cancel1">
+  <link rel="stylesheet" href="styles.css?v=2026.10.11.cancel-copy1">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4436,11 +4436,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <span class="acct-sub-val" id="acctPlanVal">Free</span>
               </div>
               <div class="acct-sub-row hidden" id="acctExpiryRow">
-                <span class="acct-sub-label">Active until</span>
+                <span class="acct-sub-label" id="acctExpiryLabel">Renews on</span>
                 <span class="acct-sub-val" id="acctExpiryVal">—</span>
               </div>
               <p class="acct-sub-note hidden" id="acctSubNote"></p>
-              <p class="acct-sub-sched hidden" id="acctScheduledNote"></p>
+              <p class="acct-sub-done hidden" id="acctCancelDone"></p>
               <div class="acct-sub-actions">
                 <button class="chip acct-cancel hidden" id="acctCancelSub" type="button">Cancel subscription</button>
                 <a class="chip acct-manage hidden" id="acctManageSub" href="#" target="_blank" rel="noopener">Billing &amp; invoices ↗</a>
@@ -4566,8 +4566,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <span class="plan-amount" data-price="monthly" hidden>$5.00</span>
               <span class="plan-period">/ month</span>
             </div>
-            <p class="plan-note" data-note="yearly">Billed $29.00 yearly</p>
-            <p class="plan-note" data-note="monthly" hidden>Billed monthly</p>
+            <p class="plan-note" data-note="yearly">Billed $29.00 yearly · auto-renews until you cancel</p>
+            <p class="plan-note" data-note="monthly" hidden>Billed monthly · auto-renews until you cancel</p>
             <ul class="plan-feats">
               <li>Daily affirmations</li>
               <li><strong>Favourites &amp; your own affirmations</strong></li>
@@ -4588,8 +4588,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <span class="plan-amount" data-price="monthly" hidden>$9.90</span>
               <span class="plan-period">/ month</span>
             </div>
-            <p class="plan-note" data-note="yearly">Billed $70.00 yearly</p>
-            <p class="plan-note" data-note="monthly" hidden>Billed monthly</p>
+            <p class="plan-note" data-note="yearly">Billed $70.00 yearly · auto-renews until you cancel</p>
+            <p class="plan-note" data-note="monthly" hidden>Billed monthly · auto-renews until you cancel</p>
             <ul class="plan-feats">
               <li>Living Reality — AI audio journeys</li>
               <li>AI Vision — photos &amp; videos</li>
@@ -4759,7 +4759,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
          合规要点：取消不能比注册难，最多一屏确认，不做确认羞辱、不隐藏「继续取消」按钮。 -->
     <div id="cancelSubModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Cancel subscription">
       <div class="quiz-card glass">
-        <h3 class="lm-title" id="csTitle">Before you go</h3>
+        <h3 class="lm-title" id="csTitle">Cancel your subscription?</h3>
         <p class="quiz-q" id="csIntro"></p>
         <p class="acct-hint" id="csRetention"></p>
         <p class="acct-hint hidden" id="csMsg"></p>
@@ -4859,7 +4859,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261010inappcancel1" defer></script>
+  <script src="app.js?v=20261011cancelcopy4" defer></script>
 
 </body>
 </html>
