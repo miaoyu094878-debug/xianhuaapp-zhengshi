@@ -2586,6 +2586,26 @@
     } catch (e) { lmMsg(e.message); }
   });
 
+  // Google 一键登录：走 Supabase 的 OAuth 授权端点（implicit flow），整页跳转到 Google，
+  // 回来后 token 从 URL hash 带回来，由页面底部的 handleOAuthRedirect() 接收。
+  // 同一个邮箱若之前已用密码注册过，Supabase 会关联到同一账号（需在后台开启自动关联），
+  // 因此积分、订阅都不会丢。
+  function signInWithGoogle() {
+    var cfg = supabaseCfg();
+    if (!cfg.url || !cfg.key) { lmMsg('Supabase is not configured yet.'); return; }
+    // 去掉 hash / query，既避免把旧 token 回传，也方便后台把回调地址加进白名单
+    var redirect = location.origin + location.pathname;
+    location.href = cfg.url + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(redirect);
+  }
+  if ($('#lmGoogle')) $('#lmGoogle').addEventListener('click', function () {
+    lmMsg('Redirecting to Google…');
+    signInWithGoogle();
+  });
+  if ($('#acctGoogle')) $('#acctGoogle').addEventListener('click', function () {
+    acctMsg('Redirecting to Google…');
+    signInWithGoogle();
+  });
+
   /* ═══════ Voice Storage (Supabase Storage) ═══════ */
   var LR_BUCKET = 'lrv-audio';
   function lrHash(str) {
@@ -3147,8 +3167,48 @@
       goTab('tab-profile');
     }
   });
+  /* ═══════ Google OAuth 回调（implicit flow：token 放在 URL hash 里带回来）═══════ */
+  async function handleOAuthRedirect() {
+    var h = location.hash || '';
+    if (h.indexOf('access_token=') === -1 && h.indexOf('error') === -1) return false;
+    var p = {};
+    h.replace(/^#/, '').split('&').forEach(function (kv) {
+      if (!kv) return;
+      var i = kv.indexOf('=');
+      if (i < 0) return;
+      p[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' '));
+    });
+    // 立刻清掉地址栏里的 token：既避免刷新时重复消费，也避免被复制外泄
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    if (p.error) {
+      openLoginModal('Google sign-in was cancelled or failed. Please try again ✦');
+      lmMsg(p.error_description || p.error);
+      return true;
+    }
+    if (!p.access_token) return false;
+    var session = {
+      access_token: p.access_token,
+      refresh_token: p.refresh_token || null,
+      expires_in: p.expires_in || null,
+      expires_at: p.expires_at || null,
+      token_type: p.token_type || 'bearer',
+      user: null
+    };
+    setSession(session);
+    // 拿一次用户信息：loadProfile / 账号页邮箱都依赖 session.user.id
+    try {
+      var res = await sbFetch('/auth/v1/user');
+      if (res.ok) { session.user = await res.json(); setSession(session); }
+    } catch (e) { console.warn('oauth user:', e); }
+    try { await loadProfile(session); await seedProfile(session); } catch (e) {}
+    closeLoginModal();
+    return true;
+  }
+
   renderProfile();
-  if ($('#acctSignedIn') || $('#acctSignedOut') || $('#acctLoading')) refreshAccount();
+  handleOAuthRedirect().then(function () {
+    if ($('#acctSignedIn') || $('#acctSignedOut') || $('#acctLoading')) refreshAccount();
+  });
 
   /* ═══════ Theme Switcher ═══════ */
   var THEME_KEY = 'luminara_theme_v1';

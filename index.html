@@ -669,6 +669,27 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .lm-actions { display: flex; gap: 10px; margin-top: 4px; }
 .lm-actions .btn-primary, .lm-actions .chip { flex: 1; text-align: center; margin: 0; text-transform: none; }
 .lm-close { margin-top: 12px; width: 100%; text-align: center; }
+
+/* Google one-click sign-in */
+/* 描边用 var(--text) 的透明度派生，而不是 --border：后者在半透明玻璃卡片上几乎不可见 */
+.g-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; margin: 0 0 12px; padding: 11px 16px;
+  border: 1.5px solid color-mix(in srgb, var(--text) 30%, transparent);
+  border-radius: 999px;
+  background: var(--surface-2); color: var(--text);
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: 0.25s;
+}
+.g-btn:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.g-btn:disabled { opacity: 0.6; cursor: default; transform: none; box-shadow: none; }
+.g-btn svg { width: 18px; height: 18px; flex: 0 0 18px; }
+.g-divider {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 12px;
+  font-size: 11px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.g-divider::before, .g-divider::after { content: ''; flex: 1; height: 1px; background: color-mix(in srgb, var(--text) 22%, transparent); }
 #loginModal .acct-hint { margin-top: 10px; font-size: 12px; color: var(--text-soft); min-height: 14px; }
 .pw-policy { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-dim); text-align: center; line-height: 1.6; }
 .pw-policy a { color: var(--accent); text-decoration: none; }
@@ -4411,6 +4432,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <p class="acct-desc">Create an account to save your details across every device.</p>
               </div>
             </div>
+            <button id="acctGoogle" class="g-btn" type="button">
+              <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Continue with Google
+            </button>
+            <div class="g-divider">or</div>
             <input id="acctEmail" type="email" placeholder="Your email" maxlength="120">
             <input id="acctPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
             <div class="acct-actions">
@@ -4707,6 +4733,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       <div class="quiz-card glass">
         <h3 class="lm-title">Sign in to continue ✦</h3>
         <p class="quiz-q" id="lmIntro">Create an account (or log in) to generate &amp; save your creations.</p>
+        <button id="lmGoogle" class="g-btn" type="button">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Continue with Google
+        </button>
+        <div class="g-divider">or</div>
         <input id="lmName" type="text" placeholder="Your name (optional)" maxlength="20">
         <input id="lmEmail" type="email" placeholder="Your email" maxlength="120">
         <div class="pw-field">
