@@ -1466,12 +1466,16 @@
   // Dispatches API requests to Supabase Edge Function (/functions/v1/xianhuaapp) or local /api
   // ══════════════════════════════════════════════════════════
   /** 软门槛：不锁导航，只在「使用时」弹可关闭的订阅框（key = 动作名） */
+  // ⚠️ optimize-video-prompt（AI Director 提示词优化）必须在闸门内：
+  // 它是视频生成的子步骤，漏掉它会导致 Lite 用户先白跑一次 LLM 拿到优化提示词，
+  // 才在 vision-video 被拦——既浪费成本又让用户觉得"做了半天才说要钱"。
   var PRO_GATED_ACTIONS = {
     'story': 'AI affirmations',
     'journey': 'Living Reality — AI audio journeys',
     'voice': 'AI voice narration',
     'vision-photo': 'AI Vision photos',
-    'vision-video': 'AI Vision videos'
+    'vision-video': 'AI Vision videos',
+    'optimize-video-prompt': 'AI Video Director'
   };
 
   async function callUnifiedApi(action, payload) {
