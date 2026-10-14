@@ -264,6 +264,8 @@
     $$('#tab-plans [data-credits]').forEach(function (el) { el.hidden = el.dataset.credits !== mode; });
     var saveBadge = $('#plansSave');
     if (saveBadge) saveBadge.hidden = mode !== 'yearly';
+    // 月付 / 年付切换会改变"目标周期"，按钮可用性要跟着重算
+    if (typeof refreshPlanBtns === 'function') refreshPlanBtns();
   }
   $$('.plans-toggle-btn').forEach(function (b) {
     b.addEventListener('click', function () { setBillingMode(b.dataset.billing); });
@@ -275,11 +277,31 @@
   function planBtnLabel(plan) {
     return plan === 'lite' ? 'Get Lite' : 'Get Pro';
   }
-  /** 刷新两张卡的按钮状态（Lite 已激活时，Lite 卡禁用、Pro 卡引导升级） */
+  /* ── 换档规则（与后端 handleCreateCheckout 保持一致，前端只做展示层拦截）──
+     同档同周期  禁止（重复购买 → 两笔订阅并存、双扣）
+     月 → 年     允许（延长周期）
+     年 → 月     禁止（周期倒退）
+     lite → pro  允许（升级，含 lite年 → pro月：升级优先）
+     pro → lite  禁止（降级；只能取消后等到期再买）
+     周期未知（迁移 20261013220000 之前的订阅）一律放行：宁可放行，也不锁死真实用户 */
+  var PLAN_RANK = { free: 0, lite: 1, pro: 2 };
+  var PERIOD_RANK = { monthly: 0, yearly: 1 };
+  function switchAllowed(nextPlan, nextPeriod) {
+    var cur = (creditState && creditState.plan) || 'free';
+    if (cur !== 'lite' && cur !== 'pro') return true; // 当前无生效订阅
+    if (!creditState.planPeriod) return true;         // 周期未知 → 放行
+    if ((PLAN_RANK[nextPlan] || 0) < (PLAN_RANK[cur] || 0)) return false;
+    if (nextPlan === cur) {
+      if (nextPeriod === creditState.planPeriod) return false;
+      return (PERIOD_RANK[nextPeriod] || 0) > (PERIOD_RANK[creditState.planPeriod] || 0);
+    }
+    return true; // 升级
+  }
+  /** 刷新两张卡的按钮状态：按换档规则判定（同档位换周期要放行，如月付 → 年付） */
   function refreshPlanBtns() {
     $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
       var plan = b.dataset.plan === 'lite' ? 'lite' : 'pro';
-      b.disabled = plan === 'pro' ? isPro() : isPaid();
+      b.disabled = !switchAllowed(plan, currentBilling);
       b.textContent = planBtnLabel(plan);
     });
   }
@@ -310,6 +332,15 @@
       if (data && data.checkout_url) { window.location.href = data.checkout_url; return; }
       if (data && data.error === 'auth_required') {
         openLoginModal('Please sign in again, then subscribe ✦');
+        return;
+      }
+      // 换档被拒（后端 409）：给出人话提示，别暴露错误码
+      if (res.status === 409 && data && data.error) {
+        var blockedMsg =
+          data.error === 'already_subscribed' ? 'You are already on this plan.'
+          : data.error === 'period_downgrade_not_allowed' ? 'Switching from yearly to monthly is not available.'
+          : 'Downgrades are not available while your plan is active — cancel it, then subscribe again after it ends.';
+        toastCredits(blockedMsg);
         return;
       }
       toastCredits(data && data.error ? ('Checkout unavailable (' + data.error + ')') : 'Checkout is not available yet.');
@@ -357,6 +388,8 @@
   var creditState = {
     loaded: false, signedIn: false,
     balance: 0, plan: 'free', planExpiresAt: null, prices: null,
+    // 当前订阅的计费周期 monthly / yearly（后端 plan_period；迁移前老订阅为 null）
+    planPeriod: null,
     // 已排定「本期末取消」：Dodo 不会为这个动作发 webhook，状态由后端落库后下发
     cancelScheduled: false
   };
@@ -399,6 +432,7 @@
       creditState.balance = Number(d.balance) || 0;
       creditState.plan = d.plan || 'free';
       creditState.planExpiresAt = d.plan_expires_at || null;
+      creditState.planPeriod = d.plan_period || null;
       creditState.cancelScheduled = !!d.cancel_scheduled;
     } catch (e) {
       creditState.signedIn = false;
