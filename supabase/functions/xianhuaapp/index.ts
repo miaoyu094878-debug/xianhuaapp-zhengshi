@@ -2246,7 +2246,7 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
   const productId = productIdFor(plan, period);
   if (!productId) return json({ error: 'product_not_configured', plan, period }, 503);
 
-  // ── 换档规则：先判定这次购买是否被允许 ────────────────────────────────
+  // ── 换档规则：判定这次购买是否被允许 ────────────────────────────────
   // 规则（产品口径）：
   //   同档同周期  禁止（重复购买 → 两笔订阅并存、双扣）
   //   月 → 年     允许（延长周期）
@@ -2255,6 +2255,10 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
   //   pro → lite  禁止（降级；用户只能取消后等到期再买）
   // 周期未知（迁移 20261013220000 之前的订阅 plan_period 为 null）一律放行：
   //   宁可放行，也绝不能把真实用户锁死在"买不了"的状态。
+  //
+  // ⚠️ 这里【只做校验、绝不取消旧订阅】。
+  //    取消旧订阅必须等"钱真的收到、新订阅已生效"之后（见 webhook 的换档处理），
+  //    否则用户点一下按钮又放弃付款，旧订阅就被白取消了 —— 付了钱却没权益。
   const PLAN_RANK: Record<string, number> = { free: 0, lite: 1, pro: 2 };
   const PERIOD_RANK: Record<string, number> = { monthly: 0, yearly: 1 };
   const w0 = await walletSummary(user.id);
@@ -2278,36 +2282,11 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
     }
   }
 
-  // ── 换档保护：已有生效订阅时，先把旧订阅标记为本期末取消 ────────────────
-  // 走到这里说明是允许的换档（升级 / 月转年）。
-  // 不先取消旧的，旧订阅会继续自动续费 → 用户被两笔订阅同时扣款（多档叠加扣款）。
-  // 用 cancel_at_next_billing_date：旧订阅不再续费、已付权益保留到本期末（不浪费用户的钱），
-  // 新订阅立即生效 —— 用户点一下就完成换档，不必先取消再回来买。
-  // 失败不阻断：旧订阅取消失败只记 warn，绝不能因此让用户买不了新档。
-  if (hasActive) {
-    try {
-      const cur: any = await rpc('dodo_subscription_of', { p_user_id: user.id });
-      const oldSubId = String((cur && cur.subscription_id) || '');
-      if (oldSubId) {
-        const cres = await fetch(DODO_API_BASE + '/subscriptions/' + encodeURIComponent(oldSubId), {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + DODO_API_KEY },
-          body: JSON.stringify({ cancel_at_next_billing_date: true }),
-        });
-        if (!cres.ok) {
-          const ctext = await cres.text();
-          console.warn('[dodo] pre-cancel old subscription failed (non-blocking)', user.id, oldSubId, cres.status, ctext.slice(0, 300));
-        } else {
-          await rpc('set_dodo_cancel_scheduled', { p_user_id: user.id, p_scheduled: true });
-          console.log('[dodo] pre-canceled old subscription for switch', user.id, oldSubId, '->', plan, period);
-        }
-      } else {
-        console.warn('[dodo] active plan but no subscription id on file; skip pre-cancel', user.id, w0.plan);
-      }
-    } catch (e: any) {
-      console.warn('[dodo] pre-cancel check failed (non-blocking)', user.id, String((e && e.message) || e));
-    }
-  }
+  // ── 换档保护已移至 webhook ────────────────────────────────────────────
+  // 旧订阅的取消放在 subscription.active / renewed 里、新订阅已开通之后执行。
+  // 原因：创建结账 ≠ 付款成功。用户点按钮后放弃付款，旧订阅会被白白取消
+  // （付了钱、权益却被提前收回，是拒付与客诉的直接来源）。
+  // 定期外：这里取消还会让 dodo_cancel_scheduled_at 被置位，前端误显示"已取消"。
 
   // 客户信息：只从档案里取真实姓名，拿不到就干脆不传 name。
   // 传空字符串或与该邮箱存档不一致的姓名，会让 Dodo 在付款确认时抛
@@ -2466,6 +2445,37 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
         data.customer_id || ''
       );
       if (subId) {
+        // ── 换档：新订阅【已生效】后，才把旧订阅标记为本期末取消 ──────────
+        // 放在这里而不是"创建结账"时：结账创建 ≠ 付款成功。
+        // 若在创建结账时就取消，用户放弃付款会导致旧订阅被白取消（付了钱却没权益）。
+        // 用 cancel_at_next_billing_date：旧订阅不再续费、已付权益保留到本期末。
+        // 不置 dodo_cancel_scheduled_at —— 那是"用户主动取消"的标记，
+        // 换档不是用户取消，前端不该显示"已取消"（否则就是这次的事故）。
+        let prevSubId = '';
+        try {
+          const cur: any = await rpc('dodo_subscription_of', { p_user_id: userId });
+          prevSubId = String((cur && cur.subscription_id) || '');
+        } catch (e: any) {
+          console.warn('[dodo] read current subscription failed (non-blocking)', userId, String((e && e.message) || e));
+        }
+        if (prevSubId && prevSubId !== subId) {
+          try {
+            const cres = await fetch(DODO_API_BASE + '/subscriptions/' + encodeURIComponent(prevSubId), {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + DODO_API_KEY },
+              body: JSON.stringify({ cancel_at_next_billing_date: true }),
+            });
+            if (!cres.ok) {
+              const ctext = await cres.text();
+              console.warn('[dodo] cancel previous subscription failed (non-blocking)', userId, prevSubId, cres.status, ctext.slice(0, 300));
+            } else {
+              console.log('[dodo] canceled previous subscription after switch', userId, prevSubId, '->', subId);
+            }
+          } catch (e: any) {
+            console.warn('[dodo] cancel previous subscription threw (non-blocking)', userId, prevSubId, String((e && e.message) || e));
+          }
+        }
+
         const s: any = await rpc('set_dodo_subscription', {
           p_user_id: userId,
           p_customer_id: cusId || null,
