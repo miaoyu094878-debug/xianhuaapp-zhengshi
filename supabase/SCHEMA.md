@@ -93,6 +93,8 @@
 
 ### profiles ★账户/订阅
 > `plan` 是**手动补的列**（原迁移没建），`plan='pro'` + `plan_expires_at IS NULL` = 永久 Pro。
+> 2026-10-10 起新增 3 个 Dodo 列（迁移 `20261010130000_dodo_cancel_in_app.sql`，已在上线执行）。
+> ⚠️ 定位账号一律用 `email` 反查（不要凭记忆里的 uuid 硬查）。
 | pos | 列 | 类型 | 可空 | 默认 |
 |---|---|---|---|---|
 | 1 | id | uuid | NO | — （= `auth.users.id`，没有 `user_id` 列） |
@@ -104,6 +106,18 @@
 | 7 | email | text | YES | `''` |
 | 8 | plan_expires_at | timestamptz | YES | — |
 | 9 | plan | text | NO | `'free'` |
+| 10 | dodo_customer_id | text | YES | — |
+| 11 | dodo_subscription_id | text | YES | — |
+| 12 | dodo_cancel_scheduled_at | timestamptz | YES | — |
+| 13 | plan_period | text | YES | — |
+
+> **`plan_period`（2026-10-13 迁移 `20261013220000_plan_period.sql` 新增）**
+> 当前订阅的**计费周期**：`monthly` / `yearly`，`free` 或迁移前的老订阅为 `NULL`。
+> 由 `activate_subscription` 写入，`wallet_summary` 返回给前端。
+> 用途：换档规则判定（同档同周期禁止、月→年允许、年→月禁止、lite→pro 允许、pro→lite 禁止）。
+> **不能用 `plan_expires_at` 剩余天数推断**——年付末期剩余 < 60 天会被误判成月付，
+> 放行"再买一次年付"→ 两笔年付并存 + `set_plan` 叠加 → 白送一整年。
+> 迁移不回填历史订阅；`plan_period IS NULL` 时前端/后端一律**放行**（宁可放行也不锁死真实用户）。
 
 ### saved_items
 | pos | 列 | 类型 | 可空 | 默认 |
@@ -214,14 +228,15 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 
 | 函数 | 参数 | 说明 |
 |---|---|---|
-| `activate_subscription` | `p_user_id uuid, p_period text DEFAULT 'monthly', p_plan text DEFAULT 'pro'` | 开通/续期**指定档位**：`pro` 发随附积分（月付 990 / 年付 10500），`lite` **不发积分**；已是 pro 未过期时传 `lite` 不降级。幂等。迁移 `20261007120000_lite_plan.sql`（覆盖 `20260930120000` 的旧两参数版本） |
+| `activate_subscription` | `p_user_id uuid, p_period text DEFAULT 'monthly', p_plan text DEFAULT 'pro'` | 开通/续期**指定档位**：`pro` 发随附积分（月付 990 / 年付 10500），`lite` **不发积分**；已是 pro 未过期时传 `lite` 不降级。幂等。**2026-10-13 起额外把 `p_period` 写进 `profiles.plan_period`**（走"已是 Pro 跳过"分支时不写）。迁移 `20261013220000_plan_period.sql`（覆盖 `20261007120000` 版本） |
 | `admin_set_balance` | `p_email text, p_target integer` | 按邮箱直接把余额设为某值（管理用） |
 | `consume_credits` | `p_user_id uuid, p_action text, p_ref text DEFAULT NULL, p_cost_usd numeric DEFAULT 0, p_points integer DEFAULT NULL` | 原子扣费；顾问锁 + 幂等 ref。截图里后半段被截断，按迁移定义应为上表 |
 | `credit_balance` | `p_user_id uuid` | 返回余额 = `sum(amount)` |
 | `grant_credits` | `p_user_id uuid, p_amount integer, p_reason text DEFAULT 'admin_grant', p_ref text DEFAULT NULL` | 发放积分（充值/补偿），幂等 |
 | `handle_new_user` | — | 注册触发器函数（新用户初始化）。**注意**：若还挂着触发器会自动送积分 |
 | `refund_credits` | `p_user_id uuid, p_ledger_id bigint` | 按扣费流水退款 |
-| `set_plan` | `p_user_id uuid, p_plan text, p_days integer DEFAULT 30` | 设置档位（`lite` / `pro` / `free`）并延长有效期；**非 lite/pro 一律归 free** |
+| `set_plan` | `p_user_id uuid, p_plan text, p_days integer DEFAULT 30` | 设置档位（`lite` / `pro` / `free`）并延长有效期；**非 lite/pro 一律归 free**。**2026-10-13 起：置 free 时同时清空 `plan_period`**。到期日算法是 `greatest(旧到期日, now()) + days`（**累加**，不是重置）→ 换档/重复购买会多送时长 |
+| `wallet_summary` | `p_user_id uuid` | 一次返回余额 + 订阅状态（含过期自动降级）。**2026-10-13 起额外返回 `plan_period`**；过期降级时清空 `plan_period` |
 | `settle_credits` | `p_user_id uuid, p_ledger_id bigint, p_actual_points integer, p_allow_topup boolean DEFAULT false` | 用后按**真实成本**结算：`false` = 只退不补；`true` = 升/降都改（补扣最多扣到余额为 0）。迁移 `20261001000000_settle_exact.sql`。**⚠️ 该迁移未应用前，边缘函数传 `p_allow_topup` 会报错** |
 | `wallet_summary` | `p_user_id uuid` | 一次返回余额 + 订阅状态（含过期自动降级） |
 
@@ -242,7 +257,7 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 |---|---|
 | 余额 | `credit_ledger.amount` 求和（排除 `void`） |
 | 扣费流水 | `credit_ledger`，幂等键 `ref = {user_id}:{action}:{opId}` |
-| 订阅状态 | `profiles.plan` + `profiles.plan_expires_at`（`NULL` = 永久） |
+| 订阅状态 | `profiles.plan` + `profiles.plan_expires_at`（`NULL` = 永久）+ `profiles.plan_period`（月/年周期，2026-10-13 起） + `dodo_cancel_scheduled_at`（已排定本期末取消） |
 | 兜底价目 | `credit_costs`（现行定价在边缘函数 `index.ts` 的 `COST_TABLE`） |
 | 管理看板 | 视图 `profiles_overview` |
 | 遗留 | 表 `subscriptions` 已不参与业务 |

@@ -411,6 +411,8 @@ async function walletSummary(userId: string) {
     balance: w.balance ?? 0,
     plan: w.plan || 'free',
     plan_expires_at: w.plan_expires_at || null,
+    // 当前订阅的计费周期（monthly / yearly）。迁移 20261013220000 之前的订阅为 null
+    plan_period: w.plan_period || null,
     cancel_scheduled: !!w.cancel_scheduled,
   };
 }
@@ -2244,6 +2246,69 @@ async function handleCreateCheckout(req: Request, body: any, corsHeaders: Record
   const productId = productIdFor(plan, period);
   if (!productId) return json({ error: 'product_not_configured', plan, period }, 503);
 
+  // ── 换档规则：先判定这次购买是否被允许 ────────────────────────────────
+  // 规则（产品口径）：
+  //   同档同周期  禁止（重复购买 → 两笔订阅并存、双扣）
+  //   月 → 年     允许（延长周期）
+  //   年 → 月     禁止（周期倒退）
+  //   lite → pro  允许（升级，含 lite年 → pro月：升级优先）
+  //   pro → lite  禁止（降级；用户只能取消后等到期再买）
+  // 周期未知（迁移 20261013220000 之前的订阅 plan_period 为 null）一律放行：
+  //   宁可放行，也绝不能把真实用户锁死在"买不了"的状态。
+  const PLAN_RANK: Record<string, number> = { free: 0, lite: 1, pro: 2 };
+  const PERIOD_RANK: Record<string, number> = { monthly: 0, yearly: 1 };
+  const w0 = await walletSummary(user.id);
+  const expMs0 = Date.parse(String(w0.plan_expires_at || '')) || 0;
+  const hasActive = (w0.plan === 'lite' || w0.plan === 'pro') && expMs0 > Date.now();
+
+  if (hasActive && w0.plan_period) {
+    const curPlan = String(w0.plan);
+    const curPeriod = String(w0.plan_period);
+    let reason = '';
+    if ((PLAN_RANK[plan] ?? 0) < (PLAN_RANK[curPlan] ?? 0)) {
+      reason = 'downgrade_not_allowed';
+    } else if (plan === curPlan && period === curPeriod) {
+      reason = 'already_subscribed';
+    } else if (plan === curPlan && (PERIOD_RANK[period] ?? 0) < (PERIOD_RANK[curPeriod] ?? 0)) {
+      reason = 'period_downgrade_not_allowed';
+    }
+    if (reason) {
+      console.warn('[dodo] block checkout', reason, user.id, curPlan + '/' + curPeriod, '->', plan + '/' + period);
+      return json({ error: reason, current_plan: curPlan, current_period: curPeriod }, 409);
+    }
+  }
+
+  // ── 换档保护：已有生效订阅时，先把旧订阅标记为本期末取消 ────────────────
+  // 走到这里说明是允许的换档（升级 / 月转年）。
+  // 不先取消旧的，旧订阅会继续自动续费 → 用户被两笔订阅同时扣款（多档叠加扣款）。
+  // 用 cancel_at_next_billing_date：旧订阅不再续费、已付权益保留到本期末（不浪费用户的钱），
+  // 新订阅立即生效 —— 用户点一下就完成换档，不必先取消再回来买。
+  // 失败不阻断：旧订阅取消失败只记 warn，绝不能因此让用户买不了新档。
+  if (hasActive) {
+    try {
+      const cur: any = await rpc('dodo_subscription_of', { p_user_id: user.id });
+      const oldSubId = String((cur && cur.subscription_id) || '');
+      if (oldSubId) {
+        const cres = await fetch(DODO_API_BASE + '/subscriptions/' + encodeURIComponent(oldSubId), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + DODO_API_KEY },
+          body: JSON.stringify({ cancel_at_next_billing_date: true }),
+        });
+        if (!cres.ok) {
+          const ctext = await cres.text();
+          console.warn('[dodo] pre-cancel old subscription failed (non-blocking)', user.id, oldSubId, cres.status, ctext.slice(0, 300));
+        } else {
+          await rpc('set_dodo_cancel_scheduled', { p_user_id: user.id, p_scheduled: true });
+          console.log('[dodo] pre-canceled old subscription for switch', user.id, oldSubId, '->', plan, period);
+        }
+      } else {
+        console.warn('[dodo] active plan but no subscription id on file; skip pre-cancel', user.id, w0.plan);
+      }
+    } catch (e: any) {
+      console.warn('[dodo] pre-cancel check failed (non-blocking)', user.id, String((e && e.message) || e));
+    }
+  }
+
   // 客户信息：只从档案里取真实姓名，拿不到就干脆不传 name。
   // 传空字符串或与该邮箱存档不一致的姓名，会让 Dodo 在付款确认时抛
   // "Customer name provided doesn't match the one in session"。
@@ -2414,8 +2479,44 @@ async function handleDodoWebhook(req: Request, rawBody: string, corsHeaders: Rec
       // 注意：cancelled 不在这里 —— 用户已付到本期末，应保留到 plan_expires_at 自然到期，
       // 到期后 wallet_summary 会自动降级。只有真正到期/创建失败才立刻收回 Pro。
       if (userId) {
+        // ── 降级防护：认订阅、不认账号 ──────────────────────────────────
+        // 一个用户名下可能同时存在多笔订阅：旧订阅已标记「期末取消」但尚未到期，
+        // 用户又买了新档（升级 / 月转年 / 取消后回归）。此时旧订阅到期会投递 expired，
+        // 若仍按 user_id 一刀切降级，会把用户刚买的新档权益一起吞掉
+        // —— 付费用户权益被吞 = 客诉 + 拒付，是我们最不能接受的事故。
+        //
+        // 原则：降级 = 收回已付费权益，误伤代价 >> 漏收代价。
+        //      凡无法确认的，一律「不降级 + 打日志」：宁可白送几天，绝不吞权益。
+        const eventSubId = String(
+          data.subscription_id || (data.subscription && data.subscription.id) || data.id || ''
+        );
+        let curSubId = '';
+        try {
+          const cur: any = await rpc('dodo_subscription_of', { p_user_id: userId });
+          curSubId = String((cur && cur.subscription_id) || '');
+        } catch (e: any) {
+          console.warn('[dodo] dodo_subscription_of failed', userId, String((e && e.message) || e));
+        }
+
+        // L1：事件订阅号 ≠ 库里当前订阅 → 是旧订阅（已被换掉）的过期通知，忽略
+        if (eventSubId && curSubId && eventSubId !== curSubId) {
+          console.log('[dodo] ignore stale', type, 'event_sub=', eventSubId, 'current_sub=', curSubId, userId);
+          return json({ ok: true, ignored: 'stale_subscription' });
+        }
+
+        // L2：缺订阅号（迁移前老订阅 / payload 缺字段）无法比对 →
+        // 退而用 plan_expires_at 判断：权益尚未到期就不降级
+        if (!eventSubId || !curSubId) {
+          const w = await walletSummary(userId);
+          const expMs = Date.parse(String(w.plan_expires_at || '')) || 0;
+          if (expMs > Date.now()) {
+            console.warn('[dodo] ignore', type, 'no sub id but plan active until', w.plan_expires_at, userId);
+            return json({ ok: true, ignored: 'unverifiable_plan_active' });
+          }
+        }
+
         await rpc('set_plan', { p_user_id: userId, p_plan: 'free', p_days: 0 });
-        console.log('[dodo] downgrade', type, userId);
+        console.log('[dodo] downgrade', type, userId, 'sub=', eventSubId || curSubId || '(none)');
       }
     }
   } catch (err: any) {
