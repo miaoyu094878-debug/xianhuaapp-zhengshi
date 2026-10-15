@@ -179,7 +179,7 @@ function usageCostUsd(usage) {
 // 1. Core Logic: Generate Present-Tense Immersive Manifestation Story
 async function executeStoryGeneration(req, res) {
   try {
-    const { desire, name, mood, language } = req.body || {};
+    const { desire, name, mood, language, length } = req.body || {};
     if (!desire || typeof desire !== 'string' || !desire.trim()) {
       return res.status(400).json({ error: 'Desire / goal description is required' });
     }
@@ -215,6 +215,11 @@ async function executeStoryGeneration(req, res) {
     const isInputZh = /[\u4e00-\u9fa5]/.test(desire);
     const targetLang = language || (isInputZh ? 'Chinese (中文)' : 'English');
 
+    // 前端「生成字数」选择：中文按字 / 英文按词，限制 50–500，默认 100
+    const targetLen = Math.min(500, Math.max(50, Math.round(Number(length) || 100)));
+    const minLen = Math.round(targetLen * 0.8);
+    const maxLen = Math.round(targetLen * 1.2);
+
     const prompt = `User's Manifestation Goal / Dream: "${desire.trim()}"
 User's Name: "${name ? name.trim() : 'Explorer'}"
 Preferred Atmosphere / Mood: "${mood || 'peaceful'}"
@@ -229,14 +234,14 @@ STRICT WRITING RULES:
 2. STRICTLY PRESENT TENSE: Never say "you will", "one day", "in the future". ALWAYS write in the immediate present ("Right now you are...", "You feel...", "此时此刻...", "你正...").
 3. MULTI-SENSORY DETAIL: Evoke sights, soft ambient sounds, textures, scents, and the calm physical certainty of being in this reality.
 4. EMOTIONAL DEPTH: Evoke profound gratitude, relief, inner quietness, and deep fulfillment.
-5. STRICT SINGLE PARAGRAPH (VOICE AUDITION MODE): The "story" MUST contain ONLY 1 single short paragraph. Absolutely NO extra paragraphs, NO line breaks (\\n).
-6. ULTRA-SHORT & MINIMAL WORDS: Keep the story extremely brief — strictly 20 to 35 Chinese characters (or 15 to 25 English words). Exactly 1 or 2 short, evocative sentences so the user can test and audition voices with ultra-low latency and minimal token cost.
+5. LENGTH TARGET: The "story" MUST be about ${targetLen} words when writing English, or about ${targetLen} Chinese characters when writing Chinese — staying within ${minLen}-${maxLen}. Every sentence must carry sensory or emotional weight; never pad with filler.
+6. PARAGRAPHING FOR NARRATION: If the target is short (60 or fewer), write ONE single paragraph with NO line breaks. If it is longer, split the story into multiple paragraphs separated by a blank line (encoded as a literal \\n\\n inside the JSON string) — each paragraph 1-2 sentences and at most about 120 Chinese characters / 60 English words, so every paragraph becomes its own narration segment.
 
 You MUST return a strictly valid JSON object with the following fields:
 {
   "title": "A poetic 4-8 word title for this manifested scene (in ${targetLang})",
   "affirmation": "One definitive present-tense affirmation summarizing this reality (in ${targetLang})",
-  "story": "The single short paragraph strictly between 20-35 characters for fast voice testing (in ${targetLang})",
+  "story": "The narration of about ${targetLen} words/characters (in ${targetLang}); when it is long, split it into paragraphs separated by a literal \\n\\n",
   "sensoryAnchor": "A physical sensory anchor trigger (e.g. Place your hand gently over your heart...) (in ${targetLang})",
   "frequency": "528Hz" or "432Hz" or "639Hz",
   "mood": "calm" | "radiant" | "cosmic" | "ocean" | "forest"
@@ -915,8 +920,9 @@ async function executeVoiceSynthesis(req, res) {
  * 同一个请求里做两件事：① 剧本 LLM 生成文本 ② 把所有段落一次性合成 TTS
  * 成本 = LLM 真实成本（usage.cost）+ 各段 TTS 真实成本（X-Generation-Id 反查），合并成一次扣费
  * ───────────────────────────────────────────────────────────── */
-/** 单条旅程最多合成多少段（防止一次请求成本/耗时失控） */
-const JOURNEY_MAX_PARAGRAPHS = 8;
+/** 单条旅程最多合成多少段（防止一次请求成本/耗时失控）
+ *  500 字按每段 ≤120 字切，最多约 5 段；英文 500 词按每段 ≤60 词切，最多约 9 段，故上限取 12。 */
+const JOURNEY_MAX_PARAGRAPHS = 12;
 
 /** 造一个「只收集 JSON 输出」的假响应对象：用于在进程内调用其他 handler 并取回它的响应体 */
 function captureJsonResponse() {
@@ -957,6 +963,21 @@ async function handleJourney(req, res) {
     return res.json({
       ...storyData, paragraphs, audios: [], voiceName,
       __creditsDeferred: { items: [], llmCostUsd, orKey: null, estCostUsd: COST_TABLE.story },
+    });
+  }
+
+  // 用户在剧本阶段就按了「暂停」（客户端已断开）：不再合成音频，
+  // 只把已经真实产生的剧本 LLM 成本照实结算，避免为一段用户不要的音频继续付费。
+  if (typeof req.__clientGone === 'function' && req.__clientGone()) {
+    console.log('[pause] journey 在剧本阶段被中止：跳过全部 TTS，仅结算剧本 LLM 成本');
+    return res.json({
+      ...storyData, paragraphs, audios: [], voiceName, paused: true,
+      __creditsDeferred: {
+        items: [],
+        llmCostUsd,
+        orKey: null,
+        estCostUsd: llmCostUsd == null ? COST_TABLE.story : Number(llmCostUsd) || 0,
+      },
     });
   }
 
@@ -1678,6 +1699,14 @@ async function executeVisionVideoContent(req, res, targetJobId) {
 const PRO_UNLIMITED_ACTIONS = new Set(['story']);
 
 async function chargeAndRun(req, res, action, handler) {
+  // 用户中途「暂停」= 客户端主动断开。handler 里用 req.__clientGone() 判断，
+  // 这样能立刻停掉还没发起的模型调用，只按已真实完成的部分照实结算。
+  let clientGone = false;
+  req.on('aborted', () => { clientGone = true; });
+  res.on('close', () => { if (!res.writableEnded) clientGone = true; });
+  res.on('error', () => {});   // 客户端断开后回写会报错，吞掉避免进程崩溃
+  req.__clientGone = () => clientGone;
+
   const user = await resolveUser(req);
   if (!user) {
     return res.status(401).json({
@@ -1811,6 +1840,8 @@ async function chargeAndRun(req, res, action, handler) {
     capturedBody.credits = { charged: finalCharged, balance: w.balance, deferred };
   }
 
+  // 客户端已断开（用户点了暂停）：不用再回写响应
+  if (req.__clientGone && req.__clientGone()) return undefined;
   return origJson(capturedBody);
 }
 

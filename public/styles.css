@@ -2931,6 +2931,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 }
 .sv-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
 .sv-del:hover { border-color: var(--accent2); color: var(--accent2); }
+/* 收藏：未收藏为空心 ♡，收藏后为实心 ♥ 并高亮 */
+.sv-fav { color: var(--text-dim); }
+.sv-fav:hover { border-color: var(--accent2); color: var(--accent2); }
+.sv-fav.sv-faved {
+  color: var(--accent2); border-color: var(--accent2);
+  background: color-mix(in srgb, var(--accent2) 16%, transparent);
+}
+.sv-title .sv-star { color: var(--accent2); margin-right: 5px; }
 .sv-btn.sv-playing {
   border-color: var(--accent);
   color: var(--accent);

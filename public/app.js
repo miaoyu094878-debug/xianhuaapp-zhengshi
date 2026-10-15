@@ -2211,6 +2211,8 @@
       var detectedLanguage = hasChinese ? 'Chinese' : 'English';
       // 旅程一次生成：剧本 LLM + 全部段落 TTS 在同一个请求里完成，成本合并成一次扣费
       var journeyVoice = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
+      // 生成字数（中文按字 / 英文按词），默认 100，范围 50–500
+      var journeyLength = $('#fsLength') ? Number($('#fsLength').value) : 100;
 
       try {
         var res = await callUnifiedApi('journey', {
@@ -2219,6 +2221,7 @@
           mood: mood,
           language: detectedLanguage,
           voiceName: journeyVoice,
+          length: journeyLength,
           opId: uid()
         });
 
@@ -2298,6 +2301,13 @@
   }
 
   // Voice Audition Laboratory (调试选拔实验室)
+  // 生成字数滑块：实时更新右侧数值显示
+  if ($('#fsLength')) {
+    $('#fsLength').addEventListener('input', function () {
+      if ($('#fsLengthVal')) $('#fsLengthVal').textContent = $('#fsLength').value;
+    });
+  }
+
   var auditionAudioSource = null;
   if ($('#fsVoice')) {
     $('#fsVoice').addEventListener('change', function () {
@@ -2848,17 +2858,35 @@
     });
   }
 
+  // 排序：收藏（♥）优先，其次按创建时间倒序
+  function sortSavedVoices() {
+    svRows.sort(function (a, b) {
+      var fa = a.favorited ? 1 : 0, fb = b.favorited ? 1 : 0;
+      if (fa !== fb) return fb - fa;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+  }
+
   function renderSavedVoices() {
     var listEl = $('#svList');
     if (!listEl) return;
+    sortSavedVoices();
     listEl.innerHTML = '';
     if (!savedSession()) { listEl.appendChild(el('p', 'sv-empty', 'Sign in to keep your guided voices here.')); return; }
     if (!svRows.length) { listEl.appendChild(el('p', 'sv-empty', 'No saved voices yet. Generate one, then tap "💾 Save Voice".')); return; }
     svRows.forEach(function (row) {
-      var item = el('div', 'sv-item', '');
+      var faved = !!row.favorited;
+      var item = el('div', 'sv-item' + (faved ? ' sv-faved' : ''), '');
       item.setAttribute('data-key', row.storage_key || '');
       var info = el('div', 'sv-info', '');
-      info.appendChild(el('p', 'sv-title', row.title || 'Untitled'));
+      var titleEl = el('p', 'sv-title', row.title || 'Untitled');
+      if (faved) {
+        var star = document.createElement('span');
+        star.className = 'sv-star';
+        star.textContent = '♥';
+        titleEl.insertBefore(star, titleEl.firstChild);
+      }
+      info.appendChild(titleEl);
       var meta = [];
       if (row.voice) meta.push(row.voice);
       if (row.created_at) {
@@ -2867,6 +2895,10 @@
       }
       info.appendChild(el('p', 'sv-meta', meta.join(' · ')));
       var acts = el('div', 'sv-acts', '');
+      var favBtn = el('button', 'sv-btn sv-fav' + (faved ? ' sv-faved' : ''), faved ? '♥' : '♡');
+      favBtn.type = 'button';
+      favBtn.title = faved ? 'Remove from favorites' : 'Add to favorites';
+      favBtn.addEventListener('click', function () { toggleFavoriteVoice(row); });
       var playing = isSvPlaying(row.storage_key);
       var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), playing ? '⏸' : '▶');
       playBtn.type = 'button'; playBtn.title = playing ? 'Stop' : 'Play this voice';
@@ -2877,10 +2909,38 @@
       var delBtn = el('button', 'sv-btn sv-del', '🗑');
       delBtn.type = 'button'; delBtn.title = 'Delete';
       delBtn.addEventListener('click', function () { deleteSavedVoice(row); });
-      acts.appendChild(playBtn); acts.appendChild(delBtn);
+      acts.appendChild(favBtn); acts.appendChild(playBtn); acts.appendChild(delBtn);
       item.appendChild(info); item.appendChild(acts);
       listEl.appendChild(item);
     });
+  }
+
+  // 切换「收藏」：乐观更新本地顺序并即时重渲染，失败则回滚并提示
+  async function toggleFavoriteVoice(row) {
+    var s = savedSession();
+    if (!s || !(s.user && s.user.id)) return;
+    var prev = !!row.favorited;
+    var next = !prev;
+    row.favorited = next;
+    renderSavedVoices();
+    try {
+      var res = await sbFetch('/rest/v1/' + SV_TABLE + '?id=eq.' + encodeURIComponent(row.id) + '&user_id=eq.' + encodeURIComponent(s.user.id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ favorited: next })
+      });
+      if (!res.ok) {
+        row.favorited = prev;
+        renderSavedVoices();
+        svToast('Could not update favorite (' + res.status + ').');
+        return;
+      }
+      svToast(next ? 'Added to favorites ♥' : 'Removed from favorites');
+    } catch (e) {
+      row.favorited = prev;
+      renderSavedVoices();
+      svToast('Could not update favorite.');
+    }
   }
 
   // Load a saved voice into the player (story text + audio) without regenerating anything
