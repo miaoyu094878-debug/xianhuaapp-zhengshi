@@ -142,6 +142,10 @@
 | 9 | storage_key | text | NO | — |
 | 10 | duration_sec | integer | NO | `0` |
 | 11 | created_at | timestamptz | NO | `now()` |
+| 12 | favorited | boolean | NO | `false` |
+
+> `favorited`（收藏/喜欢）：前端「My Voices」列表把 `true` 的排到最前并显示实心 ♥。
+> 由迁移 `20261015120000_saved_voice_favorite.sql` 添加；RLS 沿用该表 existing 的 ALL/own rows 策略。
 
 ### subscriptions
 > **遗留表**。当前代码不写它（Pro 状态只存 `profiles.plan`），业务上可以忽略。
