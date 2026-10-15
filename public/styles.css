@@ -3334,6 +3334,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 /* 生成按钮里的积分标价（按钮为纵向 flex，故取消左外边距） */
 .ai-btn-generate .cost-badge { margin-left: 0; }
 
+/* 生成中：生成按钮本体变成「暂停」键（不再另设独立暂停按钮） */
+.genbtn-pause { display: none; }
+.is-pausing .genbtn-normal,
+.is-pausing .ai-btn-title,
+.is-pausing .ai-btn-sub,
+.is-pausing .cost-badge { display: none; }
+.is-pausing .genbtn-pause { display: inline; }
+
 @media (min-width: 720px) {
   .credit-packs { grid-template-columns: repeat(3, 1fr); }
   .plan-card .plan-feats li strong { font-weight: 700; }

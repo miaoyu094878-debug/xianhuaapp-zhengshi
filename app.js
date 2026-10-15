@@ -1617,12 +1617,22 @@
    */
   var genCtl = { action: null, ac: null, onPause: null, paused: false };
 
-  function setPauseVisible(action) {
-    [['fsPauseBtn', 'journey'], ['aiPhotoPauseBtn', 'vision-photo'], ['aiVideoPauseBtn', 'vision-video']]
-      .forEach(function (pair) {
-        var b = $('#' + pair[0]);
-        if (b) b.classList.toggle('hidden', pair[1] !== action);
-      });
+  // 生成按钮 ⇄ 暂停键：生成中，对应流程的「生成」按钮本体变成暂停键
+  var GEN_BUTTON_FOR_ACTION = {
+    'journey': 'fsGenerateBtn',
+    'vision-photo': 'aiBtnPhoto',
+    'vision-video': 'aiBtnVideo'
+  };
+
+  function setGenButtonState(action) {
+    Object.keys(GEN_BUTTON_FOR_ACTION).forEach(function (act) {
+      var b = $('#' + GEN_BUTTON_FOR_ACTION[act]);
+      if (!b) return;
+      var active = (act === action);
+      b.classList.toggle('is-pausing', active);
+      // 生成中：只有当前流程的按钮可点（此时它就是暂停键）；其它生成按钮置灰，避免并发再起一个生成
+      b.disabled = action ? !active : false;
+    });
   }
 
   /** 开始一次生成：返回可被「暂停」中止的 signal */
@@ -1632,7 +1642,7 @@
     genCtl.paused = false;
     genCtl.onPause = onPause || null;
     genCtl.ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    setPauseVisible(action);
+    setGenButtonState(action);
     return genCtl.ac ? genCtl.ac.signal : undefined;
   }
 
@@ -1641,7 +1651,7 @@
     genCtl.paused = false;
     genCtl.onPause = null;
     genCtl.ac = null;
-    setPauseVisible(null);
+    setGenButtonState(null);
   }
 
   function generationPaused() { return !!genCtl.paused; }
@@ -1657,7 +1667,7 @@
     try { if (genCtl.ac) genCtl.ac.abort(); } catch (e) {}
     var cb = genCtl.onPause;
     genCtl.onPause = null;
-    setPauseVisible(null);
+    setGenButtonState(null);
     toastCredits('⏸ Paused — adjust your settings and generate again.', 3200);
     if (typeof cb === 'function') cb();
     return true;
@@ -2247,6 +2257,8 @@
   if ($('#fsForm')) {
     $('#fsForm').addEventListener('submit', async function (e) {
       e.preventDefault();
+      // 生成中再次点击：此时按钮已是「暂停」键，点击直接中止本次生成
+      if (genCtl.action === 'journey' && !genCtl.paused) { pauseGeneration(); return; }
       // Gate: browsing is free, but generating voice requires an account
       if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
       var raw = $('#fsDesire').value.trim();
@@ -4410,13 +4422,14 @@
     }
   }
 
-  if ($('#aiBtnPhoto')) $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
-  if ($('#aiBtnVideo')) $('#aiBtnVideo').addEventListener('click', function () { aiGenerate('video'); });
-
-  // 暂停按钮：旅程 / 照片 / 视频三条生成流程共用同一个中止入口
-  ['fsPauseBtn', 'aiPhotoPauseBtn', 'aiVideoPauseBtn'].forEach(function (id) {
-    var b = $('#' + id);
-    if (b) b.addEventListener('click', function () { pauseGeneration(); });
+  // 生成中，同一按钮即暂停键：点击中止本次生成；否则正常发起生成
+  if ($('#aiBtnPhoto')) $('#aiBtnPhoto').addEventListener('click', function () {
+    if (genCtl.action === 'vision-photo' && !genCtl.paused) pauseGeneration();
+    else aiGenerate('photo');
+  });
+  if ($('#aiBtnVideo')) $('#aiBtnVideo').addEventListener('click', function () {
+    if (genCtl.action === 'vision-video' && !genCtl.paused) pauseGeneration();
+    else aiGenerate('video');
   });
 
   // Gallery Filter Chips
