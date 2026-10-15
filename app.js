@@ -1512,7 +1512,7 @@
     'optimize-video-prompt': 'AI Video Director'
   };
 
-  async function callUnifiedApi(action, payload) {
+  async function callUnifiedApi(action, payload, signal) {
     // 未订阅 Pro：生成类动作直接弹订阅框（可关闭，关掉后可继续浏览）
     var gateLabel = PRO_GATED_ACTIONS[action];
     if (gateLabel && !isPro()) {
@@ -1552,7 +1552,8 @@
       var res = await fetch(endpoint, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(fullPayload)
+        body: JSON.stringify(fullPayload),
+        signal: signal   // 用户点「暂停」时中止本次等待
       });
 
       // 登录态过期：静默刷新一次 token 再重试（积分接口强依赖真实用户身份）
@@ -1563,7 +1564,8 @@
           res = await fetch(endpoint, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(fullPayload)
+            body: JSON.stringify(fullPayload),
+            signal: signal
           });
         }
       }
@@ -1575,7 +1577,8 @@
           var localRes = await fetch('/api', {
             method: 'POST',
             headers: localHeaders,
-            body: JSON.stringify(fullPayload)
+            body: JSON.stringify(fullPayload),
+            signal: signal
           });
           if (localRes.ok) return localRes;
         } catch (e) {}
@@ -1587,21 +1590,77 @@
         return await fetch(legacyUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: signal
         });
       }
       return res;
     } catch (err) {
+      // 用户点了「暂停」：请求已被主动中止，不能再回退到本地重发一次
+      if (signal && signal.aborted) throw err;
       // If external call failed, fallback to local /api
       if (endpoint !== '/api') {
         return await fetch('/api', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-device-id': deviceId() },
-          body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+          body: JSON.stringify(Object.assign({ action: action }, payload || {})),
+          signal: signal
         });
       }
       throw err;
     }
+  }
+
+  /* ══════════ 生成中断（Pause）══════════
+   * 用户点「生成」后如果发现设置选错了，可以按暂停中止本次等待、回到表单调完参数再生成。
+   * 中止只影响前端等待：服务端会把已经真实完成的模型调用照实结算（未跑到的步骤不再发起）。
+   */
+  var genCtl = { action: null, ac: null, onPause: null, paused: false };
+
+  function setPauseVisible(action) {
+    [['fsPauseBtn', 'journey'], ['aiPhotoPauseBtn', 'vision-photo'], ['aiVideoPauseBtn', 'vision-video']]
+      .forEach(function (pair) {
+        var b = $('#' + pair[0]);
+        if (b) b.classList.toggle('hidden', pair[1] !== action);
+      });
+  }
+
+  /** 开始一次生成：返回可被「暂停」中止的 signal */
+  function beginGeneration(action, onPause) {
+    endGeneration();
+    genCtl.action = action;
+    genCtl.paused = false;
+    genCtl.onPause = onPause || null;
+    genCtl.ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    setPauseVisible(action);
+    return genCtl.ac ? genCtl.ac.signal : undefined;
+  }
+
+  function endGeneration() {
+    genCtl.action = null;
+    genCtl.paused = false;
+    genCtl.onPause = null;
+    genCtl.ac = null;
+    setPauseVisible(null);
+  }
+
+  function generationPaused() { return !!genCtl.paused; }
+
+  function isAbortError(err) {
+    return !!(err && (err.name === 'AbortError' || err.code === 20));
+  }
+
+  /** 暂停当前生成：中止等待、解锁界面，让用户改完设置后重新生成 */
+  function pauseGeneration() {
+    if (!genCtl.action || genCtl.paused) return false;
+    genCtl.paused = true;
+    try { if (genCtl.ac) genCtl.ac.abort(); } catch (e) {}
+    var cb = genCtl.onPause;
+    genCtl.onPause = null;
+    setPauseVisible(null);
+    toastCredits('⏸ Paused — adjust your settings and generate again.', 3200);
+    if (typeof cb === 'function') cb();
+    return true;
   }
 
   // Play narration using Gemini Neural Voice API (/api or Supabase Edge Function)
@@ -2200,6 +2259,16 @@
 
       stopFutureAudio();
 
+      var paused = false;
+      // 暂停：中止本次等待，解锁界面回到表单，让用户改完设置再生成
+      var signal = beginGeneration('journey', function () {
+        paused = true;
+        $('#fsLoading').classList.add('hidden');
+        $('#fsPlayer').classList.add('hidden');
+        setFsControlsEnabled(false);
+        $('#fsForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
       $('#fsPlayer').classList.add('hidden');
       $('#fsLoading').classList.remove('hidden');
       setFsControlsEnabled(false);
@@ -2223,7 +2292,7 @@
           voiceName: journeyVoice,
           length: journeyLength,
           opId: uid()
-        });
+        }, signal);
 
         var data = {};
         try { data = (await res.json()) || {}; } catch (e) { data = {}; }
@@ -2232,6 +2301,7 @@
         if (isCreditBlocked(res, data)) {
           $('#fsLoading').classList.add('hidden');
           setFsControlsEnabled(false);
+          endGeneration();
           return;
         }
 
@@ -2243,7 +2313,10 @@
         // 先把整段音频灌进缓存再渲染，避免渲染后立刻自动播放时缓存未就绪、又去单独调 TTS
         await preloadJourneyAudio(data, journeyVoice, mood);
         renderFsStoryUI(data);
+        endGeneration();
       } catch (err) {
+        // 用户按了暂停：界面已复位，这里静默收尾，不弹错误
+        if (paused || isAbortError(err)) { endGeneration(); return; }
         console.warn('API error, using client fallback:', err);
         // Instant graceful client-side fallback
         var isZh = /[\u4e00-\u9fa5]/.test(desire);
@@ -2263,6 +2336,7 @@
           mood: mood
         };
         renderFsStoryUI(fallbackData);
+        endGeneration();
       }
     });
   }
@@ -4038,6 +4112,8 @@
 
     timer = setInterval(function () {
       if (finished || inFlight) return;
+      // 用户按了暂停：停止轮询（云端渲染仍在继续，稍后会在画廊同步出现）
+      if (generationPaused()) { finished = true; clearInterval(timer); return; }
       inFlight = true;
       tries++;
       var secs = Math.round((Date.now() - start) / 1000);
@@ -4114,6 +4190,11 @@
       var enhancedPrompt = buildAdaptivePrompt(prompt, currentCameraQuality, hasRefImage);
 
       aiStatus('✦ Rendering portrait (' + cameraInfo.label + ')… (~15s)', 'running');
+      var signal = beginGeneration('vision-photo', function () {
+        if (btnPhoto) btnPhoto.disabled = false;
+        if (btnVideo) btnVideo.disabled = false;
+        aiStatus('Paused — adjust your settings and generate again.', 'running');
+      });
       var photoPayload = {
         prompt: enhancedPrompt,
         raw_prompt: prompt,
@@ -4125,7 +4206,7 @@
       };
       if (userKey) photoPayload.openrouterKey = userKey;
 
-      callUnifiedApi('vision-photo', photoPayload)
+      callUnifiedApi('vision-photo', photoPayload, signal)
       .then(function (res) {
         return res.json().then(function (data) {
           if (isCreditBlocked(res, data)) throw creditBlocked();
@@ -4137,6 +4218,7 @@
       .then(function (data) {
         if (btnPhoto) btnPhoto.disabled = false;
         if (btnVideo) btnVideo.disabled = false;
+        endGeneration();
 
         if (!data.url) throw new Error('No image URL returned from generator');
 
@@ -4160,13 +4242,23 @@
       .catch(function (err) {
         if (btnPhoto) btnPhoto.disabled = false;
         if (btnVideo) btnVideo.disabled = false;
+        endGeneration();
 
         if (err && err.__creditBlock) return;
+        // 用户按了暂停：界面已复位，静默收尾
+        if (isAbortError(err)) return;
         var errMsg = err.message || '';
         aiStatus(formatFriendlyAiError(errMsg, 'photo'), 'error');
       });
     } else {
       // kind === 'video'
+      // 视频从「AI Director 优化提示词」阶段就可以暂停；提交后暂停只是停止等待，
+      // 云端渲染会继续，稍后会在画廊同步出现，预扣的积分不退。
+      var signal = beginGeneration('vision-video', function () {
+        if (btnPhoto) btnPhoto.disabled = false;
+        if (btnVideo) btnVideo.disabled = false;
+        aiStatus('Paused — the current render keeps running in the cloud and will show up in your gallery.', 'running');
+      });
       var dur = currentVideoDuration || 5;
       var res = currentVideoResolution || '480p';
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphonex;
@@ -4195,7 +4287,7 @@
         };
         if (userKey) videoPayload.openrouterKey = userKey;
 
-        callUnifiedApi('vision-video', videoPayload)
+        callUnifiedApi('vision-video', videoPayload, signal)
         .then(function (res) {
           return res.json().then(function (data) {
             if (isCreditBlocked(res, data)) throw creditBlocked();
@@ -4213,6 +4305,7 @@
           pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
             if (btnPhoto) btnPhoto.disabled = false;
             if (btnVideo) btnVideo.disabled = false;
+            endGeneration();
 
             if (pollErr) {
               aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
@@ -4251,8 +4344,10 @@
         .catch(function (err) {
           if (btnPhoto) btnPhoto.disabled = false;
           if (btnVideo) btnVideo.disabled = false;
+          endGeneration();
 
           if (err && err.__creditBlock) return;
+          if (isAbortError(err)) return;   // 用户暂停，静默收尾
           var errMsg = err.message || '';
           aiStatus(formatFriendlyAiError(errMsg, 'video'), 'error');
         });
@@ -4272,7 +4367,7 @@
         };
         if (userKey) optPayload.openrouterKey = userKey;
 
-        callUnifiedApi('optimize-video-prompt', optPayload)
+        callUnifiedApi('optimize-video-prompt', optPayload, signal)
           .then(function (res) {
             return res.json().then(function (data) { return { res: res, data: data }; });
           })
@@ -4281,8 +4376,11 @@
             if (isCreditBlocked(out.res, out.data)) {
               if (btnPhoto) btnPhoto.disabled = false;
               if (btnVideo) btnVideo.disabled = false;
+              endGeneration();
               return;
             }
+            // 用户在 AI Director 阶段按了暂停：不要继续提交视频任务
+            if (generationPaused()) { endGeneration(); return; }
             var data = out.data;
             applyCreditUsage(data);
             var promptToUse = prompt;
@@ -4302,6 +4400,8 @@
             dispatchVideoJob(enhancedPrompt, dirUsed);
           })
           .catch(function (optErr) {
+            // 用户暂停导致的中止：不要退回「自适应规则」再提交一次视频任务
+            if (generationPaused() || isAbortError(optErr)) { endGeneration(); return; }
             console.warn('[AI Director auto-expand] Using adaptive intent rules:', optErr);
             var enhancedPrompt = buildAdaptiveVideoPrompt(prompt, currentCameraQuality, hasRefImage);
             dispatchVideoJob(enhancedPrompt, 'Adaptive Rule Engine');
@@ -4312,6 +4412,12 @@
 
   if ($('#aiBtnPhoto')) $('#aiBtnPhoto').addEventListener('click', function () { aiGenerate('photo'); });
   if ($('#aiBtnVideo')) $('#aiBtnVideo').addEventListener('click', function () { aiGenerate('video'); });
+
+  // 暂停按钮：旅程 / 照片 / 视频三条生成流程共用同一个中止入口
+  ['fsPauseBtn', 'aiPhotoPauseBtn', 'aiVideoPauseBtn'].forEach(function (id) {
+    var b = $('#' + id);
+    if (b) b.addEventListener('click', function () { pauseGeneration(); });
+  });
 
   // Gallery Filter Chips
   function setGalleryFilter(filter) {

@@ -725,7 +725,7 @@ Deno.serve(async (req: Request) => {
       // ══════════════════════════════════════════════════════════
       case 'journey':
       case 'manifest-journey':
-        return await withCredits(req, body, 'journey', corsHeaders, () => handleJourney(body));
+        return await withCredits(req, body, 'journey', corsHeaders, () => handleJourney(body, req));
 
       // ══════════════════════════════════════════════════════════
       // 模块 3: AI 目标愿景写真 (OpenRouter: openai/gpt-image-2)
@@ -958,7 +958,7 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
  *  500 字按每段 ≤120 字切，最多约 5 段；英文 500 词按每段 ≤60 词切，最多约 9 段，故上限取 12。 */
 const JOURNEY_MAX_PARAGRAPHS = 12;
 
-async function handleJourney(body: any): Promise<Response> {
+async function handleJourney(body: any, req?: Request): Promise<Response> {
   const voiceName = String(body?.voiceName || body?.voiceId || body?.voice || 'Zephyr');
   const mood = body?.mood;
 
@@ -986,6 +986,21 @@ async function handleJourney(body: any): Promise<Response> {
     return json({
       ...storyData, paragraphs, audios: [], voiceName,
       __creditsDeferred: { items: [], llmCostUsd, orKey: null, estCostUsd: COST_TABLE.story },
+    }, 200, corsHeaders);
+  }
+
+  // 用户在剧本阶段就按了「暂停」（客户端已断开，req.signal 被 abort）：不再合成音频，
+  // 只把已经真实产生的剧本 LLM 成本照实结算，避免为一段用户不要的音频继续付费。
+  if (req?.signal?.aborted) {
+    console.log('[pause] journey 在剧本阶段被中止：跳过全部 TTS，仅结算剧本 LLM 成本');
+    return json({
+      ...storyData, paragraphs, audios: [], voiceName, paused: true,
+      __creditsDeferred: {
+        items: [],
+        llmCostUsd,
+        orKey: null,
+        estCostUsd: llmCostUsd == null ? COST_TABLE.story : Number(llmCostUsd) || 0,
+      },
     }, 200, corsHeaders);
   }
 

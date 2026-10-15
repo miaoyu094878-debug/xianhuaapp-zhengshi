@@ -966,6 +966,21 @@ async function handleJourney(req, res) {
     });
   }
 
+  // 用户在剧本阶段就按了「暂停」（客户端已断开）：不再合成音频，
+  // 只把已经真实产生的剧本 LLM 成本照实结算，避免为一段用户不要的音频继续付费。
+  if (typeof req.__clientGone === 'function' && req.__clientGone()) {
+    console.log('[pause] journey 在剧本阶段被中止：跳过全部 TTS，仅结算剧本 LLM 成本');
+    return res.json({
+      ...storyData, paragraphs, audios: [], voiceName, paused: true,
+      __creditsDeferred: {
+        items: [],
+        llmCostUsd,
+        orKey: null,
+        estCostUsd: llmCostUsd == null ? COST_TABLE.story : Number(llmCostUsd) || 0,
+      },
+    });
+  }
+
   // ③ 所有段落并行合成，一次性全部返回（与段数无关，仍只算一次旅程）
   const ttsResults = await Promise.all(paragraphs.map((text) => {
     // 复用原请求的 headers / 其他字段，只把 text 换成当前段落
@@ -1684,6 +1699,14 @@ async function executeVisionVideoContent(req, res, targetJobId) {
 const PRO_UNLIMITED_ACTIONS = new Set(['story']);
 
 async function chargeAndRun(req, res, action, handler) {
+  // 用户中途「暂停」= 客户端主动断开。handler 里用 req.__clientGone() 判断，
+  // 这样能立刻停掉还没发起的模型调用，只按已真实完成的部分照实结算。
+  let clientGone = false;
+  req.on('aborted', () => { clientGone = true; });
+  res.on('close', () => { if (!res.writableEnded) clientGone = true; });
+  res.on('error', () => {});   // 客户端断开后回写会报错，吞掉避免进程崩溃
+  req.__clientGone = () => clientGone;
+
   const user = await resolveUser(req);
   if (!user) {
     return res.status(401).json({
@@ -1817,6 +1840,8 @@ async function chargeAndRun(req, res, action, handler) {
     capturedBody.credits = { charged: finalCharged, balance: w.balance, deferred };
   }
 
+  // 客户端已断开（用户点了暂停）：不用再回写响应
+  if (req.__clientGone && req.__clientGone()) return undefined;
   return origJson(capturedBody);
 }
 
