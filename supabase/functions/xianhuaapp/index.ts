@@ -823,7 +823,7 @@ async function handleStory(body: any): Promise<Response> {
     );
   }
 
-  const { desire, name, mood, language } = body;
+  const { desire, name, mood, language, length } = body;
   if (!desire || typeof desire !== 'string' || !desire.trim()) {
     return new Response(
       JSON.stringify({ error: 'Desire / goal description is required' }),
@@ -833,6 +833,11 @@ async function handleStory(body: any): Promise<Response> {
 
   const isInputZh = /[\u4e00-\u9fa5]/.test(desire);
   const targetLang = language || (isInputZh ? 'Chinese (中文)' : 'English');
+
+  // 前端「生成字数」选择：中文按字 / 英文按词，限制 50–500，默认 100
+  const targetLen = Math.min(500, Math.max(50, Math.round(Number(length) || 100)));
+  const minLen = Math.round(targetLen * 0.8);
+  const maxLen = Math.round(targetLen * 1.2);
 
   const prompt = `User's Manifestation Goal / Dream: "${desire.trim()}"
 User's Name: "${name ? name.trim() : 'Explorer'}"
@@ -848,14 +853,14 @@ STRICT WRITING RULES:
 2. STRICTLY PRESENT TENSE: Never say "you will", "one day", "in the future". ALWAYS write in the immediate present ("Right now you are...", "You feel...", "此时此刻...", "你正...").
 3. MULTI-SENSORY DETAIL: Evoke sights, soft ambient sounds, textures, scents, and the calm physical certainty of being in this reality.
 4. EMOTIONAL DEPTH: Evoke profound gratitude, relief, inner quietness, and deep fulfillment.
-5. STRICT SINGLE PARAGRAPH (VOICE AUDITION MODE): The "story" MUST contain ONLY 1 single short paragraph. Absolutely NO extra paragraphs, NO line breaks (\n).
-6. ULTRA-SHORT & MINIMAL WORDS: Keep the story extremely brief — strictly 20 to 35 Chinese characters (or 15 to 25 English words). Exactly 1 or 2 short, evocative sentences so the user can test and audition voices with ultra-low latency and minimal token cost.
+5. LENGTH TARGET: The "story" MUST be about ${targetLen} words when writing English, or about ${targetLen} Chinese characters when writing Chinese — staying within ${minLen}-${maxLen}. Every sentence must carry sensory or emotional weight; never pad with filler.
+6. PARAGRAPHING FOR NARRATION: If the target is short (60 or fewer), write ONE single paragraph with NO line breaks. If it is longer, split the story into multiple paragraphs separated by a blank line (encoded as a literal \\n\\n inside the JSON string) — each paragraph 1-2 sentences and at most about 120 Chinese characters / 60 English words, so every paragraph becomes its own narration segment.
 
 You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrapping text outside JSON):
 {
   "title": "A poetic 4-8 word title for this manifested scene (in ${targetLang})",
   "affirmation": "One definitive present-tense affirmation summarizing this reality (in ${targetLang})",
-  "story": "The single short paragraph strictly between 20-35 characters for fast voice testing (in ${targetLang})",
+  "story": "The narration of about ${targetLen} words/characters (in ${targetLang}); when it is long, split it into paragraphs separated by a literal \\n\\n",
   "sensoryAnchor": "A physical sensory anchor trigger (e.g. Place your hand gently over your heart...) (in ${targetLang})",
   "frequency": "528Hz",
   "mood": "calm"
@@ -949,8 +954,9 @@ You MUST return ONLY a strictly valid JSON object (no markdown quotes, no wrappi
 // 同一个请求里做两件事：① 剧本 LLM 生成文本 ② 把所有段落一次性合成 TTS
 // 成本 = LLM 真实成本（usage.cost）+ 各段 TTS 真实成本（X-Generation-Id 反查），合并成一次扣费
 // ─────────────────────────────────────────────────────────────
-/** 单条旅程最多合成多少段（防止一次请求成本/耗时失控） */
-const JOURNEY_MAX_PARAGRAPHS = 8;
+/** 单条旅程最多合成多少段（防止一次请求成本/耗时失控）
+ *  500 字按每段 ≤120 字切，最多约 5 段；英文 500 词按每段 ≤60 词切，最多约 9 段，故上限取 12。 */
+const JOURNEY_MAX_PARAGRAPHS = 12;
 
 async function handleJourney(body: any): Promise<Response> {
   const voiceName = String(body?.voiceName || body?.voiceId || body?.voice || 'Zephyr');

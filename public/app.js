@@ -2211,6 +2211,8 @@
       var detectedLanguage = hasChinese ? 'Chinese' : 'English';
       // 旅程一次生成：剧本 LLM + 全部段落 TTS 在同一个请求里完成，成本合并成一次扣费
       var journeyVoice = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
+      // 生成字数（中文按字 / 英文按词），默认 100，范围 50–500
+      var journeyLength = $('#fsLength') ? Number($('#fsLength').value) : 100;
 
       try {
         var res = await callUnifiedApi('journey', {
@@ -2219,6 +2221,7 @@
           mood: mood,
           language: detectedLanguage,
           voiceName: journeyVoice,
+          length: journeyLength,
           opId: uid()
         });
 
@@ -2298,6 +2301,13 @@
   }
 
   // Voice Audition Laboratory (调试选拔实验室)
+  // 生成字数滑块：实时更新右侧数值显示
+  if ($('#fsLength')) {
+    $('#fsLength').addEventListener('input', function () {
+      if ($('#fsLengthVal')) $('#fsLengthVal').textContent = $('#fsLength').value;
+    });
+  }
+
   var auditionAudioSource = null;
   if ($('#fsVoice')) {
     $('#fsVoice').addEventListener('change', function () {

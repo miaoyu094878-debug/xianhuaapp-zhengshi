@@ -3171,6 +3171,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   transition: border-color 0.2s ease;
 }
 .fs-select:focus { border-color: var(--accent); }
+.fs-opt-group input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 
 /* --- Stella Audio Visualizer & Stage --- */
 .fs-stage {
@@ -3591,6 +3592,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <option value="bowl">Zen Singing Bowl</option>
                 <option value="off">No Ambient</option>
               </select>
+            </div>
+            <div class="fs-opt-group">
+              <label for="fsLength">📝 Length <span id="fsLengthVal" style="font-size: 11px; opacity: 0.7;">100</span></label>
+              <input type="range" id="fsLength" min="50" max="500" step="25" value="100" aria-label="Generated narration length">
             </div>
             <div class="fs-opt-group">
               <label for="fsVoice">🎙️ Guide Voice <span style="font-size: 11px; opacity: 0.7;">(Official voices &amp; OpenRouter new voices)</span></label>
