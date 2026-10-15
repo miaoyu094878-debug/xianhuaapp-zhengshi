@@ -2938,7 +2938,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   color: var(--accent2); border-color: var(--accent2);
   background: color-mix(in srgb, var(--accent2) 16%, transparent);
 }
-.sv-item.sv-faved { border-color: var(--accent2); }
 .sv-title .sv-star { color: var(--accent2); margin-right: 5px; }
 .sv-btn.sv-playing {
   border-color: var(--accent);
