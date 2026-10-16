@@ -2922,6 +2922,15 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 .sv-info { min-width: 0; flex: 1; }
 .sv-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .sv-title:hover { color: var(--accent); }
+/* 提示标题可编辑：悬停淡出铅笔 ✎；触屏无 hover 时淡显常驻 */
+.sv-title::after {
+  content: '✎'; margin-left: 6px; font-size: 12px; color: var(--accent);
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.sv-title:hover::after { opacity: 0.8; }
+@media (hover: none) {
+  .sv-title::after { opacity: 0.45; margin-left: 5px; }
+}
 /* 标题就地重命名输入框 */
 .sv-title-input {
   display: block; width: 100%; box-sizing: border-box;
