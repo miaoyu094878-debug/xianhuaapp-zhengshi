@@ -2880,9 +2880,9 @@
       item.setAttribute('data-key', row.storage_key || '');
       var info = el('div', 'sv-info', '');
       var titleEl = el('p', 'sv-title', row.title || 'Untitled');
-      titleEl.title = 'Click to rename';
-      // 点击标题就地重命名
-      titleEl.addEventListener('click', function () { startRenameVoice(row, titleEl); });
+      titleEl.title = 'Double-click to rename';
+      // 双击标题就地重命名
+      titleEl.addEventListener('dblclick', function () { startRenameVoice(row, titleEl); });
       if (faved) {
         var star = document.createElement('span');
         star.className = 'sv-star';

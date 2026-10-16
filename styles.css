@@ -2920,7 +2920,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   background: var(--surface-2); border: 1px solid var(--border);
 }
 .sv-info { min-width: 0; flex: 1; }
-.sv-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.sv-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; user-select: none; -webkit-user-select: none; }
 .sv-title:hover { color: var(--accent); }
 /* 提示标题可编辑：悬停淡出铅笔 ✎；触屏无 hover 时淡显常驻 */
 .sv-title::after {
