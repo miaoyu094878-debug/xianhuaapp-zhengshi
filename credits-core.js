@@ -64,16 +64,19 @@ export const MARGIN_MULTIPLIER = 1 / (1 - TARGET_MARGIN);
 
 /* ───────────────────────── 模型成本表（美元） ─────────────────────────
  * 数据来源与假设（随官方调价直接改这里）：
- *   story               OpenRouter minimax-m3 / Gemini 2.5 Flash 文本，约 1.5k tokens 输出
- *   ttsPer1kChars       语音预扣价，取最贵 TTS 模型长文本的上界，约 $0.25 / 1000 字符
- *                       （仅预扣，调用后由后台按真实成本结算退回多扣部分）
+ *   story               OpenRouter minimax-m3 / Gemini 2.5 Flash 文本，实测单次 $0.0006~0.0038
+ *   ttsPer1kChars       TTS 兜底单价，默认链路 google/gemini-3.1-flash-tts-preview
+ *                       实测 ≈ $0.079 / 1000 字符（2026-10-16 账单），取 0.08
+ *   ttsPer1kCharsQwen   Qwen-Audio-3.0-TTS：Plus 官方 $20/M = 0.020、Flash 实测 ≈ 0.015，
+ *                       兜底取该链路上界 0.020
  *   visionPhoto.low     openai/gpt-image-2 low quality，约 1 张
  *   visionVideoPerSec   与前端 VIDEO_PRICING 一致的 hailuo-3-max 每秒单价
  *   optimizeVideoPrompt AI Director 文本改写，单次
  * ──────────────────────────────────────────────────────────────────── */
 export const COST_TABLE = {
-  story: 0.006,
-  ttsPer1kChars: 0.25,
+  story: 0.004,
+  ttsPer1kChars: 0.08,
+  ttsPer1kCharsQwen: 0.02,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
   /** 每张参考图的额外成本（参考图越多，模型输入越大越贵） */
   visionPhotoPerRef: 0.01,
@@ -135,6 +138,18 @@ export function refImageCount(payload = {}) {
   return Math.max(arr, single, refs);
 }
 
+/** 本次 TTS 是否走 Qwen 链路（判定口径与 handleVoice 的 isQwenTTS 保持一致） */
+export function isQwenTtsVoice(voiceName) {
+  const v = String(voiceName || '').toLowerCase();
+  return v.startsWith('qwen:') || v.startsWith('qwen_tts:') || v.includes('qwen-audio') ||
+    v.startsWith('longan') || v.startsWith('loong');
+}
+
+/** TTS 兜底单价（美元 / 1000 字符），按本次实际走的链路取 */
+export function ttsRatePer1kChars(voiceName) {
+  return isQwenTtsVoice(voiceName) ? COST_TABLE.ttsPer1kCharsQwen : COST_TABLE.ttsPer1kChars;
+}
+
 /**
  * 计算一次调用的美元成本。
  * @param {string} action   story | voice | vision-photo | vision-video | optimize-video-prompt ...
@@ -159,7 +174,7 @@ export function costFor(action, payload = {}, result = {}) {
       // 优先按真实合成的文本长度计费（含重试开销）
       const text = String(payload.text || '');
       const chars = Math.max(text.length, Number(payload.chars) || 0, 1);
-      return (chars / 1000) * COST_TABLE.ttsPer1kChars;
+      return (chars / 1000) * ttsRatePer1kChars(payload.voiceName || payload.voiceId);
     }
 
     case 'vision-photo':

@@ -1006,7 +1006,7 @@ async function handleJourney(req, res) {
     const orKey = d.__orKey ? String(d.__orKey) : null;
     delete d.__generationId;
     delete d.__orKey;
-    items.push({ genId, orKey, estCostUsd: costFor('voice', { text: paragraphs[i] }) });
+    items.push({ genId, orKey, estCostUsd: costFor('voice', { text: paragraphs[i], voiceName }) });
     audios.push({ text: paragraphs[i], voiceLabel: voiceName, ...d });
   }
 

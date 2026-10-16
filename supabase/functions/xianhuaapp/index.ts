@@ -73,10 +73,16 @@ const SUBSCRIPTION_LITE = {
  * 调价 = 改这里的数字（或改 POINT_MARGIN），不用碰数据库。
  */
 const COST_TABLE = {
-  story: 0.006,
-  /** 语音预扣价：取「最贵 TTS 模型（Gemini 音频 token）长文本」的上界，保证预扣 ≥ 真实成本。
-   *  这只是预扣（押金），调用后会在后台按 OpenRouter 返回的真实成本结算并退回多扣部分。 */
-  ttsPer1kChars: 0.25,
+  /** 剧本 LLM 兜底价（仅当拿不到 usage.cost 时使用）。
+   *  实测 minimax/minimax-m3 单次 $0.0006~0.0038（2026-10-16 账单），取其上界 0.004。 */
+  story: 0.004,
+  /** TTS 兜底单价（美元 / 1000 字符）—— 只用于「查不到真实成本」时按输入估算。
+   *  默认链路 google/gemini-3.1-flash-tts-preview（Zephyr/Kore/Aoede/Puck/Charon/Fenrir）
+   *  实测 ≈ $0.079 / 1000 字符（= 1000 字符 ≈ 3900 音频 output token × $20/M），取 0.08。 */
+  ttsPer1kChars: 0.08,
+  /** Qwen-Audio-3.0-TTS 链路的兜底单价（美元 / 1000 字符）：Plus 官方价 $20/M = 0.020，
+   *  Flash 实测 ≈ $15/M = 0.015。兜底取该链路的**上界** 0.020，宁可略多扣也不漏收。 */
+  ttsPer1kCharsQwen: 0.02,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
   /** 每张参考图的额外成本（参考图越多，模型输入越贵） */
   visionPhotoPerRef: 0.01,
@@ -297,6 +303,18 @@ function normalizeResolution(r: any): '480p' | '768p' {
   return String(r || '480p').toLowerCase().startsWith('7') ? '768p' : '480p';
 }
 
+/** 本次 TTS 是否走 Qwen 链路（判定口径与 handleVoice 的 isQwenTTS 保持一致） */
+function isQwenTtsVoice(voiceName: any): boolean {
+  const v = String(voiceName || '').toLowerCase();
+  return v.startsWith('qwen:') || v.startsWith('qwen_tts:') || v.includes('qwen-audio') ||
+    v.startsWith('longan') || v.startsWith('loong');
+}
+
+/** TTS 兜底单价（美元 / 1000 字符），按本次实际走的链路取 */
+function ttsRatePer1kChars(voiceName: any): number {
+  return isQwenTtsVoice(voiceName) ? COST_TABLE.ttsPer1kCharsQwen : COST_TABLE.ttsPer1kChars;
+}
+
 /** 一次调用的美元成本 —— 既是审计数据，也是定价依据（pointsForCost 的输入） */
 function costFor(action: string, body: any = {}): number {
   switch (String(action || '')) {
@@ -314,7 +332,7 @@ function costFor(action: string, body: any = {}): number {
     case 'manifest-voice': {
       const text = String(body.text || '');
       const chars = Math.max(text.length, Number(body.chars) || 0, 1);
-      return (chars / 1000) * COST_TABLE.ttsPer1kChars;
+      return (chars / 1000) * ttsRatePer1kChars(body.voiceName || body.voiceId);
     }
 
     case 'vision-photo':
@@ -1026,7 +1044,7 @@ async function handleJourney(body: any, req?: Request): Promise<Response> {
     const orKey = d.__orKey ? String(d.__orKey) : null;
     delete d.__generationId;
     delete d.__orKey;
-    items.push({ genId, orKey, estCostUsd: costFor('voice', { text: paragraphs[i] }) });
+    items.push({ genId, orKey, estCostUsd: costFor('voice', { text: paragraphs[i], voiceName }) });
     audios.push({ text: paragraphs[i], voiceLabel: voiceName, ...d });
   }
 
