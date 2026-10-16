@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.16.amb1">
+  <link rel="stylesheet" href="styles.css?v=20261016uipr1">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3318,11 +3318,24 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   (function () {
     try {
       var ua = navigator.userAgent;
-      var isPhone = /Android|iPhone|iPod|Opera Mini|IEMobile|Mobile|BlackBerry/i.test(ua);
+      var isPhoneUA = /Android|iPhone|iPod|Opera Mini|IEMobile|Mobile|BlackBerry/i.test(ua);
       var isIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
-      var isTablet = /iPad|Tablet|PlayBook|Silk|Kindle|Nexus|KFTT/i.test(ua) || isIPad;
-      var cls = (isPhone || isTablet) ? 'device-mobile' : 'device-desktop';
+      var isTabletUA = /iPad|Tablet|PlayBook|Silk|Kindle|Nexus|KFTT/i.test(ua) || isIPad;
+      // 显式参数优先级最高；移动端 UA 永远走手机版；
+      // 桌面 UA 默认走桌面版（避免桌面浏览器窗口缩窄被误判），
+      // 但 iframe 取景框 / 手机宽度预览 / ?mobile=1 仍强制走手机版
+      var forceMobile = /[?&]mobile=1\b/.test(location.search);
+      var forceDesktop = /[?&]desktop=1\b/.test(location.search);
+      var isIframe = window.self !== window.top;
+      var isNarrow = window.innerWidth <= 768;
+      var isPhoneWidth = window.innerWidth <= 480;
+      var cls = 'device-desktop';
+      if (!forceDesktop && (forceMobile || isPhoneUA || isTabletUA || (isIframe && isNarrow) || isPhoneWidth)) {
+        cls = 'device-mobile';
+      }
       document.documentElement.classList.add(cls);
+      document.documentElement.setAttribute('data-device-debug',
+        'w=' + window.innerWidth + '|ua=' + (ua.match(/Mobile|iPhone|iPad|Android|Tablet/i) || ['desktop'])[0] + '|cls=' + cls);
     } catch (e) {}
   })();
   </script>
@@ -3594,22 +3607,26 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               </select>
             </div>
             <div class="fs-opt-group">
+              <label for="fsNature">🌿 Nature Sounds</label>
+              <select id="fsNature" class="fs-select">
+                <option value="off" selected>🚫 Off — Pure Tone</option>
+                <option value="rain">🌧️ Rain · 雨声</option>
+                <option value="crickets">🦗 Night Crickets · 虫鸣</option>
+                <option value="ocean">🌊 Ocean Waves · 海浪</option>
+                <option value="wind">🍃 Forest Wind · 林风</option>
+                <option value="birds">🐦 Birdsong · 鸟鸣</option>
+                <option value="fire">🔥 Campfire · 篝火</option>
+              </select>
+            </div>
+            <div class="fs-opt-group">
               <label for="fsLength">📝 Length <span id="fsLengthVal" style="font-size: 11px; opacity: 0.7;">100</span></label>
               <input type="range" id="fsLength" min="50" max="500" step="25" value="100" aria-label="Generated narration length">
             </div>
             <div class="fs-opt-group">
               <label for="fsVoice">🎙️ Guide Voice <span style="font-size: 11px; opacity: 0.7;">(Official voices &amp; OpenRouter new voices)</span></label>
               <select id="fsVoice" class="fs-select">
-                <optgroup label="🌟 Premium AI Neural Voices (Recommended)">
-                  <option value="Zephyr" selected>✨ Zephyr · Ethereal Clear Female (Default)</option>
-                  <option value="Kore">🌸 Kore · Gentle Healing Female</option>
-                  <option value="Aoede">🎵 Aoede · Lively Lyrical Female</option>
-                  <option value="Puck">🌿 Puck · Warm Calm Male</option>
-                  <option value="Charon">🌌 Charon · Deep Serene Male</option>
-                  <option value="Fenrir">⚡ Fenrir · Confident Grounded Male</option>
-                </optgroup>
                 <optgroup label="💫 OpenRouter: Qwen-Audio-3.0-TTS (Natural Bilingual Voices)">
-                  <option value="qwen:longanlingxin">🌸 Qwen 3.0 Plus · Lingxin (Warm Empathetic Female · Recommended)</option>
+                  <option value="qwen:longanlingxin" selected>🌸 Qwen 3.0 Plus · Lingxin (Warm Empathetic Female · Recommended)</option>
                   <option value="qwen:longanyuanfei">👑 Qwen 3.0 Plus · Yuanfei (Graceful Refined Female)</option>
                   <option value="qwen:longanlingxi">✨ Qwen 3.0 Plus · Lingxi (Sweet Playful Female)</option>
                   <option value="qwen:longanxiaoxin">🎀 Qwen 3.0 Plus · Xiaoxin (Bright Genuine Female)</option>
@@ -3728,6 +3745,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <div class="fs-mixer-item">
               <span id="fsAmbLabel">🎵 Healing Frequency Volume</span>
               <input type="range" id="fsAmbVol" min="0" max="1" step="0.05" value="0.5">
+            </div>
+            <div class="fs-mixer-item">
+              <span id="fsNatureLabel">🌿 Nature Sounds Volume</span>
+              <input type="range" id="fsNatureVol" min="0" max="1" step="0.05" value="0.5">
             </div>
           </div>
 
@@ -4908,7 +4929,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261016d" defer></script>
+  <script src="app.js?v=20261016uipr1" defer></script>
 
 </body>
 </html>
