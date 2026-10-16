@@ -2970,6 +2970,20 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 .sv-empty { font-size: 13px; color: var(--text-soft); margin: 4px 0; text-align: center; }
 .sv-msg { font-size: 12px; color: var(--accent); margin: 10px 0 0; text-align: center; }
 
+/* 重播选背景音弹框：胶囊选项 */
+.sv-amb-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.sv-amb-opt {
+  font: inherit; font-size: 13px; cursor: pointer;
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  color: var(--text-soft); transition: 0.2s;
+}
+.sv-amb-opt:hover { border-color: var(--accent); color: var(--accent); }
+.sv-amb-opt.selected {
+  border-color: var(--accent); color: var(--accent); font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 /* Saved inspiration */
 .saved-link { display: block; font-size: 14px; color: var(--accent); text-decoration: underline; word-break: break-all; line-height: 1.5; }
 

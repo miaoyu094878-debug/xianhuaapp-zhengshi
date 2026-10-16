@@ -2813,6 +2813,7 @@
         sensory_anchor: sd.sensoryAnchor || '',
         voice: $('#fsVoice') ? $('#fsVoice').value : '',
         mood: $('#fsMood') ? $('#fsMood').value : '',
+        frequency: $('#fsFreq') ? $('#fsFreq').value : '',
         storage_key: fsState.lrKey,
         duration_sec: 0
       };
@@ -2907,7 +2908,7 @@
       playBtn.type = 'button'; playBtn.title = playing ? 'Stop' : 'Play this voice';
       playBtn.addEventListener('click', function () {
         if (isSvPlaying(row.storage_key)) stopFutureAudio();
-        else openSavedVoice(row);
+        else openAmbiencePicker(row);
       });
       var delBtn = el('button', 'sv-btn sv-del', '🗑');
       delBtn.type = 'button'; delBtn.title = 'Delete';
@@ -2959,7 +2960,7 @@
     input.focus();
     input.select();
     var settled = false;
-    function restore() { if (input.parentNode) input.replaceWith(titleEl); }
+    function restore() { titleEl.removeAttribute('data-editing'); if (input.parentNode) input.replaceWith(titleEl); }
     function commit() {
       if (settled) return;
       settled = true;
@@ -3047,13 +3048,77 @@
     }
   }
 
-  async function openSavedVoice(row) {
+  // 重播前选择背景音：选项与生成表单的 #fsFreq 一致，默认沿用该语音记住的值
+  var svAmbRow = null;
+  function openAmbiencePicker(row) {
+    if (!requireLogin('Sign in to play your saved voices ✨')) return;
+    var modal = $('#svAmbModal'), listEl = $('#svAmbList'), freqSel = $('#fsFreq');
+    if (!modal || !listEl || !freqSel) { openSavedVoice(row, row.frequency || ''); return; }
+    svAmbRow = row;
+    var intro = $('#svAmbIntro');
+    if (intro) intro.textContent = '"' + (row.title || 'Untitled') + '" — we will remember this background sound for this voice.';
+    var current = row.frequency || freqSel.value || '528';
+    listEl.innerHTML = '';
+    Array.prototype.forEach.call(freqSel.options, function (opt) {
+      var btn = el('button', 'sv-amb-opt', opt.textContent.split('·')[0].trim());
+      btn.type = 'button';
+      btn.setAttribute('data-value', opt.value);
+      if (opt.value === current) btn.classList.add('selected');
+      btn.addEventListener('click', function () {
+        $$('#svAmbList .sv-amb-opt').forEach(function (b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+      });
+      listEl.appendChild(btn);
+    });
+    modal.classList.remove('hidden');
+  }
+
+  function closeAmbiencePicker() {
+    svAmbRow = null;
+    var modal = $('#svAmbModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  // 把选定的背景音写回该语音（列缺失或失败都不影响本次播放）
+  async function saveVoiceFrequency(row, freq) {
+    if (!row || (row.frequency || '') === freq) return;
+    var prev = row.frequency || '';
+    row.frequency = freq;
+    var s = savedSession();
+    if (!s || !(s.user && s.user.id)) return;
+    try {
+      var res = await sbFetch('/rest/v1/' + SV_TABLE + '?id=eq.' + encodeURIComponent(row.id) + '&user_id=eq.' + encodeURIComponent(s.user.id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ frequency: freq })
+      });
+      if (!res.ok) { row.frequency = prev; console.warn('save voice frequency failed:', res.status); }
+    } catch (e) { row.frequency = prev; }
+  }
+
+  if ($('#svAmbPlay')) {
+    $('#svAmbPlay').addEventListener('click', async function () {
+      var row = svAmbRow;
+      if (!row) { closeAmbiencePicker(); return; }
+      var sel = $('#svAmbList .sv-amb-opt.selected');
+      var freq = sel ? sel.getAttribute('data-value') : (row.frequency || '528');
+      closeAmbiencePicker();
+      await saveVoiceFrequency(row, freq);
+      openSavedVoice(row, freq);
+    });
+  }
+  if ($('#svAmbCancel')) $('#svAmbCancel').addEventListener('click', closeAmbiencePicker);
+
+  async function openSavedVoice(row, freqOverride) {
     if (!requireLogin('Sign in to play your saved voices ✨')) return;
     svToast('Loading voice…');
     var buf = await fetchVoiceSession(row.storage_key);
     if (!buf) { svToast('Audio not found in storage. Please generate and save it again.'); return; }
     stopFutureAudio();
     showSavedVoiceInPlayer(row);
+    // playWholeStory 从 #fsFreq 读取环境音，先同步成所选值
+    var freq = freqOverride || row.frequency || '';
+    if (freq) setSelectIfExists($('#fsFreq'), freq);
     playWholeStory(buf, row.storage_key);
     svToast('');
   }
