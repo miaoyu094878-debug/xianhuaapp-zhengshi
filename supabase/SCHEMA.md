@@ -343,8 +343,11 @@ select p.id, p.name, p.area, p.desire, p.created_at, p.updated_at, p.email, p.pl
 | `response_format` | Gemini TTS **只支持 `pcm`**，传 `mp3` 直接报 400 |
 | 轮询预算 | 因此定为 `GEN_COST_BUDGET_MS = 120000`（Supabase waitUntil 后台任务上限约 150 秒） |
 
-> ⚠️ 口径提醒：`COST_TABLE.ttsPer1kChars = 0.25`（≈ $0.25/1000 字符）比实测真实成本**高约 3 倍**
-> （实测 ≈ $0.079/1000 字符）。它现在只用于「查不到真实成本」时的兜底估算，不再是主扣费依据。
+> ✅ 兜底口径已按实测校准（2026-10-16）：`ttsPer1kChars = 0.08`（默认链路 Google Gemini 3.1 Flash TTS，
+> 实测 ≈ $0.079/1000 字符）、`ttsPer1kCharsQwen = 0.02`（Qwen-Audio-3.0-TTS：Plus 官方 $20/M = 0.020、
+> Flash 实测 ≈ 0.015，兜底取该链路上界）。`costFor('voice', …)` 会按 `voiceName` 选择对应单价
+> （判定口径与 `handleVoice` 的 `isQwenTTS` 一致）。`COST_TABLE.story` 同步 0.006 → 0.004
+> （实测单次 $0.0006~0.0038 的上界）。这些值只在「查不到真实成本」时生效，不是主扣费依据。
 
 **由此修掉的一个真实 bug**：`handleVoice` 的「方案 C（Gemini 默认兜底）」原本给 `google/gemini-3.1-flash-tts-preview`
 传了 `response_format: 'mp3'` → 必然 400，该兜底分支等于永远失败。已改为 `pcm` 并转成 wav（与方案 A0 一致）。
