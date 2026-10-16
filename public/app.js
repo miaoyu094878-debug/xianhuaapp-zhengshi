@@ -2959,7 +2959,7 @@
     input.focus();
     input.select();
     var settled = false;
-    function restore() { if (input.parentNode) input.replaceWith(titleEl); }
+    function restore() { titleEl.removeAttribute('data-editing'); if (input.parentNode) input.replaceWith(titleEl); }
     function commit() {
       if (settled) return;
       settled = true;
