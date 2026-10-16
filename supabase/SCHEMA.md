@@ -146,6 +146,7 @@
 
 > `favorited`（收藏/喜欢）：前端「My Voices」列表把 `true` 的排到最前并显示实心 ♥。
 > 由迁移 `20261015120000_saved_voice_favorite.sql` 添加；RLS 沿用该表 existing 的 ALL/own rows 策略。
+> `title` 可被用户就地重命名：前端**双击**列表标题 → PATCH `title`（仅本人行，RLS own rows 限制）。
 
 ### subscriptions
 > **遗留表**。当前代码不写它（Pro 状态只存 `profiles.plan`），业务上可以忽略。
