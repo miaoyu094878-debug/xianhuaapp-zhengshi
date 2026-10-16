@@ -2880,6 +2880,9 @@
       item.setAttribute('data-key', row.storage_key || '');
       var info = el('div', 'sv-info', '');
       var titleEl = el('p', 'sv-title', row.title || 'Untitled');
+      titleEl.title = 'Click to rename';
+      // 点击标题就地重命名
+      titleEl.addEventListener('click', function () { startRenameVoice(row, titleEl); });
       if (faved) {
         var star = document.createElement('span');
         star.className = 'sv-star';
@@ -2940,6 +2943,68 @@
       row.favorited = prev;
       renderSavedVoices();
       svToast('Could not update favorite.');
+    }
+  }
+
+  // 点击标题就地编辑：Enter/失焦保存，Esc 取消；留空视为取消
+  function startRenameVoice(row, titleEl) {
+    if (titleEl.getAttribute('data-editing') === '1') return;
+    titleEl.setAttribute('data-editing', '1');
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'sv-title-input';
+    input.maxLength = 80;
+    input.value = row.title || '';
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
+    var settled = false;
+    function restore() { if (input.parentNode) input.replaceWith(titleEl); }
+    function commit() {
+      if (settled) return;
+      settled = true;
+      var next = input.value.trim();
+      restore();
+      if (!next || next === (row.title || '')) return;   // 留空或未改动：保持原标题
+      renameSavedVoice(row, next);
+    }
+    function cancel() { if (settled) return; settled = true; restore(); }
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+    input.addEventListener('blur', commit);
+  }
+
+  // 保存新标题：乐观更新列表，失败回滚；正在播放器里显示的同步更新标题
+  async function renameSavedVoice(row, nextTitle) {
+    var s = savedSession();
+    if (!s || !(s.user && s.user.id)) return;
+    var prev = row.title || '';
+    row.title = nextTitle;
+    renderSavedVoices();
+    if (fsState.lrKey && row.storage_key && fsState.lrKey === row.storage_key) {
+      if (fsState.storyData) fsState.storyData.title = nextTitle;
+      var sceneTitle = $('#fsSceneTitle');
+      if (sceneTitle) sceneTitle.textContent = nextTitle;
+    }
+    try {
+      var res = await sbFetch('/rest/v1/' + SV_TABLE + '?id=eq.' + encodeURIComponent(row.id) + '&user_id=eq.' + encodeURIComponent(s.user.id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ title: nextTitle })
+      });
+      if (!res.ok) {
+        row.title = prev;
+        renderSavedVoices();
+        svToast('Could not rename (' + res.status + ').');
+        return;
+      }
+      svToast('Title updated ✓');
+    } catch (e) {
+      row.title = prev;
+      renderSavedVoices();
+      svToast('Could not rename.');
     }
   }
 

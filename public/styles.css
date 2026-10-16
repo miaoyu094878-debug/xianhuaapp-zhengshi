@@ -2920,7 +2920,16 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   background: var(--surface-2); border: 1px solid var(--border);
 }
 .sv-info { min-width: 0; flex: 1; }
-.sv-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sv-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.sv-title:hover { color: var(--accent); }
+/* 标题就地重命名输入框 */
+.sv-title-input {
+  display: block; width: 100%; box-sizing: border-box;
+  font-size: 14px; font-weight: 600; font-family: inherit; color: var(--text);
+  margin: 0 0 2px; padding: 1px 6px;
+  background: var(--surface-hover); border: 1px solid var(--accent); border-radius: 6px;
+  outline: none;
+}
 .sv-meta { font-size: 11.5px; color: var(--text-dim); margin: 0; }
 .sv-acts { display: flex; gap: 6px; flex: none; }
 .sv-btn {
