@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.16.rename3">
+  <link rel="stylesheet" href="styles.css?v=2026.10.16.amb1">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4806,6 +4806,19 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </div>
     </div>
 
+    <!-- 重播保存语音：选择背景音（选定后记住到该语音） -->
+    <div id="svAmbModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Choose background sound">
+      <div class="quiz-card glass">
+        <h3 class="lm-title">Choose background sound 🎵</h3>
+        <p class="quiz-q" id="svAmbIntro"></p>
+        <div class="sv-amb-list" id="svAmbList"></div>
+        <div class="lm-actions">
+          <button id="svAmbPlay" class="btn-primary" type="button">Play</button>
+          <button id="svAmbCancel" class="chip" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Wallpaper Full Screen Immersive Preview Modal -->
     <div id="wpFullscreenModal" class="wp-fs-modal hidden" role="dialog" aria-modal="true" aria-label="Wallpaper Fullscreen Preview">
       <div class="wp-fs-backdrop" id="wpFsBackdrop"></div>
@@ -4895,7 +4908,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261016c" defer></script>
+  <script src="app.js?v=20261016d" defer></script>
 
 </body>
 </html>
