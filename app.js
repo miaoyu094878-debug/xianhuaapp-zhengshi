@@ -2309,17 +2309,54 @@
     source.start(0);
   }
 
+  // 空输入轻提示：按钮平时保持可点，只有点击时才拦截，并在按钮旁弹出提示（3 秒自动消失，点击可关闭）
+  var inputNudgeTimer = null;
+  function hideInputNudge() {
+    clearTimeout(inputNudgeTimer);
+    inputNudgeTimer = null;
+    var n = $('#inputNudge');
+    if (n) n.classList.add('hidden');
+  }
+  function showInputNudge(anchor, text) {
+    var n = $('#inputNudge');
+    if (!n || !anchor) return;
+    var label = $('#inputNudgeText');
+    if (label) label.textContent = text;
+    n.classList.remove('hidden');
+    n.style.visibility = 'hidden';
+    var r = anchor.getBoundingClientRect();
+    var w = n.offsetWidth;
+    var h = n.offsetHeight;
+    var left = r.left + r.width / 2 - w / 2;
+    var top = r.top - h - 10;
+    if (top < 10) top = r.bottom + 10;
+    left = Math.max(10, Math.min(left, (window.innerWidth || 0) - w - 10));
+    n.style.left = Math.round(left) + 'px';
+    n.style.top = Math.round(top) + 'px';
+    n.style.visibility = '';
+    clearTimeout(inputNudgeTimer);
+    inputNudgeTimer = setTimeout(hideInputNudge, 3000);
+  }
+  if ($('#inputNudge')) {
+    $('#inputNudge').addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      hideInputNudge();
+    });
+    window.addEventListener('resize', hideInputNudge);
+  }
+
   // Form Submit: Call Gemini API /api/manifest-story
   if ($('#fsForm')) {
     $('#fsForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       // Gate: browsing is free, but generating voice requires an account
       if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
-      var raw = $('#fsDesire').value.trim();
-      var desire = raw || (db.profile && db.profile.desire) || '';
+      // 登录已确认，再校验输入：空输入时按钮点不亮，只在按钮旁弹轻提示
+      var desire = $('#fsDesire').value.trim();
       if (!desire) {
-        alert('Please enter the desire or goal you want to manifest ✨');
-        $('#fsDesire').focus();
+        showInputNudge($('#fsGenerateBtn'), '✨ Please enter your goal or desire first, then press Generate.');
+        $('#fsDesire').focus({ preventScroll: true });
         return;
       }
 
@@ -4385,6 +4422,15 @@
     }, 5000);
   }
 
+  // 生成中状态：仅生成期间禁用按钮，防止重复提交；空输入改为点击时拦截并弹出提示
+  var aiGenerating = false;
+  function syncAiGenerateBusy() {
+    var btnPhoto = $('#aiBtnPhoto');
+    var btnVideo = $('#aiBtnVideo');
+    if (btnPhoto) btnPhoto.disabled = aiGenerating;
+    if (btnVideo) btnVideo.disabled = aiGenerating;
+  }
+
   function aiGenerate(kind) {
     // Gate: generating photos/videos requires an account (browsing the studio is free)
     if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
@@ -4393,25 +4439,23 @@
       var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
       prompt = (pInput && pInput.value || '').trim();
       if (!prompt) {
-        aiStatus('Please enter a description in "Portrait Vision Prompt" first.', 'error');
-        if (pInput) pInput.focus();
+        showInputNudge($('#aiBtnPhoto'), '✨ Please describe your portrait first, then press Generate.');
+        if (pInput) pInput.focus({ preventScroll: true });
         return;
       }
     } else {
       var vInput = $('#aiVideoPrompt') || $('#aiPrompt');
       prompt = (vInput && vInput.value || '').trim();
       if (!prompt) {
-        aiStatus('Please enter a description in "Motion & Scene Prompt" first.', 'error');
-        if (vInput) vInput.focus();
+        showInputNudge($('#aiBtnVideo'), '✨ Please describe your motion scene first, then press Generate.');
+        if (vInput) vInput.focus({ preventScroll: true });
         return;
       }
     }
 
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
-    var btnPhoto = $('#aiBtnPhoto');
-    var btnVideo = $('#aiBtnVideo');
-    if (btnPhoto) btnPhoto.disabled = true;
-    if (btnVideo) btnVideo.disabled = true;
+    aiGenerating = true;
+    syncAiGenerateBusy();
 
     if (kind === 'photo') {
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
@@ -4440,8 +4484,8 @@
         });
       })
       .then(function (data) {
-        if (btnPhoto) btnPhoto.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
+        aiGenerating = false;
+        syncAiGenerateBusy();
 
         if (!data.url) throw new Error('No image URL returned from generator');
 
@@ -4463,8 +4507,8 @@
         renderAiResults();
       })
       .catch(function (err) {
-        if (btnPhoto) btnPhoto.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
+        aiGenerating = false;
+        syncAiGenerateBusy();
 
         if (err && err.__creditBlock) return;
         var errMsg = err.message || '';
@@ -4516,8 +4560,8 @@
           var finalTag = data.directorModel ? (' · Polished by ' + data.directorModel) : directorTag;
           aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
           pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
-            if (btnPhoto) btnPhoto.disabled = false;
-            if (btnVideo) btnVideo.disabled = false;
+            aiGenerating = false;
+            syncAiGenerateBusy();
 
             if (pollErr) {
               aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
@@ -4554,8 +4598,8 @@
           });
         })
         .catch(function (err) {
-          if (btnPhoto) btnPhoto.disabled = false;
-          if (btnVideo) btnVideo.disabled = false;
+          aiGenerating = false;
+          syncAiGenerateBusy();
 
           if (err && err.__creditBlock) return;
           var errMsg = err.message || '';
@@ -4584,8 +4628,8 @@
           .then(function (out) {
             // 未登录 / 积分不足：停在这里，不要继续提交视频任务
             if (isCreditBlocked(out.res, out.data)) {
-              if (btnPhoto) btnPhoto.disabled = false;
-              if (btnVideo) btnVideo.disabled = false;
+              aiGenerating = false;
+              syncAiGenerateBusy();
               return;
             }
             var data = out.data;

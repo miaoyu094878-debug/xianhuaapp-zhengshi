@@ -3385,3 +3385,51 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   .credit-packs { grid-template-columns: repeat(3, 1fr); }
   .plan-card .plan-feats li strong { font-weight: 700; }
 }
+
+/* 生成中：按钮呈不可点态（空输入不再靠 :disabled，改为点击时拦截并弹出轻提示） */
+#fsGenerateBtn:disabled,
+.ai-btn-generate:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  box-shadow: none;
+}
+
+/* 空输入轻提示：按钮平时保持正常外观，点击时才在按钮旁弹出，3 秒自动消失，点击可关闭 */
+.input-nudge {
+  position: fixed;
+  z-index: 3000;
+  max-width: min(300px, calc(100vw - 20px));
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 9px 10px 9px 13px;
+  border-radius: 10px;
+  background: #f7f5fb;
+  border: 1px solid rgba(120, 92, 190, 0.28);
+  box-shadow: 0 8px 24px rgba(40, 30, 70, 0.18);
+  color: #2c2542;
+  font-size: 12.5px;
+  line-height: 1.5;
+  cursor: pointer;
+  animation: inputNudgeIn 0.18s ease-out;
+}
+.input-nudge.hidden { display: none; }
+.input-nudge-close {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(70, 58, 105, 0.55);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.input-nudge-close:hover { color: #2c2542; background: rgba(90, 70, 150, 0.14); }
+@keyframes inputNudgeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
