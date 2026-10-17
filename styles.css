@@ -3378,3 +3378,18 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   .credit-packs { grid-template-columns: repeat(3, 1fr); }
   .plan-card .plan-feats li strong { font-weight: 700; }
 }
+
+/* 空输入守卫：内容为空时生成按钮呈禁用态（无法点击），并在按钮下方提示先输入内容 */
+#fsGenerateBtn:disabled,
+.ai-btn-generate:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  box-shadow: none;
+}
+.input-required-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}

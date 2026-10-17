@@ -1417,6 +1417,7 @@
       var textarea = $('#fsDesire');
       if (textarea && goal) {
         textarea.value = goal;
+        textarea.dispatchEvent(new Event('input'));
         textarea.focus();
         btn.style.transform = 'scale(0.96)';
         setTimeout(function () { btn.style.transform = ''; }, 150);
@@ -2184,15 +2185,30 @@
     source.start(0);
   }
 
+  // 空输入守卫：目标/愿景为空时禁用生成按钮，并提示先输入内容
+  function refreshFsGenerateGate() {
+    var btn = $('#fsGenerateBtn');
+    var input = $('#fsDesire');
+    if (!btn || !input) return;
+    var empty = !String(input.value || '').trim();
+    btn.disabled = empty;
+    var hint = $('#fsDesireHint');
+    if (hint) hint.classList.toggle('hidden', !empty);
+  }
+  if ($('#fsDesire')) {
+    $('#fsDesire').addEventListener('input', refreshFsGenerateGate);
+    refreshFsGenerateGate();
+  }
+
   // Form Submit: Call Gemini API /api/manifest-story
   if ($('#fsForm')) {
     $('#fsForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       // Gate: browsing is free, but generating voice requires an account
       if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
-      var raw = $('#fsDesire').value.trim();
-      var desire = raw || (db.profile && db.profile.desire) || '';
+      var desire = $('#fsDesire').value.trim();
       if (!desire) {
+        refreshFsGenerateGate();
         alert('Please enter the desire or goal you want to manifest ✨');
         $('#fsDesire').focus();
         return;
@@ -4260,6 +4276,28 @@
     }, 5000);
   }
 
+  // 空输入守卫：提示词为空时禁用生成按钮并给出提示；生成过程中保持禁用
+  var aiGenerating = false;
+  function refreshAiGenerateGate() {
+    var photoEl = $('#aiPhotoPrompt');
+    var videoEl = $('#aiVideoPrompt');
+    var photoEmpty = !String((photoEl && photoEl.value) || '').trim();
+    var videoEmpty = !String((videoEl && videoEl.value) || '').trim();
+    var btnPhoto = $('#aiBtnPhoto');
+    var btnVideo = $('#aiBtnVideo');
+    if (btnPhoto) btnPhoto.disabled = aiGenerating || photoEmpty;
+    if (btnVideo) btnVideo.disabled = aiGenerating || videoEmpty;
+    var hPhoto = $('#aiPhotoHint');
+    if (hPhoto) hPhoto.classList.toggle('hidden', aiGenerating || !photoEmpty);
+    var hVideo = $('#aiVideoHint');
+    if (hVideo) hVideo.classList.toggle('hidden', aiGenerating || !videoEmpty);
+  }
+  ['#aiPhotoPrompt', '#aiVideoPrompt'].forEach(function (sel) {
+    var el = $(sel);
+    if (el) el.addEventListener('input', refreshAiGenerateGate);
+  });
+  refreshAiGenerateGate();
+
   function aiGenerate(kind) {
     // Gate: generating photos/videos requires an account (browsing the studio is free)
     if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
@@ -4283,10 +4321,8 @@
     }
 
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
-    var btnPhoto = $('#aiBtnPhoto');
-    var btnVideo = $('#aiBtnVideo');
-    if (btnPhoto) btnPhoto.disabled = true;
-    if (btnVideo) btnVideo.disabled = true;
+    aiGenerating = true;
+    refreshAiGenerateGate();
 
     if (kind === 'photo') {
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
@@ -4315,8 +4351,8 @@
         });
       })
       .then(function (data) {
-        if (btnPhoto) btnPhoto.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
+        aiGenerating = false;
+        refreshAiGenerateGate();
 
         if (!data.url) throw new Error('No image URL returned from generator');
 
@@ -4338,8 +4374,8 @@
         renderAiResults();
       })
       .catch(function (err) {
-        if (btnPhoto) btnPhoto.disabled = false;
-        if (btnVideo) btnVideo.disabled = false;
+        aiGenerating = false;
+        refreshAiGenerateGate();
 
         if (err && err.__creditBlock) return;
         var errMsg = err.message || '';
@@ -4391,8 +4427,8 @@
           var finalTag = data.directorModel ? (' · Polished by ' + data.directorModel) : directorTag;
           aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
           pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
-            if (btnPhoto) btnPhoto.disabled = false;
-            if (btnVideo) btnVideo.disabled = false;
+            aiGenerating = false;
+            refreshAiGenerateGate();
 
             if (pollErr) {
               aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
@@ -4429,8 +4465,8 @@
           });
         })
         .catch(function (err) {
-          if (btnPhoto) btnPhoto.disabled = false;
-          if (btnVideo) btnVideo.disabled = false;
+          aiGenerating = false;
+          refreshAiGenerateGate();
 
           if (err && err.__creditBlock) return;
           var errMsg = err.message || '';
@@ -4459,8 +4495,8 @@
           .then(function (out) {
             // 未登录 / 积分不足：停在这里，不要继续提交视频任务
             if (isCreditBlocked(out.res, out.data)) {
-              if (btnPhoto) btnPhoto.disabled = false;
-              if (btnVideo) btnVideo.disabled = false;
+              aiGenerating = false;
+              refreshAiGenerateGate();
               return;
             }
             var data = out.data;
