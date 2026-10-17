@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.17.nudge2">
+  <link rel="stylesheet" href="styles.css?v=2026.10.17.sync1">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3590,22 +3590,26 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               </select>
             </div>
             <div class="fs-opt-group">
+              <label for="fsNature">🌿 Nature Sounds</label>
+              <select id="fsNature" class="fs-select">
+                <option value="off" selected>🚫 Off — Pure Tone</option>
+                <option value="rain">🌧️ Rain · 雨声</option>
+                <option value="crickets">🦗 Night Crickets · 虫鸣</option>
+                <option value="ocean">🌊 Ocean Waves · 海浪</option>
+                <option value="wind">🍃 Forest Wind · 林风</option>
+                <option value="birds">🐦 Birdsong · 鸟鸣</option>
+                <option value="fire">🔥 Campfire · 篝火</option>
+              </select>
+            </div>
+            <div class="fs-opt-group">
               <label for="fsLength">📝 Length <span id="fsLengthVal" style="font-size: 11px; opacity: 0.7;">100</span></label>
               <input type="range" id="fsLength" min="50" max="500" step="25" value="100" aria-label="Generated narration length">
             </div>
             <div class="fs-opt-group">
               <label for="fsVoice">🎙️ Guide Voice <span style="font-size: 11px; opacity: 0.7;">(Official voices &amp; OpenRouter new voices)</span></label>
               <select id="fsVoice" class="fs-select">
-                <optgroup label="🌟 Premium AI Neural Voices (Recommended)">
-                  <option value="Zephyr" selected>✨ Zephyr · Ethereal Clear Female (Default)</option>
-                  <option value="Kore">🌸 Kore · Gentle Healing Female</option>
-                  <option value="Aoede">🎵 Aoede · Lively Lyrical Female</option>
-                  <option value="Puck">🌿 Puck · Warm Calm Male</option>
-                  <option value="Charon">🌌 Charon · Deep Serene Male</option>
-                  <option value="Fenrir">⚡ Fenrir · Confident Grounded Male</option>
-                </optgroup>
                 <optgroup label="💫 OpenRouter: Qwen-Audio-3.0-TTS (Natural Bilingual Voices)">
-                  <option value="qwen:longanlingxin">🌸 Qwen 3.0 Plus · Lingxin (Warm Empathetic Female · Recommended)</option>
+                  <option value="qwen:longanlingxin" selected>🌸 Qwen 3.0 Plus · Lingxin (Warm Empathetic Female · Recommended)</option>
                   <option value="qwen:longanyuanfei">👑 Qwen 3.0 Plus · Yuanfei (Graceful Refined Female)</option>
                   <option value="qwen:longanlingxi">✨ Qwen 3.0 Plus · Lingxi (Sweet Playful Female)</option>
                   <option value="qwen:longanxiaoxin">🎀 Qwen 3.0 Plus · Xiaoxin (Bright Genuine Female)</option>
@@ -3724,6 +3728,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <div class="fs-mixer-item">
               <span id="fsAmbLabel">🎵 Healing Frequency Volume</span>
               <input type="range" id="fsAmbVol" min="0" max="1" step="0.05" value="0.5">
+            </div>
+            <div class="fs-mixer-item">
+              <span id="fsNatureLabel">🌿 Nature Sounds Volume</span>
+              <input type="range" id="fsNatureVol" min="0" max="1" step="0.05" value="0.5">
             </div>
           </div>
 
@@ -4904,7 +4912,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261017b" defer></script>
+  <script src="app.js?v=20261017sync1" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
