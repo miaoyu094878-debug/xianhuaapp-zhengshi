@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261017withoutdevice">
+  <link rel="stylesheet" href="styles.css?v=20261017fs5">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3555,12 +3555,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       <section id="tab-future" class="tab-page">
         <div class="fs-hero-badge">✦ Stella Flow · Present-Moment Manifestation</div>
         <h2 class="page-title">Living In Reality · Immersive Manifestation</h2>
-        <p class="page-sub">Set your desire and the AI will guide you into a sensory rich story in the present tense — wrapped in healing audio and a gentle voice, so you feel it fully and bring it to life.</p>
+        <p class="page-sub page-sub-desktop">Set your desire and the AI will guide you into a sensory rich story in the present tense — wrapped in healing audio and a gentle voice, so you feel it fully and bring it to life.</p>
+        <p class="page-sub page-sub-mobile">Set a desire. AI guides you into a vivid story through healing audio and a gentle voice.</p>
 
         <!-- Intention & Goal Form -->
         <form id="fsForm" class="card glass form-card">
           <label class="field-label">1 · Set Your Goal / Desire</label>
-          <textarea id="fsDesire" rows="3" placeholder="e.g. I am living in a bright seaside home, writing every morning with the scent of coffee in the breeze, abundant, free and deeply fulfilled..." maxlength="300"></textarea>
+          <textarea id="fsDesire" class="fs-desire-desktop" rows="3" placeholder="e.g. I am living in a bright seaside home, writing every morning with the scent of coffee in the breeze, abundant, free and deeply fulfilled..." maxlength="300"></textarea>
+          <textarea class="fs-desire-mobile" rows="3" placeholder="e.g. Living in a bright seaside home, writing each morning with coffee in the breeze." maxlength="300"></textarea>
           
           <!-- Quick Preset Chips -->
           <div class="fs-presets-row">
@@ -4916,7 +4918,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261017withoutdevice" defer></script>
+  <script src="app.js?v=20261017fs5" defer></script>
 
 </body>
 </html>

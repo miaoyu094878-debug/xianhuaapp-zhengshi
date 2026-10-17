@@ -335,6 +335,12 @@ main { padding: 10px 18px 0; }
   font-size: 25px; letter-spacing: 1.5px; margin: 10px 0 6px; color: var(--text);
 }
 .page-sub { color: var(--text-soft); font-size: 13px; margin-bottom: 14px; line-height: 1.6; }
+/* 桌面端显示原长文案，手机端显示精简文案（共用一份 index.html，按设备类切换） */
+html.device-desktop .page-sub-mobile { display: none; }
+html.device-mobile .page-sub-desktop { display: none; }
+/* 桌面端显示原长 placeholder，手机端显示精简 placeholder */
+html.device-desktop .fs-desire-mobile { display: none; }
+html.device-mobile .fs-desire-desktop { display: none; }
 
 /* ---------- HERO ---------- */
 .hero {
@@ -498,7 +504,8 @@ input, select {
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.08);
 }
 input::placeholder, textarea::placeholder { color: var(--text-dim); }
-#fsDesire::placeholder { color: color-mix(in srgb, var(--text-dim) 60%, transparent); }
+#fsDesire::placeholder { color: color-mix(in srgb, var(--text-dim) 40%, transparent); }
+.fs-desire-mobile::placeholder { color: color-mix(in srgb, var(--text-dim) 40%, transparent); }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); background: var(--surface-hover); }
 .form-row { display: flex; gap: 10px; }
 .form-row > * { flex: 1; }
