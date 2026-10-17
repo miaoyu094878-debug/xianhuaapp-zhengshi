@@ -1199,7 +1199,11 @@
     paragraphs: [],
     lrKey: null,
     playingKey: null,
-    highlightTimer: null
+    highlightTimer: null,
+    natureType: null,
+    natureActive: false,
+    natureAudio: null,
+    natureFadeId: null
   };
 
   function getFsAudioContext() {
@@ -1334,10 +1338,12 @@
     } catch (e) {
       console.warn('AudioContext ambient start error:', e);
     }
+    startFsNature(getFsNatureType(), fadeInSec);
   }
 
   function stopFsAmbient(immediate) {
     currentAmbFreq = null;
+    stopFsNature(immediate);
     var oldNodes = fsState.ambNodes;
     var oldGain = fsState.ambGainNode;
     fsState.ambNodes = null;
@@ -1373,6 +1379,88 @@
     }
   }
 
+  // ── Nature Sounds (real field recordings served from /audio/*.mp3) ──
+  function getFsNatureType() {
+    var el = $('#fsNature');
+    return el ? el.value : 'off';
+  }
+
+
+  function startFsNature(type, fadeInSec) {
+    if (!type || type === 'off') { stopFsNature(true); return; }
+    try {
+      // Already playing this exact type -> keep running (no restart glitch)
+      if (fsState.natureAudio && !fsState.natureAudio.paused && fsState.natureType === type) return;
+      stopFsNature(true);
+      fsState.natureType = type;
+      fsState.natureActive = true;
+
+      var volInput = $('#fsNatureVol');
+      var volVal = parseFloat(volInput ? volInput.value : 0.5);
+      if (isNaN(volVal) || volVal < 0) volVal = 0.5;
+      // 每种录音响度不同：rain/ocean 录制电平偏高，单独压低更温柔；其余保持
+      var fsNatureGain = { rain: 0.38, ocean: 0.4, wind: 0.55, fire: 0.55, crickets: 0.6, birds: 0.6 };
+      var gain = fsNatureGain[type] != null ? fsNatureGain[type] : 0.55;
+      var target = gain * volVal;
+      if (target < 0.0001) target = 0.0001;
+
+      var a = new Audio('/audio/' + type + '.mp3?v=20261015nature6');
+      a.loop = true;
+      a.preload = 'auto';
+      a.volume = 0.0001;
+      var pp = a.play();
+      if (pp && pp.catch) {
+        pp.catch(function (e) { console.warn('Nature audio play blocked:', e); });
+      }
+      fsState.natureAudio = a;
+
+      // Smooth fade-in
+      if (fsState.natureFadeId) { clearInterval(fsState.natureFadeId); fsState.natureFadeId = null; }
+      var fadeMs = (typeof fadeInSec === 'number' ? Math.max(0.05, fadeInSec) : 0.5) * 1000;
+      var t0 = Date.now();
+      fsState.natureFadeId = setInterval(function () {
+        var p = (Date.now() - t0) / fadeMs;
+        if (p >= 1) {
+          a.volume = target;
+          clearInterval(fsState.natureFadeId);
+          fsState.natureFadeId = null;
+        } else {
+          a.volume = target * p;
+        }
+      }, 50);
+    } catch (e) {
+      console.warn('Nature sound start error:', e);
+    }
+  }
+
+  function stopFsNature(immediate) {
+    fsState.natureActive = false;
+    if (fsState.natureFadeId) { clearInterval(fsState.natureFadeId); fsState.natureFadeId = null; }
+    var a = fsState.natureAudio;
+    fsState.natureAudio = null;
+    fsState.natureType = null;
+    if (!a) return;
+    var fadeMs = (immediate ? 0.08 : 0.5) * 1000;
+    try {
+      var startVol = a.volume;
+      var s0 = Date.now();
+      var id = setInterval(function () {
+        var p = (Date.now() - s0) / fadeMs;
+        if (p >= 1) {
+          clearInterval(id);
+          try { a.pause(); } catch (e) {}
+          try { a.src = ''; } catch (e) {}
+        } else {
+          a.volume = startVol * (1 - p);
+        }
+      }, 50);
+    } catch (e) {
+      try { a.pause(); } catch (e2) {}
+    }
+  }
+
+  // (Nature ambience now plays real field recordings via HTMLAudioElement — see startFsNature/stopFsNature above.)
+
   // Update Ambient & Voice Volume dynamically
   if ($('#fsAmbVol')) {
     $('#fsAmbVol').addEventListener('input', function () {
@@ -1406,6 +1494,32 @@
       if (label) {
         var txt = this.options[this.selectedIndex].text.split('·')[0].trim();
         label.textContent = '🎵 ' + txt + ' Volume';
+      }
+    });
+  }
+
+  // Nature Sounds selector live switch + volume
+  if ($('#fsNature')) {
+    $('#fsNature').addEventListener('change', function () {
+      var label = $('#fsNatureLabel');
+      if (label) {
+        var txt = this.options[this.selectedIndex].text.split('·')[0].trim();
+        label.textContent = '🌿 ' + txt + ' Volume';
+      }
+      // 未播放时选自然音 = 立即试听预览；播放中切换 = 无缝接管
+      startFsNature(this.value);
+    });
+  }
+  if ($('#fsNatureVol')) {
+    $('#fsNatureVol').addEventListener('input', function () {
+      var val = parseFloat(this.value);
+      if (isNaN(val)) val = 0.5;
+      var a = fsState.natureAudio;
+      if (a) {
+        if (fsState.natureFadeId) { clearInterval(fsState.natureFadeId); fsState.natureFadeId = null; }
+        var target = 0.55 * val;
+        if (target < 0.0001) target = 0.0001;
+        a.volume = target;
       }
     });
   }
