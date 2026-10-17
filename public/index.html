@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261016uipr1">
+  <link rel="stylesheet" href="styles.css?v=20261017withoutdevice">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3318,24 +3318,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   (function () {
     try {
       var ua = navigator.userAgent;
-      var isPhoneUA = /Android|iPhone|iPod|Opera Mini|IEMobile|Mobile|BlackBerry/i.test(ua);
+      var isPhone = /Android|iPhone|iPod|Opera Mini|IEMobile|Mobile|BlackBerry/i.test(ua);
       var isIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
-      var isTabletUA = /iPad|Tablet|PlayBook|Silk|Kindle|Nexus|KFTT/i.test(ua) || isIPad;
-      // 显式参数优先级最高；移动端 UA 永远走手机版；
-      // 桌面 UA 默认走桌面版（避免桌面浏览器窗口缩窄被误判），
-      // 但 iframe 取景框 / 手机宽度预览 / ?mobile=1 仍强制走手机版
-      var forceMobile = /[?&]mobile=1\b/.test(location.search);
-      var forceDesktop = /[?&]desktop=1\b/.test(location.search);
-      var isIframe = window.self !== window.top;
-      var isNarrow = window.innerWidth <= 768;
-      var isPhoneWidth = window.innerWidth <= 480;
-      var cls = 'device-desktop';
-      if (!forceDesktop && (forceMobile || isPhoneUA || isTabletUA || (isIframe && isNarrow) || isPhoneWidth)) {
-        cls = 'device-mobile';
-      }
+      var isTablet = /iPad|Tablet|PlayBook|Silk|Kindle|Nexus|KFTT/i.test(ua) || isIPad;
+      var cls = (isPhone || isTablet) ? 'device-mobile' : 'device-desktop';
       document.documentElement.classList.add(cls);
-      document.documentElement.setAttribute('data-device-debug',
-        'w=' + window.innerWidth + '|ua=' + (ua.match(/Mobile|iPhone|iPad|Android|Tablet/i) || ['desktop'])[0] + '|cls=' + cls);
     } catch (e) {}
   })();
   </script>
@@ -4929,7 +4916,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261016uipr1" defer></script>
+  <script src="app.js?v=20261017withoutdevice" defer></script>
 
 </body>
 </html>
