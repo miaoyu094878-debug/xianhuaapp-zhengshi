@@ -4,6 +4,17 @@
   if (window.__LUMINARA_APP_INITIALIZED__) return;
   window.__LUMINARA_APP_INITIALIZED__ = true;
 
+  /* ═══════ Mobile/Desktop desire textarea placeholder sync ═══════ */
+  // 两个 textarea 按设备类显隐；输入时同步值，保证 #fsDesire 始终有最新内容。
+  (function () {
+    var d = document.querySelector('.fs-desire-desktop');
+    var m = document.querySelector('.fs-desire-mobile');
+    if (!d || !m) return;
+    function sync(source, target) { target.value = source.value; }
+    d.addEventListener('input', function () { sync(d, m); });
+    m.addEventListener('input', function () { sync(m, d); });
+  })();
+
   /* ═══════ Starfield Canvas ═══════ */
   var canvas = document.getElementById('starfield');
   var ctx = canvas.getContext('2d');
