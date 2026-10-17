@@ -1417,7 +1417,6 @@
       var textarea = $('#fsDesire');
       if (textarea && goal) {
         textarea.value = goal;
-        textarea.dispatchEvent(new Event('input'));
         textarea.focus();
         btn.style.transform = 'scale(0.96)';
         setTimeout(function () { btn.style.transform = ''; }, 150);
@@ -2185,34 +2184,56 @@
     source.start(0);
   }
 
-  // 空输入守卫：目标/愿景为空时禁用生成按钮，并提示先输入内容
-  function refreshFsGenerateGate() {
-    var btn = $('#fsGenerateBtn');
-    var input = $('#fsDesire');
-    if (!btn || !input) return;
-    var empty = !String(input.value || '').trim();
-    btn.disabled = empty;
-    var hint = $('#fsDesireHint');
-    if (hint) hint.classList.toggle('hidden', !empty);
+  // 空输入轻提示：按钮平时保持可点，只有点击时才拦截，并在按钮旁弹出提示（3 秒自动消失，点击可关闭）
+  var inputNudgeTimer = null;
+  function hideInputNudge() {
+    clearTimeout(inputNudgeTimer);
+    inputNudgeTimer = null;
+    var n = $('#inputNudge');
+    if (n) n.classList.add('hidden');
   }
-  if ($('#fsDesire')) {
-    $('#fsDesire').addEventListener('input', refreshFsGenerateGate);
-    refreshFsGenerateGate();
+  function showInputNudge(anchor, text) {
+    var n = $('#inputNudge');
+    if (!n || !anchor) return;
+    var label = $('#inputNudgeText');
+    if (label) label.textContent = text;
+    n.classList.remove('hidden');
+    n.style.visibility = 'hidden';
+    var r = anchor.getBoundingClientRect();
+    var w = n.offsetWidth;
+    var h = n.offsetHeight;
+    var left = r.left + r.width / 2 - w / 2;
+    var top = r.top - h - 10;
+    if (top < 10) top = r.bottom + 10;
+    left = Math.max(10, Math.min(left, (window.innerWidth || 0) - w - 10));
+    n.style.left = Math.round(left) + 'px';
+    n.style.top = Math.round(top) + 'px';
+    n.style.visibility = '';
+    clearTimeout(inputNudgeTimer);
+    inputNudgeTimer = setTimeout(hideInputNudge, 3000);
+  }
+  if ($('#inputNudge')) {
+    $('#inputNudge').addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      hideInputNudge();
+    });
+    window.addEventListener('resize', hideInputNudge);
   }
 
   // Form Submit: Call Gemini API /api/manifest-story
   if ($('#fsForm')) {
     $('#fsForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      // Gate: browsing is free, but generating voice requires an account
-      if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
+      // 先校验输入：空输入时按钮点不亮，只在按钮旁弹轻提示
       var desire = $('#fsDesire').value.trim();
       if (!desire) {
-        refreshFsGenerateGate();
-        alert('Please enter the desire or goal you want to manifest ✨');
-        $('#fsDesire').focus();
+        showInputNudge($('#fsGenerateBtn'), '✨ Please enter your goal or desire first, then press Generate.');
+        $('#fsDesire').focus({ preventScroll: true });
         return;
       }
+      // Gate: browsing is free, but generating voice requires an account
+      if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
 
       stopFutureAudio();
 
@@ -4276,53 +4297,41 @@
     }, 5000);
   }
 
-  // 空输入守卫：提示词为空时禁用生成按钮并给出提示；生成过程中保持禁用
+  // 生成中状态：仅生成期间禁用按钮，防止重复提交；空输入改为点击时拦截并弹出提示
   var aiGenerating = false;
-  function refreshAiGenerateGate() {
-    var photoEl = $('#aiPhotoPrompt');
-    var videoEl = $('#aiVideoPrompt');
-    var photoEmpty = !String((photoEl && photoEl.value) || '').trim();
-    var videoEmpty = !String((videoEl && videoEl.value) || '').trim();
+  function syncAiGenerateBusy() {
     var btnPhoto = $('#aiBtnPhoto');
     var btnVideo = $('#aiBtnVideo');
-    if (btnPhoto) btnPhoto.disabled = aiGenerating || photoEmpty;
-    if (btnVideo) btnVideo.disabled = aiGenerating || videoEmpty;
-    var hPhoto = $('#aiPhotoHint');
-    if (hPhoto) hPhoto.classList.toggle('hidden', aiGenerating || !photoEmpty);
-    var hVideo = $('#aiVideoHint');
-    if (hVideo) hVideo.classList.toggle('hidden', aiGenerating || !videoEmpty);
+    if (btnPhoto) btnPhoto.disabled = aiGenerating;
+    if (btnVideo) btnVideo.disabled = aiGenerating;
   }
-  ['#aiPhotoPrompt', '#aiVideoPrompt'].forEach(function (sel) {
-    var el = $(sel);
-    if (el) el.addEventListener('input', refreshAiGenerateGate);
-  });
-  refreshAiGenerateGate();
 
   function aiGenerate(kind) {
-    // Gate: generating photos/videos requires an account (browsing the studio is free)
-    if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
     var prompt = '';
     if (kind === 'photo') {
       var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
       prompt = (pInput && pInput.value || '').trim();
       if (!prompt) {
-        aiStatus('Please enter a description in "Portrait Vision Prompt" first.', 'error');
-        if (pInput) pInput.focus();
+        showInputNudge($('#aiBtnPhoto'), '✨ Please describe your portrait first, then press Generate.');
+        if (pInput) pInput.focus({ preventScroll: true });
         return;
       }
     } else {
       var vInput = $('#aiVideoPrompt') || $('#aiPrompt');
       prompt = (vInput && vInput.value || '').trim();
       if (!prompt) {
-        aiStatus('Please enter a description in "Motion & Scene Prompt" first.', 'error');
-        if (vInput) vInput.focus();
+        showInputNudge($('#aiBtnVideo'), '✨ Please describe your motion scene first, then press Generate.');
+        if (vInput) vInput.focus({ preventScroll: true });
         return;
       }
     }
 
+    // Gate: generating photos/videos requires an account (browsing the studio is free)
+    if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
+
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
     aiGenerating = true;
-    refreshAiGenerateGate();
+    syncAiGenerateBusy();
 
     if (kind === 'photo') {
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
@@ -4352,7 +4361,7 @@
       })
       .then(function (data) {
         aiGenerating = false;
-        refreshAiGenerateGate();
+        syncAiGenerateBusy();
 
         if (!data.url) throw new Error('No image URL returned from generator');
 
@@ -4375,7 +4384,7 @@
       })
       .catch(function (err) {
         aiGenerating = false;
-        refreshAiGenerateGate();
+        syncAiGenerateBusy();
 
         if (err && err.__creditBlock) return;
         var errMsg = err.message || '';
@@ -4428,7 +4437,7 @@
           aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
           pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
             aiGenerating = false;
-            refreshAiGenerateGate();
+            syncAiGenerateBusy();
 
             if (pollErr) {
               aiStatus(formatFriendlyAiError(pollErr, 'video'), 'error');
@@ -4466,7 +4475,7 @@
         })
         .catch(function (err) {
           aiGenerating = false;
-          refreshAiGenerateGate();
+          syncAiGenerateBusy();
 
           if (err && err.__creditBlock) return;
           var errMsg = err.message || '';
@@ -4496,7 +4505,7 @@
             // 未登录 / 积分不足：停在这里，不要继续提交视频任务
             if (isCreditBlocked(out.res, out.data)) {
               aiGenerating = false;
-              refreshAiGenerateGate();
+              syncAiGenerateBusy();
               return;
             }
             var data = out.data;
