@@ -2225,15 +2225,15 @@
   if ($('#fsForm')) {
     $('#fsForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      // 先校验输入：空输入时按钮点不亮，只在按钮旁弹轻提示
+      // Gate: browsing is free, but generating voice requires an account
+      if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
+      // 登录已确认，再校验输入：空输入时按钮点不亮，只在按钮旁弹轻提示
       var desire = $('#fsDesire').value.trim();
       if (!desire) {
         showInputNudge($('#fsGenerateBtn'), '✨ Please enter your goal or desire first, then press Generate.');
         $('#fsDesire').focus({ preventScroll: true });
         return;
       }
-      // Gate: browsing is free, but generating voice requires an account
-      if (!requireLogin('Sign in to generate your Living Reality guided voice ✨')) return;
 
       stopFutureAudio();
 
@@ -4307,6 +4307,8 @@
   }
 
   function aiGenerate(kind) {
+    // Gate: generating photos/videos requires an account (browsing the studio is free)
+    if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
     var prompt = '';
     if (kind === 'photo') {
       var pInput = $('#aiPhotoPrompt') || $('#aiPrompt');
@@ -4325,9 +4327,6 @@
         return;
       }
     }
-
-    // Gate: generating photos/videos requires an account (browsing the studio is free)
-    if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
 
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
     aiGenerating = true;
