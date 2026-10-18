@@ -683,6 +683,25 @@
         hint.classList.add('hidden');
       }
     }
+
+    // 申请退款：引导邮件联系客服，按 Refund Policy 的「未使用部分」口径退。
+    // 不做自助退款——退款金额涉及已消耗额度核算，需人工处理。
+    var showRefund = paid;
+    var refundLink = $('#acctRefund');
+    if (refundLink) {
+      refundLink.classList.toggle('hidden', !showRefund);
+      if (showRefund) {
+        var rfEmail = acctEmail();
+        var rfSubject = 'Refund request — ' + label + ' plan';
+        var rfBody = 'Hi Alyema team,\n\nI would like to request a refund.\n\n' +
+          'Account email: ' + (rfEmail || '(my account email)') + '\n' +
+          'Plan: ' + label + '\n' +
+          (expiry ? 'Renews / access date: ' + expiry + '\n' : '') +
+          '\nReason (optional): \n';
+        refundLink.href = 'mailto:support@alyema.com?subject=' + encodeURIComponent(rfSubject) +
+          '&body=' + encodeURIComponent(rfBody);
+      }
+    }
   }
 
   /* ─── 取消订阅：一屏确认 + 温和挽留 ─────────────
