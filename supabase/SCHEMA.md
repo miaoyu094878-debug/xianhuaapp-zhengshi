@@ -191,6 +191,37 @@
 | 5 | image_url | text | YES | `''` |
 | 6 | created_at | timestamptz | YES | `now()` |
 
+### vision_cards 🆕（待应用）
+> 愿景板卡片。迁移 [`20261018120000_user_content_sync.sql`](migrations/20261018120000_user_content_sync.sql)
+> —— **尚未在线上执行**；执行后「愿景板」才能随账号云同步。RLS 与既有表一致（owner all：`auth.uid() = user_id`）。
+| pos | 列 | 类型 | 可空 | 默认 |
+|---|---|---|---|---|
+| 1 | id | bigint | NO | identity |
+| 2 | user_id | uuid | NO | — |
+| 3 | emoji | text | NO | `'✦'` |
+| 4 | text | text | NO | `''` |
+| 5 | photo | text | NO | `''` （压缩后的 data URL，用户自行上传，数量有限） |
+| 6 | created_at | timestamptz | NO | `now()` |
+
+### saved_content 🆕（待应用）
+> 「收藏内容」Saved Inspiration。迁移 [`20261018120000_user_content_sync.sql`](migrations/20261018120000_user_content_sync.sql)
+> —— **尚未在线上执行**。列名用 `source` 而非 `from`（`from` 是 SQL 保留字）。
+| pos | 列 | 类型 | 可空 | 默认 |
+|---|---|---|---|---|
+| 1 | id | bigint | NO | identity |
+| 2 | user_id | uuid | NO | — |
+| 3 | text | text | NO | `''` |
+| 4 | title | text | NO | `''` |
+| 5 | link | text | NO | `''` |
+| 6 | ts | bigint | NO | `0` |
+| 7 | source | text | NO | `'paste'` |
+| 8 | created_at | timestamptz | NO | `now()` |
+
+> **账号内容云同步（2026-10-18）**：前端把本地「目标 / 活跃天数 / 愿景板 / 收藏」镜像到
+> `goals` / `active_days` / `vision_cards` / `saved_content`（整表替换：先删本人全部行再插入当前内容），
+> 登录时回填（云端非空则覆盖本地，全空则把本地推上去）。退出登录只清本地缓存、**不删云端**，重新登录即可恢复。
+> `vision_cards` / `saved_content` 两张表上线后本同步才完整；未应用时这两类内容仍只留本地，其余照常同步。
+
 ---
 
 ## 二、视图（1 个）

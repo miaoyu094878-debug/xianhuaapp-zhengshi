@@ -115,7 +115,7 @@
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function markActive() {
     var t = todayStr();
-    if (db.activeDays.indexOf(t) === -1) { db.activeDays.push(t); save(); }
+    if (db.activeDays.indexOf(t) === -1) { db.activeDays.push(t); save(); syncUserContent(); }
   }
   function streak() {
     var set = {};
@@ -906,7 +906,7 @@
     if (!title) return;
     db.goals.unshift({ id: uid(), title: title, category: $('#goalCategory').value, date: $('#goalDate').value || '', done: false, createdAt: todayStr() });
     $('#goalTitle').value = ''; $('#goalDate').value = '';
-    markActive(); save(); renderGoals(); renderToday();
+    markActive(); save(); renderGoals(); renderToday(); syncUserContent();
   });
 
   var CAT_EMOJI = { 'abundance': '💎', 'love': '💖', 'career': '⭐', 'wellness': '🌙', 'growth': '🌱' };
@@ -919,13 +919,13 @@
       var item = el('div', 'list-item' + (g.done ? ' done' : ''));
       var toggle = el('button', 'icon-btn', g.done ? '✧' : '○');
       toggle.title = g.done ? 'Manifested' : 'Mark as manifested';
-      toggle.addEventListener('click', function () { g.done = !g.done; save(); renderGoals(); renderToday(); });
+      toggle.addEventListener('click', function () { g.done = !g.done; save(); renderGoals(); renderToday(); syncUserContent(); });
       var mid = el('div', 'grow');
       mid.appendChild(el('div', 'title', g.title));
       var meta = (CAT_EMOJI[g.category] || '✦') + ' ' + (CAT_LABEL[g.category] || g.category) + ' · Planted ' + g.createdAt + (g.date ? ' · By ' + g.date : '');
       mid.appendChild(el('div', 'meta', g.done ? meta + ' · ✦ Manifested' : meta));
       var del = el('button', 'icon-btn', '✕');
-      del.addEventListener('click', function () { db.goals = db.goals.filter(function (x) { return x.id !== g.id; }); save(); renderGoals(); renderToday(); });
+      del.addEventListener('click', function () { db.goals = db.goals.filter(function (x) { return x.id !== g.id; }); save(); renderGoals(); renderToday(); syncUserContent(); });
       item.appendChild(toggle); item.appendChild(mid); item.appendChild(del);
       wrap.appendChild(item);
     });
@@ -1142,7 +1142,7 @@
     var finish = function (photo) {
       db.vision.unshift({ id: uid(), emoji: $('#visionEmoji').value.trim() || '✦', text: text, photo: photo || null });
       $('#visionText').value = ''; $('#visionPhoto').value = '';
-      markActive(); save(); renderVision();
+      markActive(); save(); renderVision(); syncUserContent();
     };
     if (fileInput.files && fileInput.files[0]) compressImage(fileInput.files[0], finish);
     else finish(null);
@@ -1188,7 +1188,7 @@
         card.style.backgroundPosition = 'center';
       }
       var del = el('button', 'vdel', '✕');
-      del.addEventListener('click', function () { db.vision = db.vision.filter(function (x) { return x.id !== v.id; }); save(); renderVision(); });
+      del.addEventListener('click', function () { db.vision = db.vision.filter(function (x) { return x.id !== v.id; }); save(); renderVision(); syncUserContent(); });
       card.appendChild(del);
       wrap.appendChild(card);
     });
@@ -3384,6 +3384,112 @@
     await pushRow('visions', body);
   }
 
+  /* ═══════ 账号内容云同步 ═══════
+     把本地「目标 / 活跃天数 / 愿景板 / 收藏」镜像到账号云表（goals / active_days / vision_cards / saved_content），
+     退出登录清空本地后，重新登录即可回填。
+     策略：整表替换（先删本人全部行，再按当前本地内容插入）。集合规模小，逻辑简单。
+     登录时：云端该表非空 → 覆盖本地；为空 → 保持本地并把本地推上去（覆盖新账号/首次登录场景）。 */
+  async function replaceTable(table, uidv, rows) {
+    var cfg = supabaseCfg();
+    if (!cfg.url || !cfg.key) return;
+    try {
+      await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(uidv), { method: 'DELETE' });
+      if (rows && rows.length) {
+        await sbFetch('/rest/v1/' + table, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify(rows.map(function (r) { return Object.assign({ user_id: uidv }, r); }))
+        });
+      }
+    } catch (e) { console.warn('replaceTable(' + table + '):', e); }
+  }
+
+  function contentSnapshot() {
+    return {
+      goals: (db.goals || []).map(function (g) {
+        return { title: g.title || '', details: g.category || '', target_date: g.date || null, status: g.done ? 'done' : 'active' };
+      }),
+      active_days: (db.activeDays || []).map(function (d) { return { day: d }; }),
+      vision_cards: (db.vision || []).map(function (v) {
+        return { emoji: v.emoji || '✦', text: v.text || '', photo: v.photo || '' };
+      }),
+      saved_content: (db.saved || []).map(function (x) {
+        return { text: x.text || '', title: x.title || '', link: x.link || '', ts: x.ts || 0, source: x.from || 'paste' };
+      })
+    };
+  }
+
+  // 内容变更后合并上传（900ms 防抖，避免连续操作打出一串请求）
+  var _syncTimer = null;
+  function syncUserContent() {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) return;
+    var uidv = s.user.id;
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(function () {
+      _syncTimer = null;
+      var snap = contentSnapshot();
+      replaceTable('goals', uidv, snap.goals);
+      replaceTable('active_days', uidv, snap.active_days);
+      replaceTable('vision_cards', uidv, snap.vision_cards);
+      replaceTable('saved_content', uidv, snap.saved_content);
+    }, 900);
+  }
+
+  async function fetchTable(table, uidv, select) {
+    var cfg = supabaseCfg();
+    if (!cfg.url || !cfg.key) return null;
+    try {
+      var res = await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(uidv) + '&select=' + (select || '*'));
+      return res.ok ? (await res.json()) : null;
+    } catch (e) { return null; }
+  }
+
+  // 登录后回填：云端有数据才覆盖本地；全为空则把本地推上去
+  async function loadUserContent(session) {
+    var cfg = supabaseCfg();
+    var uidv = session && session.user && session.user.id;
+    if (!cfg.url || !uidv) return;
+    var changed = false;
+
+    var g = await fetchTable('goals', uidv, 'title,details,target_date,status,created_at');
+    if (g && g.length) {
+      db.goals = g.map(function (r) {
+        return { id: uid(), title: r.title || '', category: r.details || '', date: r.target_date || '', done: r.status === 'done', createdAt: (r.created_at || '').slice(0, 10) || todayStr() };
+      });
+      changed = true;
+    }
+
+    var a = await fetchTable('active_days', uidv, 'day');
+    if (a && a.length) { db.activeDays = a.map(function (r) { return r.day; }); changed = true; }
+
+    var v = await fetchTable('vision_cards', uidv, 'emoji,text,photo,created_at');
+    if (v && v.length) {
+      db.vision = v.map(function (r) { return { id: uid(), emoji: r.emoji || '✦', text: r.text || '', photo: r.photo || null }; });
+      changed = true;
+    }
+
+    var sv = await fetchTable('saved_content', uidv, 'text,title,link,ts,source,created_at');
+    if (sv && sv.length) {
+      db.saved = sv.map(function (r) {
+        return { id: uid(), text: r.text || '', title: r.title || '', link: r.link || (/^https?:\/\//i.test(r.text || '') ? r.text : ''), ts: Number(r.ts) || Date.parse(r.created_at) || Date.now(), from: r.source || 'paste' };
+      });
+      changed = true;
+    }
+
+    var af = await fetchTable('affirm_favs', uidv, 'text');
+    if (af && af.length) { db.affirmFavs = af.map(function (r) { return r.text; }).filter(Boolean); changed = true; }
+    var ac = await fetchTable('affirm_custom', uidv, 'text');
+    if (ac && ac.length) { db.affirmCustom = ac.map(function (r) { return r.text; }).filter(Boolean); changed = true; }
+
+    if (changed) {
+      save();
+      renderGoals(); renderVision(); renderSaved(); renderAffirm(); renderToday();
+    }
+    // 云端为空（新账号/首次登录）→ 把本地现有内容推上去
+    syncUserContent();
+  }
+
   function acctMsg(str) { var m = $('#acctMsg'); if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); } }
 
   // Sign up / Log in
@@ -3508,6 +3614,7 @@
   function refreshAccount() {
     var s = savedSession();
     if (s) loadProfile(s);
+    if (s) loadUserContent(s);
     if ($('#acctSignedIn')) $('#acctSignedIn').classList.toggle('hidden', !s);
     if ($('#acctSignedOut')) $('#acctSignedOut').classList.toggle('hidden', !!s);
     if (s && $('#acctEmailLabel')) {
@@ -6826,7 +6933,7 @@
       delBtn.title = 'Remove';
       delBtn.addEventListener('click', function () {
         db.saved = db.saved.filter(function (x) { return x.id !== s.id; });
-        save(); renderSaved();
+        save(); renderSaved(); syncUserContent();
       });
       item.appendChild(mid); item.appendChild(delBtn);
       wrap.appendChild(item);
@@ -6844,7 +6951,7 @@
       ts: Date.now(),
       from: from || 'paste'
     });
-    save(); renderSaved();
+    save(); renderSaved(); syncUserContent();
   }
   $('#savedAdd').addEventListener('click', function () {
     var text = $('#savedInput').value.trim();
