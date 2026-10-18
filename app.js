@@ -15,6 +15,74 @@
     m.addEventListener('input', function () { sync(m, d); });
   })();
 
+/* ═══════ 手机端预设 chips 横滑：箭头点击 + 箭头随滚动位置显隐 ═══════ */
+  // 桌面端该行是换行布局、无滚动，箭头恒隐藏（CSS 限定 device-mobile 才显示）。
+  (function () {
+    var wrap = document.querySelector('.fs-presets-wrap');
+    if (!wrap) return;
+    var row = wrap.querySelector('.fs-presets-row');
+    var arrowL = wrap.querySelector('.fs-scroll-arrow-left');
+    var arrowR = wrap.querySelector('.fs-scroll-arrow-right');
+    if (!row || !arrowL || !arrowR) return;
+
+    // 点击箭头：取当前最接近容器中心的那枚 chip 的下一枚（反向取上一枚），平滑滚到容器中间。
+    // 用 getBoundingClientRect 计算（chip 的 offsetParent 是卡片而非滚动区，offsetLeft 会算错）。
+    function scrollToNeighbor(dir) {
+      var list = Array.prototype.slice.call(row.querySelectorAll('.fs-preset-btn'));
+      if (!list.length) return;
+      var rowRect = row.getBoundingClientRect();
+      var centerX = rowRect.left + rowRect.width / 2;
+      var idx = 0, best = Infinity;
+      list.forEach(function (c, i) {
+        var r = c.getBoundingClientRect();
+        var dist = Math.abs(r.left + r.width / 2 - centerX);
+        if (dist < best) { best = dist; idx = i; }
+      });
+      var target = list[Math.max(0, Math.min(list.length - 1, idx + dir))];
+      var tr = target.getBoundingClientRect();
+      var max = row.scrollWidth - row.clientWidth;
+      var left = Math.max(0, Math.min(row.scrollLeft + (tr.left + tr.width / 2) - centerX, max));
+      try { row.scrollTo({ left: left, behavior: 'smooth' }); }
+      catch (e) { row.scrollLeft = left; }
+    }
+
+    // 箭头显隐：开头只显右箭头、结尾只显左箭头、中间两个都显
+    function updateArrows() {
+      var max = row.scrollWidth - row.clientWidth;
+      var atStart = row.scrollLeft <= 2;
+      var atEnd = max <= 2 || row.scrollLeft >= max - 2;
+      arrowL.classList.toggle('visible', !atStart);
+      arrowR.classList.toggle('visible', !atEnd);
+    }
+
+    arrowL.addEventListener('click', function () { scrollToNeighbor(-1); });
+    arrowR.addEventListener('click', function () { scrollToNeighbor(1); });
+    row.addEventListener('scroll', updateArrows);
+    window.addEventListener('resize', updateArrows);
+    updateArrows();
+    // 关键：本行所在的 tab 页初始 display:none（默认激活的是 #tab-today），
+    // 首测必然得到 0×0 → 误判"无内容可滑" → 双箭皆藏；切到该 tab 后若无事件重算，
+    // 就会"进了 Living Reality 页没有箭头，要手滑一下才出来"。
+    // ① ResizeObserver：行从 0×0 变为实际尺寸（切 tab / 旋屏）时重算
+    if (typeof ResizeObserver !== 'undefined') {
+      try { new ResizeObserver(updateArrows).observe(row); } catch (e) {}
+    }
+    // ② MutationObserver：监听 tab 页 active 类切换，双保险（老浏览器无 RO 时靠它）
+    var futureSec = document.getElementById('tab-future');
+    if (futureSec && typeof MutationObserver !== 'undefined') {
+      try {
+        new MutationObserver(updateArrows).observe(futureSec, { attributes: true, attributeFilter: ['class'] });
+      } catch (e) {}
+    }
+    // ③ 其余兜底：Web 字体就绪改变 chip 宽度 / load / 延迟
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(updateArrows);
+    }
+    window.addEventListener('load', updateArrows);
+    setTimeout(updateArrows, 300);
+    setTimeout(updateArrows, 1000);
+  })();
+
   /* ═══════ Starfield Canvas ═══════ */
   var canvas = document.getElementById('starfield');
   var ctx = canvas.getContext('2d');
@@ -841,6 +909,26 @@
     t.classList.add('show');
     clearTimeout(_creditToastTimer);
     _creditToastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 2600);
+  }
+
+  /* 通用轻提示：默认 4 秒自动消失，点击立即关闭；居中由 CSS 完成，任何视口变化下都保持在中间 */
+  var _appToastTimer = null;
+  function toastNotify(msg, ms) {
+    var t = $('#appToast');
+    if (!t) {
+      t = el('div', 'app-toast');
+      t.id = 'appToast';
+      t.setAttribute('role', 'status');
+      document.body.appendChild(t);
+      t.addEventListener('click', function () {
+        clearTimeout(_appToastTimer);
+        t.classList.remove('show');
+      });
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(_appToastTimer);
+    _appToastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 4000);
   }
 
   /** AI 调用成功：用响应里带回来的 charged / balance 更新 UI，无需再查一次 */
@@ -2777,7 +2865,7 @@
       var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: name } });
       if (d.user && d.user.identities && d.user.identities.length === 0) { lmMsg('This email is already registered. Please log in instead.'); return; }
       if (d.session && d.session.access_token) { setSession(d.session); await loadProfile(d.session); await seedProfile(d.session); }
-      if (d.access_token) { closeLoginModal(); }
+      if (d.access_token) { closeLoginModal(); toastNotify('Signed in ✓'); }
       else { lmMsg('Check your inbox to confirm your email, then log in.'); }
       refreshAccount();
     } catch (e) { lmMsg(e.message); }
@@ -2792,6 +2880,7 @@
       if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
       setSession(d); await loadProfile(d); await seedProfile(d);
       closeLoginModal();
+      toastNotify('Signed in ✓');
       refreshAccount();
     } catch (e) { lmMsg(e.message); }
   });
@@ -3507,6 +3596,7 @@
       }
       if (d.session && d.session.access_token) { setSession(d.session); await loadProfile(d.session); await seedProfile(d.session); }
       acctMsg(d.access_token ? '' : 'Check your inbox to confirm your email, then log in.');
+      if (d.access_token) toastNotify('Signed in ✓');
       refreshAccount();
     } catch (e) { acctMsg(e.message); }
   });
@@ -3519,6 +3609,7 @@
       var d = await requestToken('/auth/v1/token?grant_type=password', { email: email, password: pass });
       if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
       setSession(d); await loadProfile(d); await seedProfile(d);
+      toastNotify('Signed in ✓');
       refreshAccount();
     } catch (e) { acctMsg(e.message); }
   });
@@ -3697,6 +3788,7 @@
     } catch (e) { console.warn('oauth user:', e); }
     try { await loadProfile(session); await seedProfile(session); } catch (e) {}
     closeLoginModal();
+    toastNotify('Signed in ✓');
     return true;
   }
 
