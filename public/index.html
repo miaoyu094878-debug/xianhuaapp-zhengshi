@@ -4488,7 +4488,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <div class="acct-sub-actions">
                 <button class="chip acct-cancel hidden" id="acctCancelSub" type="button">Cancel subscription</button>
                 <a class="chip acct-manage hidden" id="acctManageSub" href="#" target="_blank" rel="noopener">Billing &amp; invoices ↗</a>
-                <a class="chip acct-refund hidden" id="acctRefund" href="#" title="Refunds are calculated on the unused portion of your plan">Request a refund</a>
+                <button class="chip acct-refund hidden" id="acctRefund" type="button" title="Refunds are calculated on the unused portion of your plan">Request a refund</button>
               </div>
               <p class="acct-sub-hint hidden" id="acctManageHint"></p>
             </div>
@@ -4822,6 +4822,23 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
         <div class="lm-actions">
           <button id="csKeep" class="btn-primary" type="button">Keep my subscription</button>
           <button id="csConfirm" class="chip" type="button">Continue cancelling</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 申请退款：展示客服邮箱 + 一键复制，用户自行发信（不依赖其邮件客户端） -->
+    <div id="refundModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Request a refund">
+      <div class="quiz-card glass">
+        <h3 class="lm-title">Request a refund</h3>
+        <p class="quiz-q">Email us to request a refund. Please include your account email, an approximate purchase date, and a short reason.</p>
+        <div class="refund-contact">
+          <span class="refund-mail" id="refundMail">support@alyema.com</span>
+          <button id="refundCopy" class="chip" type="button">Copy</button>
+        </div>
+        <p class="acct-hint">Refunds follow our Refund Policy — the unused portion of your plan is refundable; credits already used are non-refundable. We reply within 5 business days.</p>
+        <div class="lm-actions">
+          <a class="chip" id="refundPolicyLink" href="/refund" target="_blank" rel="noopener">Refund Policy</a>
+          <button id="refundClose" class="btn-primary" type="button">Got it</button>
         </div>
       </div>
     </div>

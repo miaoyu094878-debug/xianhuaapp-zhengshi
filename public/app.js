@@ -703,24 +703,10 @@
       }
     }
 
-    // 申请退款：引导邮件联系客服，按 Refund Policy 的「未使用部分」口径退。
-    // 不做自助退款——退款金额涉及已消耗额度核算，需人工处理。
+    // 申请退款入口：付费订阅才显示；点击开弹窗（展示客服邮箱 + 复制）
     var showRefund = paid;
-    var refundLink = $('#acctRefund');
-    if (refundLink) {
-      refundLink.classList.toggle('hidden', !showRefund);
-      if (showRefund) {
-        var rfEmail = acctEmail();
-        var rfSubject = 'Refund request — ' + label + ' plan';
-        var rfBody = 'Hi Alyema team,\n\nI would like to request a refund.\n\n' +
-          'Account email: ' + (rfEmail || '(my account email)') + '\n' +
-          'Plan: ' + label + '\n' +
-          (expiry ? 'Renews / access date: ' + expiry + '\n' : '') +
-          '\nReason (optional): \n';
-        refundLink.href = 'mailto:support@alyema.com?subject=' + encodeURIComponent(rfSubject) +
-          '&body=' + encodeURIComponent(rfBody);
-      }
-    }
+    var refundBtn = $('#acctRefund');
+    if (refundBtn) refundBtn.classList.toggle('hidden', !showRefund);
   }
 
   /* ─── 取消订阅：一屏确认 + 温和挽留 ─────────────
@@ -918,6 +904,66 @@
   var cancelModal = $('#cancelSubModal');
   if (cancelModal) cancelModal.addEventListener('click', function (e) {
     if (e.target === cancelModal) closeCancelModal();
+  });
+
+  /* ─── 申请退款：弹窗展示客服邮箱 + 一键复制，由用户自行发信 ─────
+     用弹窗而非 mailto：只用网页版邮箱的用户点 mailto 可能没反应。
+     退款仍走人工（按 Refund Policy 的未使用部分核算），不做自助退款。 */
+  var REFUND_EMAIL = 'support@alyema.com';
+  function openRefundModal() {
+    var m = $('#refundModal');
+    if (!m) return;
+    var mail = $('#refundMail');
+    if (mail) mail.textContent = REFUND_EMAIL;
+    var copyBtn = $('#refundCopy');
+    if (copyBtn) { copyBtn.textContent = 'Copy'; copyBtn.disabled = false; }
+    m.classList.remove('hidden');
+  }
+  function closeRefundModal() {
+    var m = $('#refundModal');
+    if (m) m.classList.add('hidden');
+  }
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      return true;
+    } catch (e) { return false; }
+  }
+  function copyRefundEmail() {
+    var btn = $('#refundCopy');
+    var done = function () {
+      if (!btn) return;
+      btn.textContent = 'Copied ✓';
+      setTimeout(function () { if (btn) btn.textContent = 'Copy'; }, 2000);
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(REFUND_EMAIL).then(done, function () {
+          if (fallbackCopy(REFUND_EMAIL)) done(); else toastCredits('Copy failed — please select the email manually.');
+        });
+      } else if (fallbackCopy(REFUND_EMAIL)) {
+        done();
+      } else {
+        toastCredits('Copy failed — please select the email manually.');
+      }
+    } catch (e) {
+      if (fallbackCopy(REFUND_EMAIL)) done(); else toastCredits('Copy failed — please select the email manually.');
+    }
+  }
+  if ($('#acctRefund')) $('#acctRefund').addEventListener('click', openRefundModal);
+  if ($('#refundCopy')) $('#refundCopy').addEventListener('click', copyRefundEmail);
+  if ($('#refundClose')) $('#refundClose').addEventListener('click', closeRefundModal);
+  var refundModal = $('#refundModal');
+  if (refundModal) refundModal.addEventListener('click', function (e) {
+    if (e.target === refundModal) closeRefundModal();
   });
 
   /** 需要 Pro 的功能入口（全部 AI 能力）统一走这里；Lite 用户会看到「升级 Pro」 */

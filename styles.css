@@ -498,6 +498,18 @@ html.device-mobile .fs-desire-desktop { display: none; }
 .plan-consent a { color: #B8A1E3; }
 .plan-consent.is-invalid { color: #C0392B; }
 
+/* ---------- Refund contact modal ---------- */
+.refund-contact {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 16px 0 2px; flex-wrap: wrap;
+}
+.refund-mail {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  background: var(--surface-2); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 9px 14px; letter-spacing: 0.2px;
+  user-select: all; -webkit-user-select: all;
+}
+
 /* ---------- FORMS ---------- */
 .form-card label.field-label { font-size: 12px; color: var(--text-soft); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 textarea {
