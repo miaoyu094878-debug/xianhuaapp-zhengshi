@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2026.10.17.sync2">
+  <link rel="stylesheet" href="styles.css?v=20261018fs10">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3560,13 +3560,17 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <textarea id="fsDesire" class="fs-desire-desktop" rows="3" placeholder="e.g. I am living in a bright seaside home, writing every morning with the scent of coffee in the breeze, abundant, free and deeply fulfilled..." maxlength="300"></textarea>
           <textarea class="fs-desire-mobile" rows="3" placeholder="e.g. Living in a bright seaside home, writing each morning with coffee in the breeze." maxlength="300"></textarea>
           
-          <!-- Quick Preset Chips -->
-          <div class="fs-presets-row">
-            <button type="button" class="fs-preset-btn" data-goal="I am living in a sun-drenched home by the sea, waking to the sound of waves, free in body and abundant in wealth.">🌊 Sunny Seaside Home</button>
-            <button type="button" class="fs-preset-btn" data-goal="I am building a creative studio I love, filled with inspiration every day, attracting wonderful collaborators and abundant income.">💼 Thriving Career &amp; Wealth</button>
-            <button type="button" class="fs-preset-btn" data-goal="I am together with a soulmate who deeply understands and gently loves me, sharing every season of life in a home full of laughter and warmth.">💖 Sweet Soulmate</button>
-            <button type="button" class="fs-preset-btn" data-goal="My body is full of vibrant energy and self-healing power, my mind calm as still water, every cell healthy and joyful.">🌿 Vital Health &amp; Energy</button>
-            <button type="button" class="fs-preset-btn" data-goal="I have gracefully passed every challenge and stand on the stage of my dreams, confidently sharing my talent and brilliance.">🌟 Radiant Confidence &amp; Success</button>
+          <!-- Quick Preset Chips（手机端：单排横滑 + 左右渐隐箭头） -->
+          <div class="fs-presets-wrap">
+            <button type="button" class="fs-scroll-arrow fs-scroll-arrow-left" aria-label="向左查看预设"><span class="fs-arrow-ico">‹</span></button>
+            <div class="fs-presets-row">
+              <button type="button" class="fs-preset-btn" data-goal="I am living in a sun-drenched home by the sea, waking to the sound of waves, free in body and abundant in wealth.">🌊 Sunny Seaside Home</button>
+              <button type="button" class="fs-preset-btn" data-goal="I am building a creative studio I love, filled with inspiration every day, attracting wonderful collaborators and abundant income.">💼 Thriving Career &amp; Wealth</button>
+              <button type="button" class="fs-preset-btn" data-goal="I am together with a soulmate who deeply understands and gently loves me, sharing every season of life in a home full of laughter and warmth.">💖 Sweet Soulmate</button>
+              <button type="button" class="fs-preset-btn" data-goal="My body is full of vibrant energy and self-healing power, my mind calm as still water, every cell healthy and joyful.">🌿 Vital Health &amp; Energy</button>
+              <button type="button" class="fs-preset-btn" data-goal="I have gracefully passed every challenge and stand on the stage of my dreams, confidently sharing my talent and brilliance.">🌟 Radiant Confidence &amp; Success</button>
+            </div>
+            <button type="button" class="fs-scroll-arrow fs-scroll-arrow-right" aria-label="向右查看预设"><span class="fs-arrow-ico">›</span></button>
           </div>
 
           <!-- Atmosphere, Voice & Frequency Options -->
@@ -4914,7 +4918,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261018sync3" defer></script>
+  <script src="app.js?v=20261018fs10" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
