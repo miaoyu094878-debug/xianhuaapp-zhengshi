@@ -486,6 +486,18 @@ html.device-mobile .fs-desire-desktop { display: none; }
 }
 .plans-fineprint { font-size: 11.5px; color: var(--text-dim); text-align: center; margin-top: 16px; line-height: 1.5; }
 
+/* ---------- Checkout consent (EU/UK withdrawal waiver) ---------- */
+.plan-consent {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 14px auto 0; max-width: 620px;
+  font-size: 12px; color: var(--text-soft); line-height: 1.5; cursor: pointer;
+}
+.plan-consent input[type="checkbox"] {
+  flex: none; width: 16px; height: 16px; margin-top: 1px; cursor: pointer; accent-color: #B8A1E3;
+}
+.plan-consent a { color: #B8A1E3; }
+.plan-consent.is-invalid { color: #C0392B; }
+
 /* ---------- FORMS ---------- */
 .form-card label.field-label { font-size: 12px; color: var(--text-soft); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 textarea {
