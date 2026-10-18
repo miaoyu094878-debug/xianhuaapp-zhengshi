@@ -3385,8 +3385,9 @@
   }
 
   /* ═══════ 账号内容云同步 ═══════
-     把本地「目标 / 活跃天数 / 愿景板 / 收藏」镜像到账号云表（goals / active_days / vision_cards / saved_content），
+     把本地「目标 / 活跃天数 / 收藏」镜像到账号云表（goals / active_days / saved_content），
      退出登录清空本地后，重新登录即可回填。
+     （肯定语收藏走既有表 affirm_favs / affirm_custom；愿景板对外未开放，不做云同步。）
      策略：整表替换（先删本人全部行，再按当前本地内容插入）。集合规模小，逻辑简单。
      登录时：云端该表非空 → 覆盖本地；为空 → 保持本地并把本地推上去（覆盖新账号/首次登录场景）。 */
   async function replaceTable(table, uidv, rows) {
@@ -3410,9 +3411,6 @@
         return { title: g.title || '', details: g.category || '', target_date: g.date || null, status: g.done ? 'done' : 'active' };
       }),
       active_days: (db.activeDays || []).map(function (d) { return { day: d }; }),
-      vision_cards: (db.vision || []).map(function (v) {
-        return { emoji: v.emoji || '✦', text: v.text || '', photo: v.photo || '' };
-      }),
       saved_content: (db.saved || []).map(function (x) {
         return { text: x.text || '', title: x.title || '', link: x.link || '', ts: x.ts || 0, source: x.from || 'paste' };
       })
@@ -3431,7 +3429,6 @@
       var snap = contentSnapshot();
       replaceTable('goals', uidv, snap.goals);
       replaceTable('active_days', uidv, snap.active_days);
-      replaceTable('vision_cards', uidv, snap.vision_cards);
       replaceTable('saved_content', uidv, snap.saved_content);
     }, 900);
   }
@@ -3463,12 +3460,6 @@
     var a = await fetchTable('active_days', uidv, 'day');
     if (a && a.length) { db.activeDays = a.map(function (r) { return r.day; }); changed = true; }
 
-    var v = await fetchTable('vision_cards', uidv, 'emoji,text,photo,created_at');
-    if (v && v.length) {
-      db.vision = v.map(function (r) { return { id: uid(), emoji: r.emoji || '✦', text: r.text || '', photo: r.photo || null }; });
-      changed = true;
-    }
-
     var sv = await fetchTable('saved_content', uidv, 'text,title,link,ts,source,created_at');
     if (sv && sv.length) {
       db.saved = sv.map(function (r) {
@@ -3484,7 +3475,7 @@
 
     if (changed) {
       save();
-      renderGoals(); renderVision(); renderSaved(); renderAffirm(); renderToday();
+      renderGoals(); renderSaved(); renderAffirm(); renderToday();
     }
     // 云端为空（新账号/首次登录）→ 把本地现有内容推上去
     syncUserContent();
