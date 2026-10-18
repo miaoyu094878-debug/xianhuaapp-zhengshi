@@ -15,6 +15,53 @@
     m.addEventListener('input', function () { sync(m, d); });
   })();
 
+/* ═══════ 手机端预设 chips 横滑：箭头点击 + 箭头随滚动位置显隐 ═══════ */
+  // 桌面端该行是换行布局、无滚动，箭头恒隐藏（CSS 限定 device-mobile 才显示）。
+  (function () {
+    var wrap = document.querySelector('.fs-presets-wrap');
+    if (!wrap) return;
+    var row = wrap.querySelector('.fs-presets-row');
+    var arrowL = wrap.querySelector('.fs-scroll-arrow-left');
+    var arrowR = wrap.querySelector('.fs-scroll-arrow-right');
+    if (!row || !arrowL || !arrowR) return;
+
+    // 点击箭头：取当前最接近容器中心的那枚 chip 的下一枚（反向取上一枚），平滑滚到容器中间。
+    // 用 getBoundingClientRect 计算（chip 的 offsetParent 是卡片而非滚动区，offsetLeft 会算错）。
+    function scrollToNeighbor(dir) {
+      var list = Array.prototype.slice.call(row.querySelectorAll('.fs-preset-btn'));
+      if (!list.length) return;
+      var rowRect = row.getBoundingClientRect();
+      var centerX = rowRect.left + rowRect.width / 2;
+      var idx = 0, best = Infinity;
+      list.forEach(function (c, i) {
+        var r = c.getBoundingClientRect();
+        var dist = Math.abs(r.left + r.width / 2 - centerX);
+        if (dist < best) { best = dist; idx = i; }
+      });
+      var target = list[Math.max(0, Math.min(list.length - 1, idx + dir))];
+      var tr = target.getBoundingClientRect();
+      var max = row.scrollWidth - row.clientWidth;
+      var left = Math.max(0, Math.min(row.scrollLeft + (tr.left + tr.width / 2) - centerX, max));
+      try { row.scrollTo({ left: left, behavior: 'smooth' }); }
+      catch (e) { row.scrollLeft = left; }
+    }
+
+    // 箭头显隐：开头只显右箭头、结尾只显左箭头、中间两个都显
+    function updateArrows() {
+      var max = row.scrollWidth - row.clientWidth;
+      var atStart = row.scrollLeft <= 2;
+      var atEnd = max <= 2 || row.scrollLeft >= max - 2;
+      arrowL.classList.toggle('visible', !atStart);
+      arrowR.classList.toggle('visible', !atEnd);
+    }
+
+    arrowL.addEventListener('click', function () { scrollToNeighbor(-1); });
+    arrowR.addEventListener('click', function () { scrollToNeighbor(1); });
+    row.addEventListener('scroll', updateArrows);
+    window.addEventListener('resize', updateArrows);
+    updateArrows();
+  })();
+
   /* ═══════ Starfield Canvas ═══════ */
   var canvas = document.getElementById('starfield');
   var ctx = canvas.getContext('2d');
