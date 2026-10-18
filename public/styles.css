@@ -3426,6 +3426,21 @@ html.device-mobile .fs-scroll-arrow .fs-arrow-ico {
 }
 .credit-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* 登录成功等通用轻提示：4 秒自动消失、点击关闭；纯 CSS 居中（对窗口缩放/页面缩放均免疫）；材质与 .quiz-card 一致 */
+.app-toast {
+  position: fixed; left: 50%; top: 50%;
+  transform: translate(-50%, -50%) scale(.97);
+  z-index: 10010; pointer-events: auto; cursor: pointer;
+  min-width: 200px; padding: 14px 24px; border-radius: 18px;
+  text-align: center;
+  background: var(--surface-hover); border: 1px solid var(--border-strong);
+  color: var(--text); font-size: 14px; font-weight: 600;
+  box-shadow: var(--shadow-hover); backdrop-filter: blur(22px) saturate(1.6);
+  opacity: 0; transition: opacity .22s, transform .22s;
+}
+.app-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.app-toast:active { transform: translate(-50%, -50%) scale(.97); }
+
 /* 生成按钮里的积分标价（按钮为纵向 flex，故取消左外边距） */
 .ai-btn-generate .cost-badge { margin-left: 0; }
 

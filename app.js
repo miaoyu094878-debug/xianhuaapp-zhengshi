@@ -890,6 +890,26 @@
     _creditToastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 2600);
   }
 
+  /* 通用轻提示：默认 4 秒自动消失，点击立即关闭；居中由 CSS 完成，任何视口变化下都保持在中间 */
+  var _appToastTimer = null;
+  function toastNotify(msg, ms) {
+    var t = $('#appToast');
+    if (!t) {
+      t = el('div', 'app-toast');
+      t.id = 'appToast';
+      t.setAttribute('role', 'status');
+      document.body.appendChild(t);
+      t.addEventListener('click', function () {
+        clearTimeout(_appToastTimer);
+        t.classList.remove('show');
+      });
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(_appToastTimer);
+    _appToastTimer = setTimeout(function () { t.classList.remove('show'); }, ms || 4000);
+  }
+
   /** AI 调用成功：用响应里带回来的 charged / balance 更新 UI，无需再查一次 */
   function applyCreditUsage(data) {
     if (!data || !data.credits) return;
@@ -2824,7 +2844,7 @@
       var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: name } });
       if (d.user && d.user.identities && d.user.identities.length === 0) { lmMsg('This email is already registered. Please log in instead.'); return; }
       if (d.session && d.session.access_token) { setSession(d.session); await loadProfile(d.session); await seedProfile(d.session); }
-      if (d.access_token) { closeLoginModal(); }
+      if (d.access_token) { closeLoginModal(); toastNotify('Signed in ✓'); }
       else { lmMsg('Check your inbox to confirm your email, then log in.'); }
       refreshAccount();
     } catch (e) { lmMsg(e.message); }
@@ -2839,6 +2859,7 @@
       if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
       setSession(d); await loadProfile(d); await seedProfile(d);
       closeLoginModal();
+      toastNotify('Signed in ✓');
       refreshAccount();
     } catch (e) { lmMsg(e.message); }
   });
@@ -3544,6 +3565,7 @@
       }
       if (d.session && d.session.access_token) { setSession(d.session); await loadProfile(d.session); await seedProfile(d.session); }
       acctMsg(d.access_token ? '' : 'Check your inbox to confirm your email, then log in.');
+      if (d.access_token) toastNotify('Signed in ✓');
       refreshAccount();
     } catch (e) { acctMsg(e.message); }
   });
@@ -3556,6 +3578,7 @@
       var d = await requestToken('/auth/v1/token?grant_type=password', { email: email, password: pass });
       if (!d.access_token) throw new Error('Login failed, or email not confirmed yet.');
       setSession(d); await loadProfile(d); await seedProfile(d);
+      toastNotify('Signed in ✓');
       refreshAccount();
     } catch (e) { acctMsg(e.message); }
   });
@@ -3734,6 +3757,7 @@
     } catch (e) { console.warn('oauth user:', e); }
     try { await loadProfile(session); await seedProfile(session); } catch (e) {}
     closeLoginModal();
+    toastNotify('Signed in ✓');
     return true;
   }
 
