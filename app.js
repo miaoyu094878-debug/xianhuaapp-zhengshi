@@ -60,6 +60,27 @@
     row.addEventListener('scroll', updateArrows);
     window.addEventListener('resize', updateArrows);
     updateArrows();
+    // 关键：本行所在的 tab 页初始 display:none（默认激活的是 #tab-today），
+    // 首测必然得到 0×0 → 误判"无内容可滑" → 双箭皆藏；切到该 tab 后若无事件重算，
+    // 就会"进了 Living Reality 页没有箭头，要手滑一下才出来"。
+    // ① ResizeObserver：行从 0×0 变为实际尺寸（切 tab / 旋屏）时重算
+    if (typeof ResizeObserver !== 'undefined') {
+      try { new ResizeObserver(updateArrows).observe(row); } catch (e) {}
+    }
+    // ② MutationObserver：监听 tab 页 active 类切换，双保险（老浏览器无 RO 时靠它）
+    var futureSec = document.getElementById('tab-future');
+    if (futureSec && typeof MutationObserver !== 'undefined') {
+      try {
+        new MutationObserver(updateArrows).observe(futureSec, { attributes: true, attributeFilter: ['class'] });
+      } catch (e) {}
+    }
+    // ③ 其余兜底：Web 字体就绪改变 chip 宽度 / load / 延迟
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(updateArrows);
+    }
+    window.addEventListener('load', updateArrows);
+    setTimeout(updateArrows, 300);
+    setTimeout(updateArrows, 1000);
   })();
 
   /* ═══════ Starfield Canvas ═══════ */
