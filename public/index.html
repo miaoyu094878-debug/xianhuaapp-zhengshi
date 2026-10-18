@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261018fs12">
+  <link rel="stylesheet" href="styles.css?v=20261018sync5">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4453,7 +4453,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             </button>
             <div class="g-divider">or</div>
             <input id="acctEmail" type="email" placeholder="Your email" maxlength="120">
-            <input id="acctPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
+            <div class="pw-field">
+              <input id="acctPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
+              <button id="acctTogglePw" class="pw-toggle" type="button" aria-label="Toggle password visibility" aria-pressed="false">👁</button>
+            </div>
             <div class="acct-actions">
               <button id="acctSignup" class="btn-primary btn-small" type="button">Sign up</button>
               <button id="acctLogin" class="chip" type="button">Log in</button>
@@ -4918,7 +4921,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261018fs12" defer></script>
+  <script src="app.js?v=20261018sync5" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">

@@ -3573,6 +3573,16 @@
     if (!res.ok) throw new Error(data.error_description || data.msg || data.message || 'Request failed');
     return data;
   }
+  var acctTogglePw = $('#acctTogglePw');
+  if (acctTogglePw) acctTogglePw.addEventListener('click', function () {
+    var pw = $('#acctPassword');
+    if (!pw) return;
+    var showing = pw.type === 'text';
+    pw.type = showing ? 'password' : 'text';
+    acctTogglePw.textContent = showing ? '👁' : '🙈';
+    acctTogglePw.setAttribute('aria-pressed', showing ? 'false' : 'true');
+    pw.focus();
+  });
   if ($('#acctSignup')) $('#acctSignup').addEventListener('click', async function () {
     var email = ($('#acctEmail').value || '').trim();
     var pass = $('#acctPassword').value || '';
