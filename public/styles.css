@@ -3099,14 +3099,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 /* ════════════════════════════════════════════════════════════════
    STELLA AI LIVING REALITY MANIFESTATION VOICE & AUDIO EXPERIENCE
    ════════════════════════════════════════════════════════════════ */
-.fs-hero-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600;
-  letter-spacing: 0.5px; text-transform: uppercase;
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  margin-bottom: 8px;
-}
 .fs-presets-row {
   display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 16px;
 }
@@ -3120,6 +3112,12 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   background: var(--surface-hover); color: var(--text);
   border-color: var(--accent); transform: translateY(-1px);
 }
+/* ---------- CONTACT LINE（一行式：信封图标 + Contact us + 邮箱直显，两端一致） ---------- */
+.support-line { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; font-size: 13px; line-height: 1.4; }
+.support-line-ico { width: 15px; height: 15px; color: var(--accent); flex: none; }
+.support-line-text { color: var(--text-soft); font-weight: 500; }
+.support-line-email { color: var(--accent); font-weight: 600; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .2s ease; }
+.support-line-email:hover { border-bottom-color: var(--accent); }
 /* 手机端：预设 chips 一排 + 横滑；箭头模块叠在内容两端（半透明渐变，不挡内容），
    随滚动位置渐隐渐显（桌面端仍换行，箭头不显示） */
 .fs-presets-wrap { position: relative; }
