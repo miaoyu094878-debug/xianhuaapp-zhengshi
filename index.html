@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261018sync8">
+  <link rel="stylesheet" href="styles.css?v=20261018sync9">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4664,11 +4664,8 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </article>
         </div>
 
-        <!-- EU/UK 撤销权放弃：结账前必须明示同意，未勾选不跳转支付 -->
-        <label class="plan-consent" id="planConsentRow">
-          <input type="checkbox" id="planConsent">
-          <span>I agree to immediate access to the Service and acknowledge that, as an EU/UK consumer, I lose my 14-day right of withdrawal once access begins. See the <a href="/refund" target="_blank" rel="noopener">Refund Policy</a>.</span>
-        </label>
+        <!-- EU/UK 撤销权：以「订阅即同意」明示告知（点支付按钮即视为同意），不再单独勾选 -->
+        <p class="plan-consent-note" id="planConsentNote">By subscribing you agree to our <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/refund" target="_blank" rel="noopener">Refund Policy</a>, and you consent to immediate access to the Service and acknowledge that, as an EU/UK consumer, you lose your 14-day right of withdrawal once access begins.</p>
 
         <p class="plans-fineprint" id="planStatusLine">Not subscribed — subscribe below to unlock everything.</p>
 
@@ -4960,7 +4957,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261018sync8" defer></script>
+  <script src="app.js?v=20261018sync9" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">

@@ -400,17 +400,8 @@
       openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
       return;
     }
-    // EU/UK 撤销权：必须明示同意「即时访问 + 放弃 14 天撤销权」才允许进入支付
-    var consent = $('#planConsent');
-    if (consent && !consent.checked) {
-      var consentRow = $('#planConsentRow');
-      if (consentRow) {
-        consentRow.classList.add('is-invalid');
-        if (consentRow.scrollIntoView) consentRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }
-      toastCredits('Please tick the consent box below the plans to continue.');
-      return;
-    }
+    // EU/UK 撤销权：同意改为「订阅即同意」的明示告知（见套餐下方的 planConsentNote），
+    // 点支付按钮这一动作本身即构成同意，故此处不再做勾选拦截。
     checkoutBusy = true;
     setPlanBtnBusy(true);
     try {
@@ -445,14 +436,6 @@
     btn.addEventListener('click', function () {
       startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro');
     });
-  });
-  // 勾选后立刻消除红色提示态
-  var consentBox = $('#planConsent');
-  if (consentBox) consentBox.addEventListener('change', function () {
-    if (consentBox.checked) {
-      var row = $('#planConsentRow');
-      if (row) row.classList.remove('is-invalid');
-    }
   });
 
   /* ---------- 订阅卡选中态：点卡切换高亮（featured 样式跟人走），按钮才去支付 ---------- */
