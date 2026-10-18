@@ -1142,7 +1142,7 @@
     var finish = function (photo) {
       db.vision.unshift({ id: uid(), emoji: $('#visionEmoji').value.trim() || '✦', text: text, photo: photo || null });
       $('#visionText').value = ''; $('#visionPhoto').value = '';
-      markActive(); save(); renderVision(); syncUserContent();
+      markActive(); save(); renderVision();
     };
     if (fileInput.files && fileInput.files[0]) compressImage(fileInput.files[0], finish);
     else finish(null);
@@ -1188,7 +1188,7 @@
         card.style.backgroundPosition = 'center';
       }
       var del = el('button', 'vdel', '✕');
-      del.addEventListener('click', function () { db.vision = db.vision.filter(function (x) { return x.id !== v.id; }); save(); renderVision(); syncUserContent(); });
+      del.addEventListener('click', function () { db.vision = db.vision.filter(function (x) { return x.id !== v.id; }); save(); renderVision(); });
       card.appendChild(del);
       wrap.appendChild(card);
     });
@@ -3385,9 +3385,9 @@
   }
 
   /* ═══════ 账号内容云同步 ═══════
-     把本地「目标 / 活跃天数 / 收藏」镜像到账号云表（goals / active_days / saved_content），
+     把本地「目标 / 活跃天数」镜像到账号云表（goals / active_days），
      退出登录清空本地后，重新登录即可回填。
-     （肯定语收藏走既有表 affirm_favs / affirm_custom；愿景板对外未开放，不做云同步。）
+     （肯定语收藏走既有表 affirm_favs / affirm_custom；愿景板、收藏内容不做云同步。）
      策略：整表替换（先删本人全部行，再按当前本地内容插入）。集合规模小，逻辑简单。
      登录时：云端该表非空 → 覆盖本地；为空 → 保持本地并把本地推上去（覆盖新账号/首次登录场景）。 */
   async function replaceTable(table, uidv, rows) {
@@ -3410,10 +3410,7 @@
       goals: (db.goals || []).map(function (g) {
         return { title: g.title || '', details: g.category || '', target_date: g.date || null, status: g.done ? 'done' : 'active' };
       }),
-      active_days: (db.activeDays || []).map(function (d) { return { day: d }; }),
-      saved_content: (db.saved || []).map(function (x) {
-        return { text: x.text || '', title: x.title || '', link: x.link || '', ts: x.ts || 0, source: x.from || 'paste' };
-      })
+      active_days: (db.activeDays || []).map(function (d) { return { day: d }; })
     };
   }
 
@@ -3429,7 +3426,6 @@
       var snap = contentSnapshot();
       replaceTable('goals', uidv, snap.goals);
       replaceTable('active_days', uidv, snap.active_days);
-      replaceTable('saved_content', uidv, snap.saved_content);
     }, 900);
   }
 
@@ -3460,14 +3456,6 @@
     var a = await fetchTable('active_days', uidv, 'day');
     if (a && a.length) { db.activeDays = a.map(function (r) { return r.day; }); changed = true; }
 
-    var sv = await fetchTable('saved_content', uidv, 'text,title,link,ts,source,created_at');
-    if (sv && sv.length) {
-      db.saved = sv.map(function (r) {
-        return { id: uid(), text: r.text || '', title: r.title || '', link: r.link || (/^https?:\/\//i.test(r.text || '') ? r.text : ''), ts: Number(r.ts) || Date.parse(r.created_at) || Date.now(), from: r.source || 'paste' };
-      });
-      changed = true;
-    }
-
     var af = await fetchTable('affirm_favs', uidv, 'text');
     if (af && af.length) { db.affirmFavs = af.map(function (r) { return r.text; }).filter(Boolean); changed = true; }
     var ac = await fetchTable('affirm_custom', uidv, 'text');
@@ -3475,7 +3463,7 @@
 
     if (changed) {
       save();
-      renderGoals(); renderSaved(); renderAffirm(); renderToday();
+      renderGoals(); renderAffirm(); renderToday();
     }
     // 云端为空（新账号/首次登录）→ 把本地现有内容推上去
     syncUserContent();
@@ -6924,7 +6912,7 @@
       delBtn.title = 'Remove';
       delBtn.addEventListener('click', function () {
         db.saved = db.saved.filter(function (x) { return x.id !== s.id; });
-        save(); renderSaved(); syncUserContent();
+        save(); renderSaved();
       });
       item.appendChild(mid); item.appendChild(delBtn);
       wrap.appendChild(item);
@@ -6942,7 +6930,7 @@
       ts: Date.now(),
       from: from || 'paste'
     });
-    save(); renderSaved(); syncUserContent();
+    save(); renderSaved();
   }
   $('#savedAdd').addEventListener('click', function () {
     var text = $('#savedInput').value.trim();
