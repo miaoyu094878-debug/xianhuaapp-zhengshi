@@ -115,7 +115,7 @@
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function markActive() {
     var t = todayStr();
-    if (db.activeDays.indexOf(t) === -1) { db.activeDays.push(t); save(); }
+    if (db.activeDays.indexOf(t) === -1) { db.activeDays.push(t); save(); syncUserContent(); }
   }
   function streak() {
     var set = {};
@@ -906,7 +906,7 @@
     if (!title) return;
     db.goals.unshift({ id: uid(), title: title, category: $('#goalCategory').value, date: $('#goalDate').value || '', done: false, createdAt: todayStr() });
     $('#goalTitle').value = ''; $('#goalDate').value = '';
-    markActive(); save(); renderGoals(); renderToday();
+    markActive(); save(); renderGoals(); renderToday(); syncUserContent();
   });
 
   var CAT_EMOJI = { 'abundance': '💎', 'love': '💖', 'career': '⭐', 'wellness': '🌙', 'growth': '🌱' };
@@ -919,13 +919,13 @@
       var item = el('div', 'list-item' + (g.done ? ' done' : ''));
       var toggle = el('button', 'icon-btn', g.done ? '✧' : '○');
       toggle.title = g.done ? 'Manifested' : 'Mark as manifested';
-      toggle.addEventListener('click', function () { g.done = !g.done; save(); renderGoals(); renderToday(); });
+      toggle.addEventListener('click', function () { g.done = !g.done; save(); renderGoals(); renderToday(); syncUserContent(); });
       var mid = el('div', 'grow');
       mid.appendChild(el('div', 'title', g.title));
       var meta = (CAT_EMOJI[g.category] || '✦') + ' ' + (CAT_LABEL[g.category] || g.category) + ' · Planted ' + g.createdAt + (g.date ? ' · By ' + g.date : '');
       mid.appendChild(el('div', 'meta', g.done ? meta + ' · ✦ Manifested' : meta));
       var del = el('button', 'icon-btn', '✕');
-      del.addEventListener('click', function () { db.goals = db.goals.filter(function (x) { return x.id !== g.id; }); save(); renderGoals(); renderToday(); });
+      del.addEventListener('click', function () { db.goals = db.goals.filter(function (x) { return x.id !== g.id; }); save(); renderGoals(); renderToday(); syncUserContent(); });
       item.appendChild(toggle); item.appendChild(mid); item.appendChild(del);
       wrap.appendChild(item);
     });
@@ -3384,6 +3384,91 @@
     await pushRow('visions', body);
   }
 
+  /* ═══════ 账号内容云同步 ═══════
+     把本地「目标 / 活跃天数」镜像到账号云表（goals / active_days），
+     退出登录清空本地后，重新登录即可回填。
+     （肯定语收藏走既有表 affirm_favs / affirm_custom；愿景板、收藏内容不做云同步。）
+     策略：整表替换（先删本人全部行，再按当前本地内容插入）。集合规模小，逻辑简单。
+     登录时：云端该表非空 → 覆盖本地；为空 → 保持本地并把本地推上去（覆盖新账号/首次登录场景）。 */
+  async function replaceTable(table, uidv, rows) {
+    var cfg = supabaseCfg();
+    if (!cfg.url || !cfg.key) return;
+    try {
+      await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(uidv), { method: 'DELETE' });
+      if (rows && rows.length) {
+        await sbFetch('/rest/v1/' + table, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify(rows.map(function (r) { return Object.assign({ user_id: uidv }, r); }))
+        });
+      }
+    } catch (e) { console.warn('replaceTable(' + table + '):', e); }
+  }
+
+  function contentSnapshot() {
+    return {
+      goals: (db.goals || []).map(function (g) {
+        return { title: g.title || '', details: g.category || '', target_date: g.date || null, status: g.done ? 'done' : 'active' };
+      }),
+      active_days: (db.activeDays || []).map(function (d) { return { day: d }; })
+    };
+  }
+
+  // 内容变更后合并上传（900ms 防抖，避免连续操作打出一串请求）
+  var _syncTimer = null;
+  function syncUserContent() {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) return;
+    var uidv = s.user.id;
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(function () {
+      _syncTimer = null;
+      var snap = contentSnapshot();
+      replaceTable('goals', uidv, snap.goals);
+      replaceTable('active_days', uidv, snap.active_days);
+    }, 900);
+  }
+
+  async function fetchTable(table, uidv, select) {
+    var cfg = supabaseCfg();
+    if (!cfg.url || !cfg.key) return null;
+    try {
+      var res = await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(uidv) + '&select=' + (select || '*'));
+      return res.ok ? (await res.json()) : null;
+    } catch (e) { return null; }
+  }
+
+  // 登录后回填：云端有数据才覆盖本地；全为空则把本地推上去
+  async function loadUserContent(session) {
+    var cfg = supabaseCfg();
+    var uidv = session && session.user && session.user.id;
+    if (!cfg.url || !uidv) return;
+    var changed = false;
+
+    var g = await fetchTable('goals', uidv, 'title,details,target_date,status,created_at');
+    if (g && g.length) {
+      db.goals = g.map(function (r) {
+        return { id: uid(), title: r.title || '', category: r.details || '', date: r.target_date || '', done: r.status === 'done', createdAt: (r.created_at || '').slice(0, 10) || todayStr() };
+      });
+      changed = true;
+    }
+
+    var a = await fetchTable('active_days', uidv, 'day');
+    if (a && a.length) { db.activeDays = a.map(function (r) { return r.day; }); changed = true; }
+
+    var af = await fetchTable('affirm_favs', uidv, 'text');
+    if (af && af.length) { db.affirmFavs = af.map(function (r) { return r.text; }).filter(Boolean); changed = true; }
+    var ac = await fetchTable('affirm_custom', uidv, 'text');
+    if (ac && ac.length) { db.affirmCustom = ac.map(function (r) { return r.text; }).filter(Boolean); changed = true; }
+
+    if (changed) {
+      save();
+      renderGoals(); renderAffirm(); renderToday();
+    }
+    // 云端为空（新账号/首次登录）→ 把本地现有内容推上去
+    syncUserContent();
+  }
+
   function acctMsg(str) { var m = $('#acctMsg'); if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); } }
 
   // Sign up / Log in
@@ -3433,13 +3518,16 @@
       var cfg = supabaseCfg();
       if (s && cfg.url) await fetch(cfg.url + '/auth/v1/logout', { method: 'POST', headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token } });
     } catch (e) {}
+    // 退出登录 = 回到全新访客状态。只清「本账号相关的本地缓存」：
+    // 会话 + 本地业务数据（资料 / 目标 / 肯定语 / 愿景 / 收藏 / 生成记录 / 活跃与冥想统计）+ 自定义 Key。
+    // 设备级设置（主题 / 壁纸布局 / 设备号 / Supabase 配置）保持不变。
+    // 清完整页刷新，所有区域从空白状态重建，彻底避免任何一处残留上一位账号的信息。
     setSession(null);
-    // 退出登录后清掉本地缓存的账号资料并重绘，避免侧栏/资料页继续显示上一位账号的名称与邮箱
-    db.profile = Object.assign({}, defaults.profile);
-    save();
-    renderProfile();
-    renderToday();
-    refreshAccount();
+    try {
+      localStorage.removeItem('manifest_data_v1');
+      localStorage.removeItem('luminara_openrouter_key');
+    } catch (e) {}
+    location.reload();
   });
 
   // Ensure a profiles row exists for the current user (upsert).
@@ -3505,6 +3593,7 @@
   function refreshAccount() {
     var s = savedSession();
     if (s) loadProfile(s);
+    if (s) loadUserContent(s);
     if ($('#acctSignedIn')) $('#acctSignedIn').classList.toggle('hidden', !s);
     if ($('#acctSignedOut')) $('#acctSignedOut').classList.toggle('hidden', !!s);
     if (s && $('#acctEmailLabel')) {
