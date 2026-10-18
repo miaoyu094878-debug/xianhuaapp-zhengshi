@@ -3433,7 +3433,13 @@
       var cfg = supabaseCfg();
       if (s && cfg.url) await fetch(cfg.url + '/auth/v1/logout', { method: 'POST', headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token } });
     } catch (e) {}
-    setSession(null); refreshAccount();
+    setSession(null);
+    // 退出登录后清掉本地缓存的账号资料并重绘，避免侧栏/资料页继续显示上一位账号的名称与邮箱
+    db.profile = Object.assign({}, defaults.profile);
+    save();
+    renderProfile();
+    renderToday();
+    refreshAccount();
   });
 
   // Ensure a profiles row exists for the current user (upsert).
