@@ -3096,6 +3096,54 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   background: var(--surface-hover); color: var(--text);
   border-color: var(--accent); transform: translateY(-1px);
 }
+/* 手机端：预设 chips 一排 + 横滑；箭头模块叠在内容两端（半透明渐变，不挡内容），
+   随滚动位置渐隐渐显（桌面端仍换行，箭头不显示） */
+.fs-presets-wrap { position: relative; }
+html.device-mobile .fs-presets-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+html.device-mobile .fs-presets-row::-webkit-scrollbar { display: none; }
+html.device-mobile .fs-preset-btn { flex: 0 0 auto; }
+.fs-scroll-arrow { display: none; }
+html.device-mobile .fs-scroll-arrow {
+  display: flex;
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  color: var(--accent);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 3;
+}
+html.device-mobile .fs-scroll-arrow.visible { opacity: 1; pointer-events: auto; }
+html.device-mobile .fs-scroll-arrow-left {
+  left: 0;
+  background: linear-gradient(to right, var(--fs-fade-c, rgba(249,242,255,0.7)) 62%, transparent);
+}
+html.device-mobile .fs-scroll-arrow-right {
+  right: 0;
+  background: linear-gradient(to left, var(--fs-fade-c, rgba(249,242,255,0.7)) 62%, transparent);
+}
+:root[data-theme="manifest-dark"] { --fs-fade-c: rgba(14,7,38,0.7); }
+html.device-mobile .fs-scroll-arrow .fs-arrow-ico {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(80,50,120,0.18);
+  font-size: 16px; line-height: 1; color: var(--accent);
+}
 .fs-form-options {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px;
 }
