@@ -3433,13 +3433,16 @@
       var cfg = supabaseCfg();
       if (s && cfg.url) await fetch(cfg.url + '/auth/v1/logout', { method: 'POST', headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token } });
     } catch (e) {}
+    // 退出登录 = 回到全新访客状态。只清「本账号相关的本地缓存」：
+    // 会话 + 本地业务数据（资料 / 目标 / 肯定语 / 愿景 / 收藏 / 生成记录 / 活跃与冥想统计）+ 自定义 Key。
+    // 设备级设置（主题 / 壁纸布局 / 设备号 / Supabase 配置）保持不变。
+    // 清完整页刷新，所有区域从空白状态重建，彻底避免任何一处残留上一位账号的信息。
     setSession(null);
-    // 退出登录后清掉本地缓存的账号资料并重绘，避免侧栏/资料页继续显示上一位账号的名称与邮箱
-    db.profile = Object.assign({}, defaults.profile);
-    save();
-    renderProfile();
-    renderToday();
-    refreshAccount();
+    try {
+      localStorage.removeItem('manifest_data_v1');
+      localStorage.removeItem('luminara_openrouter_key');
+    } catch (e) {}
+    location.reload();
   });
 
   // Ensure a profiles row exists for the current user (upsert).
