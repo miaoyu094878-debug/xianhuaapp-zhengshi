@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261019sync10">
+  <link rel="stylesheet" href="styles.css?v=20261019theme01">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -605,43 +605,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .breath-circle.inhale { transform: scale(1.25); transition-duration: 4s; }
 .breath-circle.exhale { transform: scale(1); transition-duration: 6s; }
 .med-time { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 38px; font-weight: 600; letter-spacing: 3px; margin-bottom: 16px; font-variant-numeric: tabular-nums; color: var(--accent); }
-
-/* ---------- THEME SWITCHER ---------- */
-.theme-fab {
-  position: fixed; right: 16px; bottom: calc(92px + env(safe-area-inset-bottom));
-  z-index: 10001; width: 52px; height: 52px; border-radius: 50%;
-  border: 1.5px solid var(--border-strong); background: var(--accent);
-  color: #fff; font-size: 22px; cursor: pointer;
-  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 45%, transparent);
-  backdrop-filter: blur(16px); transition: 0.3s;
-  display: flex; align-items: center; justify-content: center;
-  animation: fabPulse 2.6s ease-in-out infinite;
-}
-@keyframes fabPulse {
-  0%, 100% { box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 35%, transparent); }
-  50% { box-shadow: 0 6px 34px color-mix(in srgb, var(--accent) 70%, transparent); }
-}
-.theme-fab:hover { transform: rotate(45deg) scale(1.08); }
-.theme-fab:active { transform: scale(0.94); }
-.theme-panel {
-  position: fixed; right: 16px; bottom: calc(154px + env(safe-area-inset-bottom));
-  z-index: 10001; width: 230px; padding: 12px; border-radius: 18px;
-  background: var(--surface-hover); backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid var(--border); box-shadow: var(--shadow-hover);
-  animation: popIn 0.25s ease;
-}
-@keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
-.theme-panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin: 2px 4px 8px; }
-.theme-opt {
-  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-  border: 1px solid transparent; background: transparent; border-radius: 12px;
-  padding: 9px 10px; cursor: pointer; color: var(--text); transition: 0.25s; margin-bottom: 4px;
-}
-.theme-opt:hover { background: var(--surface-2); }
-.theme-opt.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.to-ico { font-size: 18px; width: 24px; text-align: center; }
-.to-name { font-size: 13px; font-weight: 600; }
-.to-desc { font-size: 11px; color: var(--text-dim); margin-left: auto; }
 
 /* ---------- ONBOARDING QUIZ ---------- */
 .quiz-modal {
@@ -2827,9 +2790,6 @@ html.device-desktop .ds-foot .ds-wallet { padding: 9px 11px; margin-bottom: 2px;
   padding: 2px 6px; border-radius: 6px; background: var(--cta-grad); color: var(--cta-text);
 }
 .ds-wallet.low .ds-wallet-txt { color: #e05b7a; }
-/* Theme switcher sits in the bottom-right corner on desktop */
-html.device-desktop .theme-fab { right: 28px; bottom: 28px; }
-html.device-desktop .theme-panel { right: 28px; bottom: 92px; }
 
 /* ── Main content area ── */
 html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }
@@ -4715,17 +4675,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </button>
     </nav>
 
-    <!-- Theme Switcher -->
-    <button id="themeFab" class="theme-fab" aria-label="Switch theme">✦</button>
-    <div id="themePanel" class="theme-panel hidden">
-      <p class="theme-panel-title">Choose a look</p>
-      <button class="theme-opt" data-theme="luminara"><span class="to-ico">✦</span><span class="to-name">Alyema</span><span class="to-desc">Dreamy lavender</span></button>
-      <button class="theme-opt" data-theme="manifest-light"><span class="to-ico">☀</span><span class="to-name">Manifest Light</span><span class="to-desc">Liquid gold & glass</span></button>
-      <button class="theme-opt" data-theme="manifest-dark"><span class="to-ico">🌙</span><span class="to-name">Manifest Dark</span><span class="to-desc">Cosmic nebula</span></button>
-      <button class="theme-opt" data-theme="prism"><span class="to-ico">◈</span><span class="to-name">Prism White</span><span class="to-desc">Iridescent white</span></button>
-      <button class="theme-opt" data-theme="ios"><span class="to-ico">◉</span><span class="to-name">Liquid Glass</span><span class="to-desc">iOS 27 glass</span></button>
-    </div>
-
     <!-- Onboarding Quiz -->
     <div id="quizModal" class="quiz-modal hidden">
       <div class="quiz-card glass">
@@ -4950,7 +4899,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261019sync10" defer></script>
+  <script src="app.js?v=20261019theme01" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
