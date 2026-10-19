@@ -792,43 +792,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .breath-circle.exhale { transform: scale(1); transition-duration: 6s; }
 .med-time { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 38px; font-weight: 600; letter-spacing: 3px; margin-bottom: 16px; font-variant-numeric: tabular-nums; color: var(--accent); }
 
-/* ---------- THEME SWITCHER ---------- */
-.theme-fab {
-  position: fixed; right: 16px; bottom: calc(92px + env(safe-area-inset-bottom));
-  z-index: 10001; width: 52px; height: 52px; border-radius: 50%;
-  border: 1.5px solid var(--border-strong); background: var(--accent);
-  color: #fff; font-size: 22px; cursor: pointer;
-  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 45%, transparent);
-  backdrop-filter: blur(16px); transition: 0.3s;
-  display: flex; align-items: center; justify-content: center;
-  animation: fabPulse 2.6s ease-in-out infinite;
-}
-@keyframes fabPulse {
-  0%, 100% { box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 35%, transparent); }
-  50% { box-shadow: 0 6px 34px color-mix(in srgb, var(--accent) 70%, transparent); }
-}
-.theme-fab:hover { transform: rotate(45deg) scale(1.08); }
-.theme-fab:active { transform: scale(0.94); }
-.theme-panel {
-  position: fixed; right: 16px; bottom: calc(154px + env(safe-area-inset-bottom));
-  z-index: 10001; width: 230px; padding: 12px; border-radius: 18px;
-  background: var(--surface-hover); backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid var(--border); box-shadow: var(--shadow-hover);
-  animation: popIn 0.25s ease;
-}
-@keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
-.theme-panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin: 2px 4px 8px; }
-.theme-opt {
-  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-  border: 1px solid transparent; background: transparent; border-radius: 12px;
-  padding: 9px 10px; cursor: pointer; color: var(--text); transition: 0.25s; margin-bottom: 4px;
-}
-.theme-opt:hover { background: var(--surface-2); }
-.theme-opt.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.to-ico { font-size: 18px; width: 24px; text-align: center; }
-.to-name { font-size: 13px; font-weight: 600; }
-.to-desc { font-size: 11px; color: var(--text-dim); margin-left: auto; }
-
 /* ---------- ONBOARDING QUIZ ---------- */
 .quiz-modal {
   position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
@@ -2686,9 +2649,6 @@ html.device-desktop .ds-foot .ds-wallet { padding: 9px 11px; margin-bottom: 2px;
   padding: 2px 6px; border-radius: 6px; background: var(--cta-grad); color: var(--cta-text);
 }
 .ds-wallet.low .ds-wallet-txt { color: #e05b7a; }
-/* Theme switcher sits in the bottom-right corner on desktop */
-html.device-desktop .theme-fab { right: 28px; bottom: 28px; }
-html.device-desktop .theme-panel { right: 28px; bottom: 92px; }
 
 /* ── Main content area ── */
 html.device-desktop #app { margin-left: 252px; max-width: 1360px; padding: 0 48px 80px; }
