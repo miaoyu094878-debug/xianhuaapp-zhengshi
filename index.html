@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261019contact02">
+  <link rel="stylesheet" href="styles.css?v=20261019verify01">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4780,6 +4780,17 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
       </div>
     </div>
 
+    <!-- 邮箱验证成功提示：验证链接确认后弹出；只有点「Close」按钮才关闭（不自动消失、点背景也不关） -->
+    <div id="signupDoneModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Email verified">
+      <div class="quiz-card glass">
+        <h3 class="lm-title">Email verified ✦</h3>
+        <p class="quiz-q" id="signupDoneMsg">Your account is confirmed and you're now signed in. Welcome to Alyema!</p>
+        <div class="lm-actions">
+          <button id="signupDoneClose" class="btn-primary" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 重播保存语音：选择背景音（选定后记住到该语音） -->
     <div id="svAmbModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Choose background sound">
       <div class="quiz-card glass">
@@ -4882,7 +4893,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261019contact02" defer></script>
+  <script src="app.js?v=20261019verify01" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
