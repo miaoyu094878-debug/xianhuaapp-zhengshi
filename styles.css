@@ -486,6 +486,25 @@ html.device-mobile .fs-desire-desktop { display: none; }
 }
 .plans-fineprint { font-size: 11.5px; color: var(--text-dim); text-align: center; margin-top: 16px; line-height: 1.5; }
 
+/* ---------- Checkout consent note (EU/UK withdrawal waiver; subscribing = agree) ---------- */
+.plan-consent-note {
+  margin: 14px auto 0; max-width: 620px;
+  font-size: 12px; color: var(--text-dim); text-align: center; line-height: 1.55;
+}
+.plan-consent-note a { color: #B8A1E3; }
+
+/* ---------- Refund contact modal ---------- */
+.refund-contact {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 16px 0 2px; flex-wrap: wrap;
+}
+.refund-mail {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  background: var(--surface-2); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 9px 14px; letter-spacing: 0.2px;
+  user-select: all; -webkit-user-select: all;
+}
+
 /* ---------- FORMS ---------- */
 .form-card label.field-label { font-size: 12px; color: var(--text-soft); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 textarea {
@@ -593,6 +612,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
    把取消做成灰色小字或藏在二级菜单里属于 dark pattern。 */
 .acct-cancel { color: var(--text); border-color: var(--border-strong); }
 .acct-cancel:hover { border-color: var(--accent2); color: var(--accent2); }
+/* 退款入口：低调处理（真实可达即可，不必抢眼）——小号、左对齐、不占整行。
+   注意：仅退款可以低调，取消订阅必须清晰可见（见上）。 */
+.acct-refund {
+  align-self: flex-start;
+  padding: 5px 12px; font-size: 11px;
+  color: var(--text-dim); background: transparent; border-color: var(--border);
+}
+.acct-refund:hover { color: var(--text-soft); border-color: var(--accent); background: var(--surface-2); }
 /* 取消已完成：明确的成功回执（保留到哪天 / 之后变什么 / 不再扣钱）。
    和上面的 note 是互斥的两态，绝不同时出现，避免正常订阅看起来像已取消。 */
 .acct-sub-done {
