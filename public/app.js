@@ -2625,13 +2625,9 @@
     });
   }
 
-  var auditionAudioSource = null;
   if ($('#fsVoice')) {
     $('#fsVoice').addEventListener('change', function () {
       var val = $('#fsVoice').value;
-      if (val && val !== 'local' && $('#fsTestVoiceId')) {
-        $('#fsTestVoiceId').value = val;
-      }
       fsState.activeParagraphIdx = 0;
       // If currently playing, smoothly transition to new voice from beginning
       if (fsState.isPlaying) {
@@ -2643,97 +2639,7 @@
     });
   }
 
-  if ($('#fsAuditionPlayBtn')) {
-    $('#fsAuditionPlayBtn').addEventListener('click', async function () {
-      var btn = $('#fsAuditionPlayBtn');
-      var statusEl = $('#fsAuditionStatus');
-      var inputEl = $('#fsTestVoiceId');
-      var voiceId = (inputEl ? inputEl.value.trim() : '') || 'QJksobp1edMNvmwcG5lm';
-      var sampleText = 'Take a slow, deep breath... Feel it — everything you desire is already unfolding naturally right now.';
 
-      if (btn.dataset.playing === 'true') {
-        if (auditionAudioSource) {
-          try { auditionAudioSource.stop(); } catch (e) {}
-        }
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-        btn.dataset.playing = 'false';
-        btn.innerHTML = '▶️ Preview this voice';
-        if (statusEl) statusEl.textContent = 'Stopped';
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Fetching voice...';
-      if (statusEl) statusEl.textContent = 'Synthesizing lifelike audio...';
-
-      try {
-        var audioBuf = await fetchParagraphAudio(sampleText, voiceId, 'calm');
-
-        if (audioBuf) {
-          if (!fsState.audioCtx) {
-            fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
-          }
-          if (fsState.audioCtx.state === 'suspended') {
-            await fsState.audioCtx.resume();
-          }
-
-          var src = fsState.audioCtx.createBufferSource();
-          src.buffer = audioBuf;
-          src.connect(fsState.audioCtx.destination);
-          src.onended = function () {
-            btn.dataset.playing = 'false';
-            btn.innerHTML = '▶️ Preview this voice';
-            if (statusEl) statusEl.textContent = 'Playback finished';
-            btn.disabled = false;
-          };
-          auditionAudioSource = src;
-          src.start(0);
-
-          btn.dataset.playing = 'true';
-          btn.innerHTML = '⏹️ Stop preview';
-          btn.disabled = false;
-          if (statusEl) statusEl.textContent = 'Playing 🎵';
-        } else {
-          // Graceful high quality browser voice + ambient tone fallback
-          if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            var utt = new SpeechSynthesisUtterance(sampleText);
-            utt.rate = 0.92;
-            utt.pitch = 1.0;
-            var isZh = /[\u4e00-\u9fa5]/.test(sampleText);
-            var v = pickNaturalVoice(isZh);
-            if (v) utt.voice = v;
-            utt.onend = function () {
-              btn.dataset.playing = 'false';
-              btn.innerHTML = '▶️ Preview this voice';
-              if (statusEl) statusEl.textContent = 'Playback finished';
-              btn.disabled = false;
-            };
-            utt.onerror = function () {
-              btn.dataset.playing = 'false';
-              btn.innerHTML = '▶️ Preview this voice';
-              if (statusEl) statusEl.textContent = 'Ready';
-              btn.disabled = false;
-            };
-            window.speechSynthesis.speak(utt);
-
-            btn.dataset.playing = 'true';
-            btn.innerHTML = '⏹️ Stop preview';
-            btn.disabled = false;
-            if (statusEl) statusEl.textContent = 'Playing 🎵';
-          } else {
-            throw new Error('Audio not available');
-          }
-        }
-      } catch (err) {
-        console.error('Audition error:', err);
-        btn.disabled = false;
-        btn.dataset.playing = 'false';
-        btn.innerHTML = '▶️ Preview this voice';
-        if (statusEl) statusEl.textContent = 'Playback finished';
-      }
-    });
-  }
 
 
 
