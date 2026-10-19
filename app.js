@@ -3864,32 +3864,9 @@
     if ($('#acctSignedIn') || $('#acctSignedOut') || $('#acctLoading')) refreshAccount();
   });
 
-  /* ═══════ Theme Switcher ═══════ */
-  var THEME_KEY = 'luminara_theme_v1';
-  var THEMES = ['luminara', 'manifest-light', 'manifest-dark', 'prism', 'ios'];
-  function applyTheme(t) {
-    if (THEMES.indexOf(t) === -1) t = 'prism';
-    document.documentElement.setAttribute('data-theme', t);
-    try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
-    starPalette = STAR_PALETTES[t] || STAR_PALETTES['prism'];
-    $$('.theme-opt').forEach(function (o) { o.classList.toggle('active', o.dataset.theme === t); });
-    $$('.ds-theme').forEach(function (o) { o.classList.toggle('active', o.dataset.theme === t); });
-  }
-  var savedTheme = null;
-  try { savedTheme = localStorage.getItem(THEME_KEY); } catch (e) {}
-  if (savedTheme) applyTheme(savedTheme);
-
-  var fab = $('#themeFab'), panel = $('#themePanel');
-  fab.addEventListener('click', function (e) { e.stopPropagation(); panel.classList.toggle('hidden'); });
-  document.addEventListener('click', function (e) {
-    if (!panel.contains(e.target) && e.target !== fab) panel.classList.add('hidden');
-  });
-  $$('.theme-opt').forEach(function (o) {
-    o.addEventListener('click', function () { applyTheme(o.dataset.theme); panel.classList.add('hidden'); });
-  });
-  $$('.ds-theme').forEach(function (o) {
-    o.addEventListener('click', function () { applyTheme(o.dataset.theme); });
-  });
+  /* ═══════ 主题：固定 Prism White（2026-10-19 用户要求删除切换器，暂固定单一主题） ═══════ */
+  document.documentElement.setAttribute('data-theme', 'prism');
+  try { localStorage.removeItem('luminara_theme_v1'); } catch (e) {}
 
   /* ═══════ AI Vision (OpenRouter: GPT Image 2 & MiniMax H3 Max) ═══════ */
   var aiKeys = db.aiKeys || {};
