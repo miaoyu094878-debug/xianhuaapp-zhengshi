@@ -1721,24 +1721,26 @@
 
 
   // ── Merged Background Sound (mutually-exclusive single select) ──
-  // Map a merged value (none / atm:* / freq:* / nat:*) onto the three legacy
-  // selects, then drive the exact same live behaviour the original change
-  // handlers produced. All downstream .value reads stay untouched.
+  // Map a merged value (none / freq:* / nat:* / legacy atm:*) onto the two
+  // hidden background-sound selects, then drive the exact same live behaviour
+  // the original change handlers produced. Mood is now a separate control and
+  // is never reset here, so changing the background sound never clobbers it.
   function normalizeAmbient(v) {
     if (!v) return 'none';
+    if (v === 'none' || v === 'off') return 'none';
     if (v.indexOf(':') >= 0) return v;
-    var legacy = { '528': 'freq:528', '432': 'freq:432', '639': 'freq:639', 'bowl': 'freq:bowl', 'off': 'none' };
+    var legacy = { '528': 'freq:528', '432': 'freq:432', '639': 'freq:639', 'bowl': 'freq:bowl' };
     return legacy[v] !== undefined ? legacy[v] : ('freq:' + v);
   }
 
   function applyAmbient(rawVal) {
     var v = normalizeAmbient(rawVal);
-    var mood = 'calm', freq = 'off', nature = 'off';
-    if (v.indexOf('atm:') === 0) mood = v.slice(4);
-    else if (v.indexOf('freq:') === 0) freq = v.slice(5);
+    var freq = 'off', nature = 'off';
+    if (v.indexOf('freq:') === 0) freq = v.slice(5);
     else if (v.indexOf('nat:') === 0) nature = v.slice(4);
+    // Legacy saved values may still carry atm:* — those only affect Mood, not sound.
+    else if (v.indexOf('atm:') === 0) setSelectIfExists($('#fsMood'), v.slice(4));
 
-    setSelectIfExists($('#fsMood'), mood);
     setSelectIfExists($('#fsFreq'), freq);
     setSelectIfExists($('#fsNature'), nature);
 
@@ -1753,11 +1755,56 @@
     if (natItem) natItem.style.display = (v.indexOf('nat:') === 0) ? '' : 'none';
   }
 
+  // 背景音试听/暂停按钮：原生下拉无法"再点同一个"来暂停，故用一个显式按钮控制当前所选背景音的试听。
+  var ambPreviewPlaying = false;
+  function setAmbPreviewState(on) {
+    ambPreviewPlaying = !!on;
+    var btn = $('#fsAmbBtn');
+    if (!btn) return;
+    btn.textContent = on ? '⏸ Stop' : '🔊 Preview';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('on', !!on);
+    var sel = $('#fsAmbient');
+    var v = sel ? normalizeAmbient(sel.value) : 'none';
+    var playable = v.indexOf('freq:') === 0 || v.indexOf('nat:') === 0;
+    btn.disabled = (!on) && (!playable);
+  }
+  function startAmbPreview() {
+    var sel = $('#fsAmbient');
+    if (!sel) return false;
+    var v = normalizeAmbient(sel.value);
+    if (v.indexOf('freq:') === 0) { startFsAmbient(v.slice(5), 0.4); return true; }
+    if (v.indexOf('nat:') === 0) { startFsNature(v.slice(4), 0.4); return true; }
+    return false;
+  }
+  function stopAmbPreview() { stopFsAmbient(true); setAmbPreviewState(false); }
+
   var ambientSel = $('#fsAmbient');
   if (ambientSel) {
-    ambientSel.addEventListener('change', function () { applyAmbient(this.value); });
+    ambientSel.addEventListener('change', function () {
+      var v = normalizeAmbient(this.value);
+      // 选中即试听：Healing Frequency 在未播放时也立即试听；切到 Nature 由其 change 处理器接管试听；
+      // 切到 None 时停止试听。
+      if (v.indexOf('freq:') === 0) {
+        applyAmbient(v);
+        startFsAmbient(v.slice(5), 0.4);
+        setAmbPreviewState(true);
+      } else {
+        stopFsAmbient(true);
+        applyAmbient(v);
+        setAmbPreviewState(v.indexOf('nat:') === 0);
+      }
+    });
     // Initialize hidden selects + volume visibility from the default option.
     applyAmbient(ambientSel.value);
+    setAmbPreviewState(false);
+  }
+
+  if ($('#fsAmbBtn')) {
+    $('#fsAmbBtn').addEventListener('click', function () {
+      if (ambPreviewPlaying) stopAmbPreview();
+      else if (startAmbPreview()) setAmbPreviewState(true);
+    });
   }
 
   // Quick Preset Buttons
