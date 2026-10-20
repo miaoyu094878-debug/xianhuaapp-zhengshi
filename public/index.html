@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261019verify01">
+  <link rel="stylesheet" href="styles.css?v=20261020verify02">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3092,13 +3092,43 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
    STELLA AI LIVING REALITY MANIFESTATION VOICE & AUDIO EXPERIENCE
    ════════════════════════════════════════════════════════════════ */
 .fs-presets-row {
-  display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 16px;
+  display: flex; flex-wrap: nowrap; gap: 7px; margin: 10px 0 16px;
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none; -ms-overflow-style: none;
+  padding-bottom: 2px;
 }
+.fs-presets-row::-webkit-scrollbar { display: none; }
 .fs-preset-btn {
   background: var(--surface-2); border: 1px solid var(--border);
   color: var(--text-soft); padding: 7px 13px; border-radius: 999px;
   font-size: 12px; cursor: pointer; transition: all 0.25s ease;
   white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  flex: 0 0 auto; scroll-snap-align: start;
+}
+/* 桌面端对齐手机端：预设 chips 横滑 + 左右箭头显隐 */
+.fs-scroll-arrow {
+  display: flex; position: absolute; top: 0; bottom: 0; width: 46px;
+  align-items: center; justify-content: center; padding: 0; border: 0;
+  color: var(--accent); font-size: 20px; line-height: 1; cursor: pointer;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 3;
+}
+.fs-scroll-arrow.visible { opacity: 1; pointer-events: auto; }
+.fs-scroll-arrow-left {
+  left: 0;
+  background: linear-gradient(to right, var(--fs-fade-c, rgba(249,242,255,0.7)) 62%, transparent);
+}
+.fs-scroll-arrow-right {
+  right: 0;
+  background: linear-gradient(to left, var(--fs-fade-c, rgba(249,242,255,0.7)) 62%, transparent);
+}
+.fs-scroll-arrow .fs-arrow-ico {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(80,50,120,0.18);
+  font-size: 16px; line-height: 1; color: var(--accent);
 }
 .fs-preset-btn:hover {
   background: var(--surface-hover); color: var(--text);
@@ -3538,8 +3568,37 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
           <!-- Atmosphere, Voice & Frequency Options -->
           <div class="fs-form-options">
+            <!-- Background Sound — merged mutually-exclusive single select -->
             <div class="fs-opt-group">
-              <label for="fsMood">🌅 Atmosphere</label>
+              <label for="fsAmbient">🎧 Background Sound</label>
+              <select id="fsAmbient" class="fs-select">
+                <option value="none">🚫 None — Pure Tone</option>
+                <optgroup label="🌅 Atmosphere">
+                  <option value="atm:calm">🌅 Serene Sunrise</option>
+                  <option value="atm:ocean">🌊 Ocean Horizon</option>
+                  <option value="atm:cosmic">🌌 Cosmic Void</option>
+                  <option value="atm:forest">🌲 Deep Forest</option>
+                  <option value="atm:radiant">✨ Golden Abundance</option>
+                </optgroup>
+                <optgroup label="🎵 Healing Frequency">
+                  <option value="freq:528" selected>528 Hz · Miracles &amp; DNA Repair</option>
+                  <option value="freq:432">432 Hz · Cosmic Resonance &amp; Deep Healing</option>
+                  <option value="freq:639">639 Hz · Heart Chakra &amp; Love Attraction</option>
+                  <option value="freq:bowl">Zen Singing Bowl</option>
+                </optgroup>
+                <optgroup label="🌿 Nature Sounds">
+                  <option value="nat:rain">🌧️ Rain</option>
+                  <option value="nat:crickets">🦗 Night Crickets</option>
+                  <option value="nat:ocean">🌊 Ocean Waves</option>
+                  <option value="nat:wind">🍃 Forest Wind</option>
+                  <option value="nat:birds">🐦 Birdsong</option>
+                  <option value="nat:fire">🔥 Campfire</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- Hidden legacy selectors — kept so all downstream audio/generation logic keeps working -->
+            <div style="display:none" aria-hidden="true">
               <select id="fsMood" class="fs-select">
                 <option value="calm">🌅 Serene Sunrise</option>
                 <option value="ocean">🌊 Ocean Horizon</option>
@@ -3547,9 +3606,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <option value="forest">🌲 Deep Forest</option>
                 <option value="radiant">✨ Golden Abundance</option>
               </select>
-            </div>
-            <div class="fs-opt-group">
-              <label for="fsFreq">🎵 Healing Frequency</label>
               <select id="fsFreq" class="fs-select">
                 <option value="528">528 Hz · Miracles &amp; DNA Repair</option>
                 <option value="432">432 Hz · Cosmic Resonance &amp; Deep Healing</option>
@@ -3557,17 +3613,14 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <option value="bowl">Zen Singing Bowl</option>
                 <option value="off">No Ambient</option>
               </select>
-            </div>
-            <div class="fs-opt-group">
-              <label for="fsNature">🌿 Nature Sounds</label>
               <select id="fsNature" class="fs-select">
-                <option value="off" selected>🚫 Off — Pure Tone</option>
-                <option value="rain">🌧️ Rain · 雨声</option>
-                <option value="crickets">🦗 Night Crickets · 虫鸣</option>
-                <option value="ocean">🌊 Ocean Waves · 海浪</option>
-                <option value="wind">🍃 Forest Wind · 林风</option>
-                <option value="birds">🐦 Birdsong · 鸟鸣</option>
-                <option value="fire">🔥 Campfire · 篝火</option>
+                <option value="off">🚫 Off — Pure Tone</option>
+                <option value="rain">🌧️ Rain</option>
+                <option value="crickets">🦗 Night Crickets</option>
+                <option value="ocean">🌊 Ocean Waves</option>
+                <option value="wind">🍃 Forest Wind</option>
+                <option value="birds">🐦 Birdsong</option>
+                <option value="fire">🔥 Campfire</option>
               </select>
             </div>
             <div class="fs-opt-group">
@@ -3670,11 +3723,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <span>🗣️ Voice Volume</span>
               <input type="range" id="fsVoiceVol" min="0" max="1" step="0.05" value="1">
             </div>
-            <div class="fs-mixer-item">
+            <div class="fs-mixer-item" id="fsMixerAmbItem">
               <span id="fsAmbLabel">🎵 Healing Frequency Volume</span>
               <input type="range" id="fsAmbVol" min="0" max="1" step="0.05" value="0.5">
             </div>
-            <div class="fs-mixer-item">
+            <div class="fs-mixer-item" id="fsMixerNatureItem">
               <span id="fsNatureLabel">🌿 Nature Sounds Volume</span>
               <input type="range" id="fsNatureVol" min="0" max="1" step="0.05" value="0.5">
             </div>
@@ -4893,7 +4946,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261019verify01" defer></script>
+  <script src="app.js?v=20261020verify02" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
