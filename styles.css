@@ -3497,3 +3497,19 @@ html.device-mobile .fs-scroll-arrow .fs-arrow-ico {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
+
+/* Contact us 点击复制邮箱的提示 toast（贴在 Contact us 正上方） */
+.support-line { cursor: pointer; }
+.copy-toast {
+  position: fixed;
+  transform: translate(-50%, -100%) translateY(-8px);
+  background: linear-gradient(135deg, #9a63d2, #e386b6);
+  color: #fff; font-size: 13px; font-weight: 600; letter-spacing: .2px;
+  padding: 10px 18px; border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(154, 99, 210, .35);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+  white-space: nowrap;
+  z-index: 9999;
+}
+.copy-toast.show { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
