@@ -3,6 +3,11 @@
    Themes: luminara · manifest-light · manifest-dark
    ════════════════════════════════════════════════════════════════ */
 
+/* 根层级强制浅色配色方案：select 原生弹出菜单、表单控件等系统 UI
+   跟随页面 color-scheme；只声明在 .fs-select 上时 Safari/iOS 不生效，
+   会在系统深色模式下渲染成黑色弹出层。站点锁定浅色主题，此处统一声明。 */
+html { color-scheme: light; }
+
 /* ---------- THEME TOKENS ---------- */
 :root[data-theme="luminara"] {
   --font-heading: 'Cinzel', serif;
