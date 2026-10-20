@@ -3145,6 +3145,17 @@ html.device-mobile .fs-scroll-arrow .fs-arrow-ico {
   color-scheme: light;
 }
 .fs-select:focus { border-color: var(--accent); }
+/* Background Sound: 原生 select + 试听/暂停按钮（原生下拉无法"再点同一个"来暂停） */
+.fs-amb-row { display: flex; gap: 8px; align-items: stretch; }
+.fs-amb-row .fs-select { flex: 1 1 auto; min-width: 0; }
+.fs-amb-btn {
+  flex: 0 0 auto; white-space: nowrap; padding: 9px 12px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-soft);
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease;
+}
+.fs-amb-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+.fs-amb-btn.on { border-color: var(--accent); color: var(--accent); }
+.fs-amb-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* --- Stella Audio Visualizer & Stage --- */
 .fs-stage {

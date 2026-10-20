@@ -1753,6 +1753,30 @@
     if (natItem) natItem.style.display = (v.indexOf('nat:') === 0) ? '' : 'none';
   }
 
+  // 背景音试听/暂停按钮：原生下拉无法"再点同一个"来暂停，故用一个显式按钮控制当前所选背景音的试听。
+  var ambPreviewPlaying = false;
+  function setAmbPreviewState(on) {
+    ambPreviewPlaying = !!on;
+    var btn = $('#fsAmbBtn');
+    if (!btn) return;
+    btn.textContent = on ? '⏸ Stop preview' : '🔊 Preview';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('on', !!on);
+    var sel = $('#fsAmbient');
+    var v = sel ? normalizeAmbient(sel.value) : 'none';
+    var playable = v.indexOf('freq:') === 0 || v.indexOf('nat:') === 0;
+    btn.disabled = (!on) && (!playable);
+  }
+  function startAmbPreview() {
+    var sel = $('#fsAmbient');
+    if (!sel) return false;
+    var v = normalizeAmbient(sel.value);
+    if (v.indexOf('freq:') === 0) { startFsAmbient(v.slice(5), 0.4); return true; }
+    if (v.indexOf('nat:') === 0) { startFsNature(v.slice(4), 0.4); return true; }
+    return false;
+  }
+  function stopAmbPreview() { stopFsAmbient(true); setAmbPreviewState(false); }
+
   var ambientSel = $('#fsAmbient');
   if (ambientSel) {
     ambientSel.addEventListener('change', function () {
@@ -1762,13 +1786,23 @@
       if (v.indexOf('freq:') === 0) {
         applyAmbient(v);
         startFsAmbient(v.slice(5), 0.4);
+        setAmbPreviewState(true);
       } else {
         stopFsAmbient(true);
         applyAmbient(v);
+        setAmbPreviewState(v.indexOf('nat:') === 0);
       }
     });
     // Initialize hidden selects + volume visibility from the default option.
     applyAmbient(ambientSel.value);
+    setAmbPreviewState(false);
+  }
+
+  if ($('#fsAmbBtn')) {
+    $('#fsAmbBtn').addEventListener('click', function () {
+      if (ambPreviewPlaying) stopAmbPreview();
+      else if (startAmbPreview()) setAmbPreviewState(true);
+    });
   }
 
   // Quick Preset Buttons
