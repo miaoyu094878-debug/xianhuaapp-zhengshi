@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261020ambbtn02">
+  <link rel="stylesheet" href="styles.css?v=20261020moodsep01">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3579,19 +3579,24 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
           <!-- Atmosphere, Voice & Frequency Options -->
           <div class="fs-form-options">
+            <!-- Mood / Atmosphere — no sound; shapes the emotion of AI-generated words -->
+            <div class="fs-opt-group">
+              <label for="fsMood">🎭 Mood / Atmosphere</label>
+              <select id="fsMood" class="fs-select">
+                <option value="calm">🌅 Serene Sunrise</option>
+                <option value="ocean">🌊 Ocean Horizon</option>
+                <option value="cosmic">🌌 Cosmic Void</option>
+                <option value="forest">🌲 Deep Forest</option>
+                <option value="radiant">✨ Golden Abundance</option>
+              </select>
+            </div>
+
             <!-- Background Sound — merged mutually-exclusive single select -->
             <div class="fs-opt-group">
               <label for="fsAmbient">🎧 Background Sound</label>
               <div class="fs-amb-row">
                 <select id="fsAmbient" class="fs-select">
                 <option value="none">🚫 None — Pure Tone</option>
-                <optgroup label="🌅 Atmosphere">
-                  <option value="atm:calm">🌅 Serene Sunrise</option>
-                  <option value="atm:ocean">🌊 Ocean Horizon</option>
-                  <option value="atm:cosmic">🌌 Cosmic Void</option>
-                  <option value="atm:forest">🌲 Deep Forest</option>
-                  <option value="atm:radiant">✨ Golden Abundance</option>
-                </optgroup>
                 <optgroup label="🎵 Healing Frequency">
                   <option value="freq:528" selected>528 Hz · Miracles &amp; DNA Repair</option>
                   <option value="freq:432">432 Hz · Cosmic Resonance &amp; Deep Healing</option>
@@ -3613,13 +3618,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
             <!-- Hidden legacy selectors — kept so all downstream audio/generation logic keeps working -->
             <div style="display:none" aria-hidden="true">
-              <select id="fsMood" class="fs-select">
-                <option value="calm">🌅 Serene Sunrise</option>
-                <option value="ocean">🌊 Ocean Horizon</option>
-                <option value="cosmic">🌌 Cosmic Void</option>
-                <option value="forest">🌲 Deep Forest</option>
-                <option value="radiant">✨ Golden Abundance</option>
-              </select>
               <select id="fsFreq" class="fs-select">
                 <option value="528">528 Hz · Miracles &amp; DNA Repair</option>
                 <option value="432">432 Hz · Cosmic Resonance &amp; Deep Healing</option>
@@ -4960,7 +4958,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261020ambbtn03" defer></script>
+  <script src="app.js?v=20261020moodsep01" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
