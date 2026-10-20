@@ -1417,8 +1417,11 @@
   // Solfeggio & Atmospheric Frequency Synthesizer
   function startFsAmbient(freqType, fadeInSec) {
     if (!freqType || freqType === 'off') {
-      stopFsAmbient(true);
+      // 只关闭振荡器音层。自然音层是独立的一层（#fsNature），
+      // 选自然音时频率必然是 off，这里若整层停掉就会导致"只有人声、没有背景音"。
+      stopFsTone(true);
       currentAmbFreq = null;
+      startFsNature(getFsNatureType(), typeof fadeInSec === 'number' ? fadeInSec : 0.4);
       return;
     }
 
@@ -1536,9 +1539,9 @@
     startFsNature(getFsNatureType(), fadeInSec);
   }
 
-  function stopFsAmbient(immediate) {
+  // 只停止振荡器（频率）音层，不动自然音层
+  function stopFsTone(immediate) {
     currentAmbFreq = null;
-    stopFsNature(immediate);
     var oldNodes = fsState.ambNodes;
     var oldGain = fsState.ambGainNode;
     fsState.ambNodes = null;
@@ -1572,6 +1575,12 @@
         }, 500);
       }
     }
+  }
+
+  // 停止全部环境音（频率 + 自然音）
+  function stopFsAmbient(immediate) {
+    stopFsTone(immediate);
+    stopFsNature(immediate);
   }
 
   // ── Nature Sounds (real field recordings served from /audio/*.mp3) ──
