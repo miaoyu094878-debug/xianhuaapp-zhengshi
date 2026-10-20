@@ -7338,3 +7338,49 @@
     setTimeout(function () { goTab('tab-plans'); }, 400);
   }
 })();
+
+/* ---- Contact us：点击整块自动复制邮箱 + 提示（贴正上方，3 秒） ---- */
+(function () {
+  var SUPPORT_EMAIL = 'support@alyema.com';
+  var toast = null, toastTimer = null;
+  function showCopyToast(line) {
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'copy-toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = 'Email copied ✓';
+    // 贴在被点击的 Contact us 正上方
+    var r = line.getBoundingClientRect();
+    toast.style.left = (r.left + r.width / 2) + 'px';
+    toast.style.top = r.top + 'px';
+    void toast.offsetWidth; // 重排，确保过渡可重播
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 3000);
+  }
+  function legacyCopy(line) {
+    var ta = document.createElement('textarea');
+    ta.value = SUPPORT_EMAIL;
+    ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showCopyToast(line); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  function copyText(line) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(SUPPORT_EMAIL).then(function () { showCopyToast(line); }, function () { legacyCopy(line); });
+    } else { legacyCopy(line); }
+  }
+  document.addEventListener('click', function (ev) {
+    var start = ev.target;
+    var line = start && start.closest ? start.closest('.support-line') : null;
+    if (!line) return;
+    if (!line.querySelector('.support-line-email')) return;
+    if (ev.preventDefault) ev.preventDefault();
+    if (ev.stopPropagation) ev.stopPropagation();
+    copyText(line);
+  });
+})();
