@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+  /* 邮箱确认/OAuth 回调可能落在落地页：Supabase 默认 Site URL 是站点根，而本站根会 302 到本页。
+     落地页没有会话处理，这里把带令牌的 URL 原样转发给 App 页，由 App 完成登录并弹出成功提示。
+     （Google 登录的回调地址是 App 页，不会经过这里，所以不受影响。） */
+  (function () {
+    var h = location.hash || '';
+    if (h.indexOf('access_token=') === -1 && h.indexOf('error=') === -1) return;
+    try { location.replace('/index.html' + h); } catch (e) {}
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alyema — Daily Goal Visualization &amp; Affirmations</title>
 <link rel="icon" type="image/png" href="/icons/icon-192.png">

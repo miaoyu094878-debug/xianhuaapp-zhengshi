@@ -949,6 +949,35 @@
     if (e.target === refundModal) closeRefundModal();
   });
 
+  /* ─── 邮箱验证成功提示 ───────────────────────────────────────────
+     用户点邮件里的验证链接确认后，App 会（直接，或经落地页转发）拿到 #access_token 并自动登录；
+     此时弹出成功提示。按需求：只有点「Close」才关闭 —— 不自动消失，点背景也不关。 */
+  function showSignupDoneModal() {
+    var m = $('#signupDoneModal');
+    if (!m) return;
+    m.classList.remove('hidden');
+    var btn = $('#signupDoneClose');
+    if (btn && btn.focus) { try { btn.focus(); } catch (e) {} }
+  }
+  function closeSignupDoneModal() {
+    var m = $('#signupDoneModal');
+    if (m) m.classList.add('hidden');
+  }
+  if ($('#signupDoneClose')) $('#signupDoneClose').addEventListener('click', closeSignupDoneModal);
+  // 刻意不绑「点背景关闭」，也不做定时消失。
+
+  /* 跨标签页：假设用户在 A 标签页注册并停在「Check your inbox…」，在 B 标签页点开验证链接。
+     验证链接所在的页面会把会话写进 localStorage；这里监听 storage 事件，
+     让「原来那个注册页 A」也刷新账号状态并弹出成功提示。 */
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'luminara_session' || !e.newValue) return;
+    var s = null;
+    try { s = JSON.parse(e.newValue); } catch (err) { s = null; }
+    if (!s || !s.access_token) return;
+    refreshAccount();
+    showSignupDoneModal();
+  });
+
   /** 需要 Pro 的功能入口（全部 AI 能力）统一走这里；Lite 用户会看到「升级 Pro」 */
   function requirePro(feature) {
     if (isPro()) return true;
@@ -3804,7 +3833,8 @@
     } catch (e) { console.warn('oauth user:', e); }
     try { await loadProfile(session); await seedProfile(session); } catch (e) {}
     closeLoginModal();
-    toastNotify('Signed in ✓');
+    // type=signup = 这是「邮箱验证链接」回调：给一个需手动点 Close 才消失的成功提示
+    if (p.type === 'signup') { showSignupDoneModal(); } else { toastNotify('Signed in ✓'); }
     return true;
   }
 

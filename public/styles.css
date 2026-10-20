@@ -3076,7 +3076,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   border-color: var(--accent); transform: translateY(-1px);
 }
 /* ---------- CONTACT LINE（一行式：信封图标 + Contact us + 邮箱直显，两端一致） ---------- */
-.support-line { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; font-size: 13px; line-height: 1.4; }
+.support-line { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; font-size: 13px; line-height: 1.4; opacity: 0.6; }
 .support-line-ico { width: 15px; height: 15px; color: var(--accent); flex: none; }
 .support-line-text { color: var(--text-soft); font-weight: 500; }
 .support-line-email { color: var(--accent); font-weight: 600; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .2s ease; }
