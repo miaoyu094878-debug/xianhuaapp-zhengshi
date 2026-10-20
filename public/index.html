@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261020moodsep01">
+  <link rel="stylesheet" href="styles.css?v=20261020moodsep02">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3579,18 +3579,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
           <!-- Atmosphere, Voice & Frequency Options -->
           <div class="fs-form-options">
-            <!-- Mood / Atmosphere — no sound; shapes the emotion of AI-generated words -->
-            <div class="fs-opt-group">
-              <label for="fsMood">🎭 Mood / Atmosphere</label>
-              <select id="fsMood" class="fs-select">
-                <option value="calm">🌅 Serene Sunrise</option>
-                <option value="ocean">🌊 Ocean Horizon</option>
-                <option value="cosmic">🌌 Cosmic Void</option>
-                <option value="forest">🌲 Deep Forest</option>
-                <option value="radiant">✨ Golden Abundance</option>
-              </select>
-            </div>
-
             <!-- Background Sound — merged mutually-exclusive single select -->
             <div class="fs-opt-group">
               <label for="fsAmbient">🎧 Background Sound</label>
@@ -3616,6 +3604,18 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               </div>
             </div>
 
+            <!-- Mood / Atmosphere — no sound; shapes the emotion of AI-generated words -->
+            <div class="fs-opt-group">
+              <label for="fsMood">🎭 Mood / Atmosphere</label>
+              <select id="fsMood" class="fs-select">
+                <option value="calm">🌅 Serene Sunrise</option>
+                <option value="ocean">🌊 Ocean Horizon</option>
+                <option value="cosmic">🌌 Cosmic Void</option>
+                <option value="forest">🌲 Deep Forest</option>
+                <option value="radiant">✨ Golden Abundance</option>
+              </select>
+            </div>
+
             <!-- Hidden legacy selectors — kept so all downstream audio/generation logic keeps working -->
             <div style="display:none" aria-hidden="true">
               <select id="fsFreq" class="fs-select">
@@ -3634,10 +3634,6 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 <option value="birds">🐦 Birdsong</option>
                 <option value="fire">🔥 Campfire</option>
               </select>
-            </div>
-            <div class="fs-opt-group">
-              <label for="fsLength">📝 Length <span id="fsLengthVal" style="font-size: 11px; opacity: 0.7;">100</span></label>
-              <input type="range" id="fsLength" min="50" max="500" step="25" value="100" aria-label="Generated narration length">
             </div>
             <div class="fs-opt-group">
               <label for="fsVoice">🎙️ Guide Voice <span style="font-size: 11px; opacity: 0.7;">(Official voices &amp; OpenRouter new voices)</span></label>
@@ -3663,6 +3659,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <option value="openrouter:Vindemiatrix">🌌 Vindemiatrix (Warm Sophisticated Female)</option>
                 </optgroup>
               </select>
+            </div>
+            <div class="fs-opt-group">
+              <label for="fsLength">📝 Length <span id="fsLengthVal" style="font-size: 11px; opacity: 0.7;">100</span></label>
+              <input type="range" id="fsLength" min="50" max="500" step="25" value="100" aria-label="Generated narration length">
             </div>
             <div class="fs-opt-group">
               <label for="fsSpeed">⏱️ Reading Rhythm</label>
@@ -4958,7 +4958,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261020moodsep01" defer></script>
+  <script src="app.js?v=20261020moodsep02" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
