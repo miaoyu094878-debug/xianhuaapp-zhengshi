@@ -215,8 +215,8 @@ async function executeStoryGeneration(req, res) {
     const isInputZh = /[\u4e00-\u9fa5]/.test(desire);
     const targetLang = language || (isInputZh ? 'Chinese (中文)' : 'English');
 
-    // 前端「生成字数」选择：中文按字 / 英文按词，限制 50–500，默认 100
-    const targetLen = Math.min(500, Math.max(50, Math.round(Number(length) || 100)));
+    // 前端「生成字数」选择：中文按字 / 英文按词，限制 25–500，默认 100
+    const targetLen = Math.min(500, Math.max(25, Math.round(Number(length) || 100)));
     const minLen = Math.round(targetLen * 0.8);
     const maxLen = Math.round(targetLen * 1.2);
 

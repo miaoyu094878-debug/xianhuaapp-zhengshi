@@ -1397,8 +1397,9 @@
     highlightTimer: null,
     natureType: null,
     natureActive: false,
-    natureAudio: null,
-    natureFadeId: null
+    natureSource: null,
+    natureGainNode: null,
+    generating: false
   };
 
   function getFsAudioContext() {
@@ -1417,8 +1418,11 @@
   // Solfeggio & Atmospheric Frequency Synthesizer
   function startFsAmbient(freqType, fadeInSec) {
     if (!freqType || freqType === 'off') {
-      stopFsAmbient(true);
+      // 只关闭振荡器音层，不碰自然音层（#fsNature 是独立的一层）。
+      // 选自然音时频率必然是 off，若这里整层停掉，就会出现"只有人声、没有背景音"。
+      stopFsTone(true);
       currentAmbFreq = null;
+      startFsNature(getFsNatureType(), typeof fadeInSec === 'number' ? fadeInSec : 0.4);
       return;
     }
 
@@ -1536,9 +1540,9 @@
     startFsNature(getFsNatureType(), fadeInSec);
   }
 
-  function stopFsAmbient(immediate) {
+  // 只停止振荡器（频率）音层，不动自然音层
+  function stopFsTone(immediate) {
     currentAmbFreq = null;
-    stopFsNature(immediate);
     var oldNodes = fsState.ambNodes;
     var oldGain = fsState.ambGainNode;
     fsState.ambNodes = null;
@@ -1574,6 +1578,12 @@
     }
   }
 
+  // 停止全部环境音（频率 + 自然音）
+  function stopFsAmbient(immediate) {
+    stopFsTone(immediate);
+    stopFsNature(immediate);
+  }
+
   // ── Nature Sounds (real field recordings served from /audio/*.mp3) ──
   function getFsNatureType() {
     var el = $('#fsNature');
@@ -1581,11 +1591,15 @@
   }
 
 
+  // 自然音用 WebAudio 播放（和频率层一致）。
+  // 不能用 new Audio().play()：页面里的播放多发生在异步流程（TTS 生成后/重播加载后），
+  // 浏览器自动播放策略会拦截，表现为"频率有声、自然音完全没声"。
+  var natureBufferCache = {};
   function startFsNature(type, fadeInSec) {
     if (!type || type === 'off') { stopFsNature(true); return; }
     try {
       // Already playing this exact type -> keep running (no restart glitch)
-      if (fsState.natureAudio && !fsState.natureAudio.paused && fsState.natureType === type) return;
+      if (fsState.natureSource && fsState.natureType === type) return;
       stopFsNature(true);
       fsState.natureType = type;
       fsState.natureActive = true;
@@ -1599,30 +1613,39 @@
       var target = gain * volVal;
       if (target < 0.0001) target = 0.0001;
 
-      var a = new Audio('/audio/' + type + '.mp3?v=20261015nature6');
-      a.loop = true;
-      a.preload = 'auto';
-      a.volume = 0.0001;
-      var pp = a.play();
-      if (pp && pp.catch) {
-        pp.catch(function (e) { console.warn('Nature audio play blocked:', e); });
-      }
-      fsState.natureAudio = a;
+      var ctx = getFsAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(function () {});
+      var fadeSec = typeof fadeInSec === 'number' ? Math.max(0.05, fadeInSec) : 0.5;
 
-      // Smooth fade-in
-      if (fsState.natureFadeId) { clearInterval(fsState.natureFadeId); fsState.natureFadeId = null; }
-      var fadeMs = (typeof fadeInSec === 'number' ? Math.max(0.05, fadeInSec) : 0.5) * 1000;
-      var t0 = Date.now();
-      fsState.natureFadeId = setInterval(function () {
-        var p = (Date.now() - t0) / fadeMs;
-        if (p >= 1) {
-          a.volume = target;
-          clearInterval(fsState.natureFadeId);
-          fsState.natureFadeId = null;
-        } else {
-          a.volume = target * p;
-        }
-      }, 50);
+      function playBuffer(buf) {
+        if (!buf) return;
+        // 期间用户又切换/停止了，则丢弃这次结果
+        if (fsState.natureType !== type) return;
+        var src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        var g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.linearRampToValueAtTime(target, ctx.currentTime + fadeSec);
+        src.connect(g);
+        g.connect(ctx.destination);
+        src.start();
+        fsState.natureSource = src;
+        fsState.natureGainNode = g;
+      }
+
+      var cached = natureBufferCache[type];
+      if (cached) { playBuffer(cached); return; }
+
+      fetch('/audio/' + type + '.mp3?v=20261015nature6')
+        .then(function (r) { return r.arrayBuffer(); })
+        .then(function (ab) { return ctx.decodeAudioData(ab); })
+        .then(function (buf) {
+          natureBufferCache[type] = buf;
+          playBuffer(buf);
+        })
+        .catch(function (e) { console.warn('Nature sound load error:', e); });
     } catch (e) {
       console.warn('Nature sound start error:', e);
     }
@@ -1630,31 +1653,30 @@
 
   function stopFsNature(immediate) {
     fsState.natureActive = false;
-    if (fsState.natureFadeId) { clearInterval(fsState.natureFadeId); fsState.natureFadeId = null; }
-    var a = fsState.natureAudio;
-    fsState.natureAudio = null;
+    var src = fsState.natureSource;
+    var g = fsState.natureGainNode;
+    fsState.natureSource = null;
+    fsState.natureGainNode = null;
     fsState.natureType = null;
-    if (!a) return;
-    var fadeMs = (immediate ? 0.08 : 0.5) * 1000;
-    try {
-      var startVol = a.volume;
-      var s0 = Date.now();
-      var id = setInterval(function () {
-        var p = (Date.now() - s0) / fadeMs;
-        if (p >= 1) {
-          clearInterval(id);
-          try { a.pause(); } catch (e) {}
-          try { a.src = ''; } catch (e) {}
-        } else {
-          a.volume = startVol * (1 - p);
-        }
-      }, 50);
-    } catch (e) {
-      try { a.pause(); } catch (e2) {}
+    if (!src && !g) return;
+    var ctx = fsState.audioCtx;
+    if (g && ctx) {
+      try {
+        var fadeSec = immediate ? 0.05 : 0.4;
+        g.gain.cancelScheduledValues(ctx.currentTime);
+        g.gain.setValueAtTime(g.gain.value, ctx.currentTime);
+        g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + fadeSec);
+      } catch (e) {}
     }
+    var cleanup = function () {
+      try { if (src) { src.stop(); src.disconnect(); } } catch (e) {}
+      try { if (g) g.disconnect(); } catch (e) {}
+    };
+    if (immediate) cleanup();
+    else setTimeout(cleanup, 450);
   }
 
-  // (Nature ambience now plays real field recordings via HTMLAudioElement — see startFsNature/stopFsNature above.)
+  // (Nature ambience is decoded from /audio/*.mp3 and played through WebAudio — see startFsNature/stopFsNature above.)
 
   // Update Ambient & Voice Volume dynamically
   if ($('#fsAmbVol')) {
@@ -1709,12 +1731,18 @@
     $('#fsNatureVol').addEventListener('input', function () {
       var val = parseFloat(this.value);
       if (isNaN(val)) val = 0.5;
-      var a = fsState.natureAudio;
-      if (a) {
-        if (fsState.natureFadeId) { clearInterval(fsState.natureFadeId); fsState.natureFadeId = null; }
-        var target = 0.55 * val;
+      var g = fsState.natureGainNode;
+      var ctx = fsState.audioCtx;
+      if (g && ctx) {
+        var fsNatureGain = { rain: 0.38, ocean: 0.4, wind: 0.55, fire: 0.55, crickets: 0.6, birds: 0.6 };
+        var base = fsNatureGain[fsState.natureType] != null ? fsNatureGain[fsState.natureType] : 0.55;
+        var target = base * val;
         if (target < 0.0001) target = 0.0001;
-        a.volume = target;
+        try {
+          g.gain.cancelScheduledValues(ctx.currentTime);
+          g.gain.setValueAtTime(g.gain.value, ctx.currentTime);
+          g.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.08);
+        } catch (e) {}
       }
     });
   }
@@ -1789,10 +1817,16 @@
         applyAmbient(v);
         startFsAmbient(v.slice(5), 0.4);
         setAmbPreviewState(true);
+      } else if (v.indexOf('nat:') === 0) {
+        // Nature: don't stop before apply (would kill the nature we just started)
+        stopFsTone(true);
+        applyAmbient(v);
+        setAmbPreviewState(true);
       } else {
+        // None: stop everything
         stopFsAmbient(true);
         applyAmbient(v);
-        setAmbPreviewState(v.indexOf('nat:') === 0);
+        setAmbPreviewState(false);
       }
     });
     // Initialize hidden selects + volume visibility from the default option.
@@ -2508,6 +2542,8 @@
 
     $('#fsLoading').classList.add('hidden');
     $('#fsPlayer').classList.remove('hidden');
+    fsState.generating = false;
+    setFsGenerateBusy(false);
     setFsControlsEnabled(true);
 
     // Auto-scroll into view smoothly
@@ -2632,6 +2668,11 @@
         return;
       }
 
+      // 生成中：按钮置灰不可点，防止重复提交、重复扣费
+      if (fsState.generating) return;
+      fsState.generating = true;
+      setFsGenerateBusy(true);
+
       stopFutureAudio();
 
       $('#fsPlayer').classList.add('hidden');
@@ -2645,7 +2686,7 @@
       var detectedLanguage = hasChinese ? 'Chinese' : 'English';
       // 旅程一次生成：剧本 LLM + 全部段落 TTS 在同一个请求里完成，成本合并成一次扣费
       var journeyVoice = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
-      // 生成字数（中文按字 / 英文按词），默认 100，范围 50–500
+      // 生成字数（中文按字 / 英文按词），默认 100，范围 25–500
       var journeyLength = $('#fsLength') ? Number($('#fsLength').value) : 100;
 
       try {
@@ -2666,6 +2707,9 @@
         if (isCreditBlocked(res, data)) {
           $('#fsLoading').classList.add('hidden');
           setFsControlsEnabled(false);
+          // 回到表单：解除生成中态，允许用户充值后重新生成
+          fsState.generating = false;
+          setFsGenerateBusy(false);
           return;
         }
 
@@ -2679,6 +2723,8 @@
         renderFsStoryUI(data);
       } catch (err) {
         console.warn('API error, using client fallback:', err);
+        fsState.generating = false;
+        setFsGenerateBusy(false);
         // Instant graceful client-side fallback
         var isZh = /[\u4e00-\u9fa5]/.test(desire);
         var fallbackData = isZh ? {
@@ -2703,6 +2749,12 @@
 
   // Play / Pause Click Handlers
   // Enable/disable the action buttons until a guided voice exists
+  function setFsGenerateBusy(busy) {
+    var btn = $('#fsGenerateBtn');
+    if (!btn) return;
+    btn.disabled = !!busy;
+    btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
   function setFsControlsEnabled(on) {
     ['fsPlayBtn', 'fsSaveVoice', 'fsNewDesire'].forEach(function (id) {
       var b = $('#' + id);
