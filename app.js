@@ -2113,11 +2113,11 @@
         badge.textContent = '💫 Qwen 3.0 TTS · ' + qName + ' narrating...';
       } else if (selectedVoice.startsWith('openrouter:')) {
         var orVoiceName = selectedVoice.replace('openrouter:', '');
-        badge.textContent = '🌸 OpenRouter Gemini 3.1 TTS · ' + orVoiceName + ' narrating...';
+        badge.textContent = '🌟 OpenRouter Gemini 3.1 TTS · ' + orVoiceName + ' narrating...';
       } else if (selectedVoice === 'Zephyr') {
         badge.textContent = '✨ Zephyr · ethereal crystal-clear voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Kore') {
-        badge.textContent = '🌸 Kore · gentle soothing voice (AI neural native) narrating...';
+        badge.textContent = '💚 Kore · gentle soothing voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Aoede') {
         badge.textContent = '🎵 Aoede · lyrical expressive voice (AI neural native) narrating...';
       } else if (selectedVoice === 'Puck') {
@@ -2127,7 +2127,7 @@
       } else if (selectedVoice === 'Fenrir') {
         badge.textContent = '⚡ Fenrir · confident empowering male voice (AI neural native) narrating...';
       } else if (selectedVoice.startsWith('af_') || selectedVoice.startsWith('bf_')) {
-        badge.textContent = '🌸 Native female voice narrating...';
+        badge.textContent = '🎙️ Native female voice narrating...';
       } else if (selectedVoice.startsWith('zf_') || selectedVoice.indexOf('kokoro') !== -1) {
         badge.textContent = '🎀 Soft Mandarin voice (Kokoro 82M) narrating...';
       } else if (selectedVoice === 'fish-audio/s2.1-pro-free:free' || selectedVoice.indexOf('fish-audio') !== -1) {
