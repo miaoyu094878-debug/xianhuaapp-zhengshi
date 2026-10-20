@@ -1398,7 +1398,8 @@
     natureType: null,
     natureActive: false,
     natureSource: null,
-    natureGainNode: null
+    natureGainNode: null,
+    generating: false
   };
 
   function getFsAudioContext() {
@@ -2541,6 +2542,8 @@
 
     $('#fsLoading').classList.add('hidden');
     $('#fsPlayer').classList.remove('hidden');
+    fsState.generating = false;
+    setFsGenerateBusy(false);
     setFsControlsEnabled(true);
 
     // Auto-scroll into view smoothly
@@ -2665,6 +2668,11 @@
         return;
       }
 
+      // 生成中：按钮置灰不可点，防止重复提交、重复扣费
+      if (fsState.generating) return;
+      fsState.generating = true;
+      setFsGenerateBusy(true);
+
       stopFutureAudio();
 
       $('#fsPlayer').classList.add('hidden');
@@ -2699,6 +2707,9 @@
         if (isCreditBlocked(res, data)) {
           $('#fsLoading').classList.add('hidden');
           setFsControlsEnabled(false);
+          // 回到表单：解除生成中态，允许用户充值后重新生成
+          fsState.generating = false;
+          setFsGenerateBusy(false);
           return;
         }
 
@@ -2712,6 +2723,8 @@
         renderFsStoryUI(data);
       } catch (err) {
         console.warn('API error, using client fallback:', err);
+        fsState.generating = false;
+        setFsGenerateBusy(false);
         // Instant graceful client-side fallback
         var isZh = /[\u4e00-\u9fa5]/.test(desire);
         var fallbackData = isZh ? {
@@ -2736,6 +2749,12 @@
 
   // Play / Pause Click Handlers
   // Enable/disable the action buttons until a guided voice exists
+  function setFsGenerateBusy(busy) {
+    var btn = $('#fsGenerateBtn');
+    if (!btn) return;
+    btn.disabled = !!busy;
+    btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
   function setFsControlsEnabled(on) {
     ['fsPlayBtn', 'fsSaveVoice', 'fsNewDesire'].forEach(function (id) {
       var b = $('#' + id);
