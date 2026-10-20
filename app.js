@@ -1759,7 +1759,7 @@
     ambPreviewPlaying = !!on;
     var btn = $('#fsAmbBtn');
     if (!btn) return;
-    btn.textContent = on ? '⏸ Stop preview' : '🔊 Preview';
+    btn.textContent = on ? '⏸ Stop' : '🔊 Preview';
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.classList.toggle('on', !!on);
     var sel = $('#fsAmbient');
