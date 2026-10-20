@@ -1690,6 +1690,47 @@
     });
   }
 
+
+  // ── Merged Background Sound (mutually-exclusive single select) ──
+  // Map a merged value (none / atm:* / freq:* / nat:*) onto the three legacy
+  // selects, then drive the exact same live behaviour the original change
+  // handlers produced. All downstream .value reads stay untouched.
+  function normalizeAmbient(v) {
+    if (!v) return 'none';
+    if (v.indexOf(':') >= 0) return v;
+    var legacy = { '528': 'freq:528', '432': 'freq:432', '639': 'freq:639', 'bowl': 'freq:bowl', 'off': 'none' };
+    return legacy[v] !== undefined ? legacy[v] : ('freq:' + v);
+  }
+
+  function applyAmbient(rawVal) {
+    var v = normalizeAmbient(rawVal);
+    var mood = 'calm', freq = 'off', nature = 'off';
+    if (v.indexOf('atm:') === 0) mood = v.slice(4);
+    else if (v.indexOf('freq:') === 0) freq = v.slice(5);
+    else if (v.indexOf('nat:') === 0) nature = v.slice(4);
+
+    setSelectIfExists($('#fsMood'), mood);
+    setSelectIfExists($('#fsFreq'), freq);
+    setSelectIfExists($('#fsNature'), nature);
+
+    // Fire the original change handlers so live tone / nature + volume labels update.
+    var fEl = $('#fsFreq'), nEl = $('#fsNature');
+    if (fEl) fEl.dispatchEvent(new Event('change'));
+    if (nEl) nEl.dispatchEvent(new Event('change'));
+
+    // Show only the volume slider that matches the active layer.
+    var ambItem = $('#fsMixerAmbItem'), natItem = $('#fsMixerNatureItem');
+    if (ambItem) ambItem.style.display = (v.indexOf('freq:') === 0) ? '' : 'none';
+    if (natItem) natItem.style.display = (v.indexOf('nat:') === 0) ? '' : 'none';
+  }
+
+  var ambientSel = $('#fsAmbient');
+  if (ambientSel) {
+    ambientSel.addEventListener('change', function () { applyAmbient(this.value); });
+    // Initialize hidden selects + volume visibility from the default option.
+    applyAmbient(ambientSel.value);
+  }
+
   // Quick Preset Buttons
   $$('.fs-preset-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -3276,15 +3317,16 @@
   var svAmbRow = null;
   function openAmbiencePicker(row) {
     if (!requireLogin('Sign in to play your saved voices ✨')) return;
-    var modal = $('#svAmbModal'), listEl = $('#svAmbList'), freqSel = $('#fsFreq');
-    if (!modal || !listEl || !freqSel) { openSavedVoice(row, row.frequency || ''); return; }
+    var modal = $('#svAmbModal'), listEl = $('#svAmbList'), ambSel = $('#fsAmbient');
+    if (!modal || !listEl || !ambSel) { openSavedVoice(row, row.frequency || ''); return; }
     svAmbRow = row;
     var intro = $('#svAmbIntro');
     if (intro) intro.textContent = '"' + (row.title || 'Untitled') + '" — we will remember this background sound for this voice.';
-    var current = row.frequency || freqSel.value || '528';
+    var current = normalizeAmbient(row.frequency || ambSel.value || 'freq:528');
     listEl.innerHTML = '';
-    Array.prototype.forEach.call(freqSel.options, function (opt) {
-      var btn = el('button', 'sv-amb-opt', opt.textContent.split('·')[0].trim());
+    Array.prototype.forEach.call(ambSel.options, function (opt) {
+      if (!opt.value) return; // skip optgroup labels (no value)
+      var btn = el('button', 'sv-amb-opt', opt.textContent);
       btn.type = 'button';
       btn.setAttribute('data-value', opt.value);
       if (opt.value === current) btn.classList.add('selected');
@@ -3340,9 +3382,10 @@
     if (!buf) { svToast('Audio not found in storage. Please generate and save it again.'); return; }
     stopFutureAudio();
     showSavedVoiceInPlayer(row);
-    // playWholeStory 从 #fsFreq 读取环境音，先同步成所选值
-    var freq = freqOverride || row.frequency || '';
-    if (freq) setSelectIfExists($('#fsFreq'), freq);
+    // playWholeStory 从 #fsFreq 读取环境音：先同步合并选择器，再由其桥接写回隐藏 select
+    var amb = normalizeAmbient(freqOverride || row.frequency || 'freq:528');
+    setSelectIfExists($('#fsAmbient'), amb);
+    applyAmbient(amb);
     playWholeStory(buf, row.storage_key);
     svToast('');
   }
