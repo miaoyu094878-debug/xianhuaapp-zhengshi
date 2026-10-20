@@ -1755,7 +1755,18 @@
 
   var ambientSel = $('#fsAmbient');
   if (ambientSel) {
-    ambientSel.addEventListener('change', function () { applyAmbient(this.value); });
+    ambientSel.addEventListener('change', function () {
+      var v = normalizeAmbient(this.value);
+      // 选中即试听：Healing Frequency 在未播放时也立即试听；切到 Nature 由其 change 处理器接管试听；
+      // 切到 None / Atmosphere 时停止试听（这两者本身不发声）。
+      if (v.indexOf('freq:') === 0) {
+        applyAmbient(v);
+        startFsAmbient(v.slice(5), 0.4);
+      } else {
+        stopFsAmbient(true);
+        applyAmbient(v);
+      }
+    });
     // Initialize hidden selects + volume visibility from the default option.
     applyAmbient(ambientSel.value);
   }
