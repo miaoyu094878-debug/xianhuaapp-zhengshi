@@ -2686,7 +2686,7 @@
       var detectedLanguage = hasChinese ? 'Chinese' : 'English';
       // 旅程一次生成：剧本 LLM + 全部段落 TTS 在同一个请求里完成，成本合并成一次扣费
       var journeyVoice = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
-      // 生成字数（中文按字 / 英文按词），默认 100，范围 50–500
+      // 生成字数（中文按字 / 英文按词），默认 100，范围 25–500
       var journeyLength = $('#fsLength') ? Number($('#fsLength').value) : 100;
 
       try {
