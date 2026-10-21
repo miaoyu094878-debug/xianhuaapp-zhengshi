@@ -1399,6 +1399,7 @@
     natureActive: false,
     natureSource: null,
     natureGainNode: null,
+    natureLoading: false,
     generating: false,
     // 已保存的整段录音缓存：再次点大播放按钮时直接重播，不重新调用 TTS
     wholeStoryBuf: null,
@@ -1599,12 +1600,18 @@
   // 不能用 new Audio().play()：页面里的播放多发生在异步流程（TTS 生成后/重播加载后），
   // 浏览器自动播放策略会拦截，表现为"频率有声、自然音完全没声"。
   var natureBufferCache = {};
+  // 每次启动自然音都会拿到一个新令牌；停止/切换后旧令牌失效，
+  // 异步解码回来较晚的请求会被丢弃，避免留下第二个没人跟踪的循环音源。
+  var natureStartToken = 0;
   function startFsNature(type, fadeInSec) {
     if (!type || type === 'off') { stopFsNature(true); return; }
     try {
       // Already playing this exact type -> keep running (no restart glitch)
-      if (fsState.natureSource && fsState.natureType === type) return;
+      // 同一种正在加载中也要跳过，否则会并发解码出两个音源，停止时只停掉最后一个，
+      // 剩下的会一直循环播放（表现：人声结束后背景音不停，只能刷新页面）。
+      if (fsState.natureType === type && (fsState.natureSource || fsState.natureLoading)) return;
       stopFsNature(true);
+      var token = ++natureStartToken;
       fsState.natureType = type;
       fsState.natureActive = true;
 
@@ -1625,7 +1632,7 @@
       function playBuffer(buf) {
         if (!buf) return;
         // 期间用户又切换/停止了，则丢弃这次结果
-        if (fsState.natureType !== type) return;
+        if (token !== natureStartToken || fsState.natureType !== type) return;
         var src = ctx.createBufferSource();
         src.buffer = buf;
         src.loop = true;
@@ -1637,11 +1644,13 @@
         src.start();
         fsState.natureSource = src;
         fsState.natureGainNode = g;
+        fsState.natureLoading = false;
       }
 
       var cached = natureBufferCache[type];
       if (cached) { playBuffer(cached); return; }
 
+      fsState.natureLoading = true;
       fetch('/audio/' + type + '.mp3?v=20261015nature6')
         .then(function (r) { return r.arrayBuffer(); })
         .then(function (ab) { return ctx.decodeAudioData(ab); })
@@ -1649,7 +1658,10 @@
           natureBufferCache[type] = buf;
           playBuffer(buf);
         })
-        .catch(function (e) { console.warn('Nature sound load error:', e); });
+        .catch(function (e) {
+          if (token === natureStartToken) fsState.natureLoading = false;
+          console.warn('Nature sound load error:', e);
+        });
     } catch (e) {
       console.warn('Nature sound start error:', e);
     }
@@ -1657,6 +1669,9 @@
 
   function stopFsNature(immediate) {
     fsState.natureActive = false;
+    fsState.natureLoading = false;
+    // 让所有尚未完成的解码回调失效（否则它们回来后又会启动一个没人跟踪的音源）
+    natureStartToken++;
     var src = fsState.natureSource;
     var g = fsState.natureGainNode;
     fsState.natureSource = null;
@@ -2620,7 +2635,8 @@
     voiceGain.connect(fsState.audioCtx.destination);
 
     fsState.currentAudioSource = source;
-    startFsAmbient(freq, 0.4);
+    // 背景音已在上面统一启动过，这里不要再启动一次：
+    // 重复启动自然音会并发解码出两个音源，停止时只能停掉最后一个，剩下的会一直循环。
 
     source.onended = function () {
       if (!fsState.isPlaying) return;
