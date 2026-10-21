@@ -2233,7 +2233,7 @@
           if (!fsState.isPlaying) return;
           stopFsAmbient(false);
           updateFsPlaybackUI(false);
-          if (badge) badge.textContent = '✨ Manifestation narration complete';
+          if (badge) badge.textContent = '✨ Narration complete';
         }, 3000);
         return;
       }
@@ -2304,7 +2304,7 @@
             stopFsAmbient(false);
             updateFsPlaybackUI(false);
             fsState.activeParagraphIdx = 0;
-            if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
+            if (badge) badge.textContent = '✨ Narration complete (click to replay)';
           }, 3000);
           return;
         }
@@ -2386,7 +2386,7 @@
           if (!fsState.isPlaying) return;
           stopFsAmbient(false);
           updateFsPlaybackUI(false);
-          if (badge) badge.textContent = '✨ Manifestation narration complete';
+          if (badge) badge.textContent = '✨ Narration complete';
         }, 3000);
         return;
       }
@@ -2412,7 +2412,7 @@
             stopFsAmbient(false);
             updateFsPlaybackUI(false);
             fsState.activeParagraphIdx = 0;
-            if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
+            if (badge) badge.textContent = '✨ Narration complete (click to replay)';
           }, 3000);
           return;
         }
@@ -2632,7 +2632,7 @@
       fsState.outroTimer = setTimeout(function () {
         stopFsAmbient(false);
         updateFsPlaybackUI(false);
-        if (badge) badge.textContent = '✨ Manifestation narration complete (click to replay)';
+        if (badge) badge.textContent = '✨ Narration complete (click to replay)';
       }, 3000);
     };
     source.start(0);
@@ -5041,18 +5041,18 @@
 
     var countEl = $('#aiGalleryCount');
     if (countEl) {
-      countEl.textContent = items.length === 1 ? '1 vision' : items.length + ' visions';
+      countEl.textContent = items.length === 1 ? '1 creation' : items.length + ' creations';
     }
 
     if (!items.length) {
       var emptyBox = el('div', 'ai-empty-box');
       var glyphIcon = currentGalleryFilter === 'video' ? '🎬' : (currentGalleryFilter === 'photo' ? '📸' : '🪞');
-      var emptyTitle = currentGalleryFilter === 'video' ? 'No Motion Videos Yet' : (currentGalleryFilter === 'photo' ? 'No Portrait Photos Yet' : 'No Visions Manifested Yet');
+      var emptyTitle = currentGalleryFilter === 'video' ? 'No Motion Videos Yet' : (currentGalleryFilter === 'photo' ? 'No Portrait Photos Yet' : 'No Creations Yet');
       var emptySub = currentGalleryFilter === 'video'
         ? 'Switch to the Video Studio on the left to generate your first cinematic motion video.'
         : (currentGalleryFilter === 'photo'
           ? 'Switch to the Photo Studio on the left to create realistic portraits with native camera quality.'
-          : 'Select either Photo Studio or Video Studio on the left to start manifesting your visions.');
+          : 'Select either Photo Studio or Video Studio on the left to start creating your visions.');
 
       var glyph = el('div', 'ai-empty-glyph', glyphIcon);
       var title = el('div', 'ai-empty-title', emptyTitle);
