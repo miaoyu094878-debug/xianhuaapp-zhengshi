@@ -5746,7 +5746,7 @@
 
   var wpDropEl = $('#wpDrop');
   if (wpDropEl) {
-    wpDropEl.addEventListener('click', function () { $('#wpPhoto').click(); });
+    wpDropEl.addEventListener('click', function () { if (!requirePaid('Wallpaper photo upload')) return; $('#wpPhoto').click(); });
     wpDropEl.addEventListener('dragover', function (e) {
       e.preventDefault();
       wpDropEl.classList.add('dragover');
@@ -5757,6 +5757,7 @@
     wpDropEl.addEventListener('drop', function (e) {
       e.preventDefault();
       wpDropEl.classList.remove('dragover');
+      if (!requirePaid('Wallpaper photo upload')) return;
       var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
       if (!f) return;
       loadWpHighResPhoto(f, applyWpUploadedPhoto);
@@ -5764,6 +5765,7 @@
   }
 
   $('#wpPhoto').addEventListener('change', function () {
+    if (!requirePaid('Wallpaper photo upload')) return;
     var f = this.files && this.files[0];
     if (!f) return;
     loadWpHighResPhoto(f, applyWpUploadedPhoto);
@@ -6000,6 +6002,7 @@
   }
 
   function syncAffirmationText(val, source) {
+    if (!requirePaid('Wallpaper editing')) return;   // 免费用户不能编辑文字，弹 Lite/Pro 提示
     var ta = $('#wpText');
     var live = $('#wpLiveInput');
     
@@ -6035,13 +6038,21 @@
   }
 
   if ($('#wpText')) {
-    $('#wpText').addEventListener('input', function () {
+    var wpTextEl = $('#wpText');
+    wpTextEl.addEventListener('beforeinput', function (e) {
+      if (!requirePaid('Wallpaper editing')) { e.preventDefault(); }
+    });
+    wpTextEl.addEventListener('input', function () {
       syncAffirmationText(this.value, 'text');
     });
   }
 
   if ($('#wpLiveInput')) {
-    $('#wpLiveInput').addEventListener('input', function () {
+    var wpLiveEl = $('#wpLiveInput');
+    wpLiveEl.addEventListener('beforeinput', function (e) {
+      if (!requirePaid('Wallpaper editing')) { e.preventDefault(); }
+    });
+    wpLiveEl.addEventListener('input', function () {
       syncAffirmationText(this.value, 'live');
     });
     $('#wpLiveInput').addEventListener('focus', function () {
@@ -6351,6 +6362,7 @@
   var wpPinchStart = null;
 
   function initDragForPoint(clientX, clientY, pointerId, explicitTarget) {
+    if (!requirePaid('Wallpaper editing')) return;   // 免费用户不能移动照片/文字
     var p = wpCanvasPoint(clientX, clientY);
     var ratio = WP_RATIOS[wpState.ratio];
     var hit = wpHitTest(p);
