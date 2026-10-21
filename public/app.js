@@ -1420,6 +1420,11 @@
 
   var currentAmbFreq = null;
 
+  // 背景音提前量：先响 2 秒再进人声；渐入/渐出让出现与消失都不突兀
+  var FS_AMB_PRELUDE_MS = 2000;
+  var FS_AMB_FADE_IN_SEC = 1.5;
+  var FS_AMB_FADE_OUT_SEC = 1.2;
+
   // Solfeggio & Atmospheric Frequency Synthesizer
   function startFsAmbient(freqType, fadeInSec) {
     if (!freqType || freqType === 'off') {
@@ -1427,7 +1432,7 @@
       // 选自然音时频率必然是 off，若这里整层停掉，就会出现"只有人声、没有背景音"。
       stopFsTone(true);
       currentAmbFreq = null;
-      startFsNature(getFsNatureType(), typeof fadeInSec === 'number' ? fadeInSec : 0.4);
+      startFsNature(getFsNatureType(), typeof fadeInSec === 'number' ? fadeInSec : FS_AMB_FADE_IN_SEC);
       return;
     }
 
@@ -1443,8 +1448,8 @@
         return;
       }
 
-      // Stop previous ambient without destroying the new ones
-      stopFsAmbient(true);
+      // Stop previous ambient with a fade so switching sounds are cross-faded, never cut
+      stopFsAmbient(false);
       currentAmbFreq = freqType;
 
       var masterAmbGain = ctx.createGain();
@@ -1452,7 +1457,7 @@
       var ambVolVal = parseFloat(ambVolInput ? ambVolInput.value : 0.6);
       if (isNaN(ambVolVal) || ambVolVal < 0) ambVolVal = 0.6;
 
-      var fadeDuration = typeof fadeInSec === 'number' ? fadeInSec : 0.4;
+      var fadeDuration = typeof fadeInSec === 'number' ? fadeInSec : FS_AMB_FADE_IN_SEC;
       var targetGain = 0.22 * ambVolVal; // Audible and soothing ambient level
 
       masterAmbGain.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -1555,7 +1560,7 @@
 
     if (oldGain && fsState.audioCtx) {
       try {
-        var fadeSec = immediate ? 0.04 : 0.45;
+        var fadeSec = immediate ? 0.04 : FS_AMB_FADE_OUT_SEC;
         oldGain.gain.cancelScheduledValues(fsState.audioCtx.currentTime);
         oldGain.gain.setValueAtTime(oldGain.gain.value, fsState.audioCtx.currentTime);
         oldGain.gain.linearRampToValueAtTime(0.0001, fsState.audioCtx.currentTime + fadeSec);
@@ -1578,7 +1583,7 @@
           if (oldGain) {
             try { oldGain.disconnect(); } catch (e) {}
           }
-        }, 500);
+        }, FS_AMB_FADE_OUT_SEC * 1000 + 150);
       }
     }
   }
@@ -1604,13 +1609,14 @@
   // 异步解码回来较晚的请求会被丢弃，避免留下第二个没人跟踪的循环音源。
   var natureStartToken = 0;
   function startFsNature(type, fadeInSec) {
-    if (!type || type === 'off') { stopFsNature(true); return; }
+    if (!type || type === 'off') { stopFsNature(false); return; }
     try {
       // Already playing this exact type -> keep running (no restart glitch)
       // 同一种正在加载中也要跳过，否则会并发解码出两个音源，停止时只停掉最后一个，
       // 剩下的会一直循环播放（表现：人声结束后背景音不停，只能刷新页面）。
       if (fsState.natureType === type && (fsState.natureSource || fsState.natureLoading)) return;
-      stopFsNature(true);
+      // 切换时让旧的自然音渐出，与新的渐入交叠，而不是硬切
+      stopFsNature(false);
       var token = ++natureStartToken;
       fsState.natureType = type;
       fsState.natureActive = true;
@@ -1627,7 +1633,7 @@
       var ctx = getFsAudioContext();
       if (!ctx) return;
       if (ctx.state === 'suspended') ctx.resume().catch(function () {});
-      var fadeSec = typeof fadeInSec === 'number' ? Math.max(0.05, fadeInSec) : 0.5;
+      var fadeSec = typeof fadeInSec === 'number' ? Math.max(0.05, fadeInSec) : FS_AMB_FADE_IN_SEC;
 
       function playBuffer(buf) {
         if (!buf) return;
@@ -1681,7 +1687,7 @@
     var ctx = fsState.audioCtx;
     if (g && ctx) {
       try {
-        var fadeSec = immediate ? 0.05 : 0.4;
+        var fadeSec = immediate ? 0.05 : FS_AMB_FADE_OUT_SEC;
         g.gain.cancelScheduledValues(ctx.currentTime);
         g.gain.setValueAtTime(g.gain.value, ctx.currentTime);
         g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + fadeSec);
@@ -1692,7 +1698,7 @@
       try { if (g) g.disconnect(); } catch (e) {}
     };
     if (immediate) cleanup();
-    else setTimeout(cleanup, 450);
+    else setTimeout(cleanup, FS_AMB_FADE_OUT_SEC * 1000 + 150);
   }
 
   // (Nature ambience is decoded from /audio/*.mp3 and played through WebAudio — see startFsNature/stopFsNature above.)
@@ -2181,9 +2187,9 @@
       fsState.outroTimer = null;
     }
 
-    // Start ambient healing frequency immediately
+    // Start ambient healing frequency immediately (2s prelude before the voice)
     var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
-    startFsAmbient(freq, 1.0);
+    startFsAmbient(freq, FS_AMB_FADE_IN_SEC);
 
     var badge = $('#fsVoiceStatusBadge');
     if (badge) {
@@ -2304,7 +2310,7 @@
       fsState.currentAudioSource = source;
 
       // Ensure ambient is running
-      startFsAmbient(freq, 0.4);
+      startFsAmbient(freq, FS_AMB_FADE_IN_SEC);
       updateBadgeActive();
 
       source.onended = function () {
@@ -2340,8 +2346,8 @@
     fetchParagraphAudio(paragraphs[idx], selectedVoice, moodInit).catch(function () {});
 
     if (idx === 0) {
-      // 首次播报略留静心前奏(1.5秒)，若为重播则快速衔接(0.6秒)
-      var preludeDelay = fsState.hasEverPlayedStory ? 600 : 1500;
+      // 背景音先响 2 秒，再进人声（首次与重播一致）
+      var preludeDelay = FS_AMB_PRELUDE_MS;
       fsState.hasEverPlayedStory = true;
       fsState.preludeTimer = setTimeout(function () {
         if (fsState.isPlaying) {
@@ -2378,7 +2384,7 @@
     updateFsPlaybackUI(true);
 
     var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
-    startFsAmbient(freq, 1.0);
+    startFsAmbient(freq, FS_AMB_FADE_IN_SEC);
 
     var badge = $('#fsVoiceStatusBadge');
     if (badge) {
@@ -2448,7 +2454,7 @@
     }
 
     if (idx === 0) {
-      var delayMs = fsState.hasEverPlayedStory ? 600 : 1500;
+      var delayMs = FS_AMB_PRELUDE_MS;
       fsState.hasEverPlayedStory = true;
       fsState.preludeTimer = setTimeout(function () {
         if (fsState.isPlaying) {
@@ -2492,7 +2498,7 @@
     if (window.speechSynthesis && window.speechSynthesis.paused && !fromBeginning) {
       window.speechSynthesis.resume();
       var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
-      startFsAmbient(freq, 0.35);
+      startFsAmbient(freq, 0.8);
       updateFsPlaybackUI(true);
       return;
     }
@@ -2517,7 +2523,8 @@
     if ('speechSynthesis' in window) {
       window.speechSynthesis.pause();
     }
-    stopFsAmbient(true);
+    // 暂停时背景音也做渐出，不要硬切
+    stopFsAmbient(false);
     updateFsPlaybackUI(false);
   }
 
@@ -2611,7 +2618,7 @@
     fsState.wholeStoryBuf = buf || null;
     fsState.wholeStoryKey = fsKey || null;
     fsState.wholeStoryVoice = $('#fsVoice') ? $('#fsVoice').value : '';
-    startFsAmbient(freq, 1.0);
+    startFsAmbient(freq, FS_AMB_FADE_IN_SEC);
     fsState.isPlaying = true;
     fsState.playingKey = fsKey || null;
     updateFsPlaybackUI(true);
@@ -2651,7 +2658,7 @@
         if (badge) badge.textContent = '✨ Narration complete (click to replay)';
       }, 3000);
     };
-    source.start(0);
+    source.start(fsState.audioCtx.currentTime + FS_AMB_PRELUDE_MS / 1000);
   }
 
   // 空输入轻提示：按钮平时保持可点，只有点击时才拦截，并在按钮旁弹出提示（3 秒自动消失，点击可关闭）
