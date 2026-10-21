@@ -1399,7 +1399,11 @@
     natureActive: false,
     natureSource: null,
     natureGainNode: null,
-    generating: false
+    generating: false,
+    // 已保存的整段录音缓存：再次点大播放按钮时直接重播，不重新调用 TTS
+    wholeStoryBuf: null,
+    wholeStoryKey: null,
+    wholeStoryVoice: null
   };
 
   function getFsAudioContext() {
@@ -2444,6 +2448,19 @@
   // Start / Resume Playback
   function playFsManifestation(fromBeginning) {
     if (!fsState.storyData) return;
+
+    // 已保存的整段录音：再点大播放按钮时直接重播这份音频，
+    // 不再用当前选中的 TTS 模型按段落重新生成（避免重复扣费）。
+    var curVoice = $('#fsVoice') ? $('#fsVoice').value : '';
+    var wholeKey = fsState.wholeStoryKey || fsState.lrKey;
+    if (fsState.wholeStoryBuf && wholeKey && fsState.activeParagraphIdx === 0 && fsState.wholeStoryVoice === curVoice) {
+      if (fsState.audioCtx && fsState.audioCtx.state === 'suspended') {
+        fsState.audioCtx.resume().catch(function () {});
+      }
+      playWholeStory(fsState.wholeStoryBuf, wholeKey);
+      return;
+    }
+
     // Per-paragraph TTS playback is not tied to a saved voice entry
     fsState.playingKey = null;
 
@@ -2575,6 +2592,10 @@
   // Play a single recorded whole-story audio buffer (from cache), then upload-can
   function playWholeStory(buf, fsKey) {
     var freq = $('#fsFreq') ? $('#fsFreq').value : '528';
+    // 记住这份整段录音，供后续大播放按钮直接重播
+    fsState.wholeStoryBuf = buf || null;
+    fsState.wholeStoryKey = fsKey || null;
+    fsState.wholeStoryVoice = $('#fsVoice') ? $('#fsVoice').value : '';
     startFsAmbient(freq, 1.0);
     fsState.isPlaying = true;
     fsState.playingKey = fsKey || null;
@@ -2674,6 +2695,10 @@
       setFsGenerateBusy(true);
 
       stopFutureAudio();
+      // 新一次生成：作废上一段整段录音缓存，避免重播时放出旧音频
+      fsState.wholeStoryBuf = null;
+      fsState.wholeStoryKey = null;
+      fsState.wholeStoryVoice = null;
 
       $('#fsPlayer').classList.add('hidden');
       $('#fsLoading').classList.remove('hidden');
@@ -3404,6 +3429,10 @@
 
   // Load a saved voice into the player (story text + audio) without regenerating anything
   function showSavedVoiceInPlayer(row) {
+    // 切换了要播放的语音：先清掉上一段整段录音缓存（随后由 playWholeStory 重新写入）
+    fsState.wholeStoryBuf = null;
+    fsState.wholeStoryKey = null;
+    fsState.wholeStoryVoice = null;
     fsState.storyData = {
       title: row.title || '',
       story: row.story || '',
