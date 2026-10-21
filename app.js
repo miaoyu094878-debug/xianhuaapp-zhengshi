@@ -1398,6 +1398,7 @@
     natureType: null,
     natureActive: false,
     natureSource: null,
+    natureNodes: null,
     natureGainNode: null,
     natureLoading: false,
     generating: false,
@@ -1608,13 +1609,199 @@
   // 每次启动自然音都会拿到一个新令牌；停止/切换后旧令牌失效，
   // 异步解码回来较晚的请求会被丢弃，避免留下第二个没人跟踪的循环音源。
   var natureStartToken = 0;
+
+  // ── 合成自然音（ocean / rain / wind / fire）──
+  // 这四项改为噪声合成，完全不依赖音频文件下载：点击即出声，
+  // 不会再出现"背景音没有 / 要等一会才有"的加载空窗。
+  // crickets / birds 仍用录音，但会提前预取到 natureRawCache（见 preloadNatureFiles）。
+  var NATURE_SYNTH_TYPES = { ocean: 1, rain: 1, wind: 1, fire: 1 };
+  var NATURE_FILE_TYPES = ['crickets', 'birds'];
+  var natureRawCache = {};
+  var natureNoiseCache = {};
+
+  function getNatureNoise(ctx, kind) {
+    var key = kind + '@' + ctx.sampleRate;
+    if (natureNoiseCache[key]) return natureNoiseCache[key];
+    var len = Math.floor(ctx.sampleRate * 6);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    var i, w;
+    if (kind === 'white') {
+      for (i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    } else if (kind === 'pink') {
+      var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (i = 0; i < len; i++) {
+        w = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + w * 0.0555179;
+        b1 = 0.99332 * b1 + w * 0.0750759;
+        b2 = 0.969 * b2 + w * 0.153852;
+        b3 = 0.8665 * b3 + w * 0.3104856;
+        b4 = 0.55 * b4 + w * 0.5329522;
+        b5 = -0.7616 * b5 - w * 0.016898;
+        d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+        b6 = w * 0.115926;
+      }
+    } else {
+      // brown：低频更重，适合做浪体 / 火堆底噪
+      var last = 0;
+      for (i = 0; i < len; i++) {
+        w = Math.random() * 2 - 1;
+        last = (last + 0.02 * w) / 1.02;
+        d[i] = last * 3.5;
+      }
+    }
+    natureNoiseCache[key] = buf;
+    return buf;
+  }
+
+  function natureNoiseSource(ctx, kind) {
+    var src = ctx.createBufferSource();
+    src.buffer = getNatureNoise(ctx, kind);
+    src.loop = true;
+    return src;
+  }
+
+  // 低频振荡器直接调制某个 AudioParam（音量或截止频率），做出呼吸/阵风感
+  function natureLfo(ctx, freq, amount, param) {
+    var o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    var g = ctx.createGain();
+    g.gain.value = amount;
+    o.connect(g);
+    g.connect(param);
+    return o;
+  }
+
+  // 火焰的爆裂声：烘焙进一段可循环的缓冲，随机位置的短促衰减脉冲
+  function getFireCrackleBuffer(ctx) {
+    var key = 'fire@' + ctx.sampleRate;
+    if (natureNoiseCache[key]) return natureNoiseCache[key];
+    var len = Math.floor(ctx.sampleRate * 7);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    var i, k, p, amp, decay;
+    for (i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.03;
+    for (k = 0; k < 220; k++) {
+      p = Math.floor(Math.random() * len);
+      amp = 0.25 + Math.random() * 0.65;
+      decay = Math.floor(ctx.sampleRate * (0.004 + Math.random() * 0.04));
+      for (i = 0; i < decay && p + i < len; i++) {
+        d[p + i] += (Math.random() * 2 - 1) * amp * Math.pow(1 - i / decay, 2.5);
+      }
+    }
+    // 循环接缝做 5ms 收尾，避免接缝爆音
+    var seam = Math.floor(ctx.sampleRate * 0.005);
+    for (i = 0; i < seam; i++) {
+      d[i] *= i / seam;
+      d[len - 1 - i] *= i / seam;
+    }
+    natureNoiseCache[key] = buf;
+    return buf;
+  }
+
+  function buildNatureSynth(ctx, type) {
+    var sources = [];
+    var out = ctx.createGain();
+    // 各层叠加后峰值可能接近 1.0，先统一压到 0.7 留出余量，避免削波失真
+    out.gain.value = 0.7;
+    var f;
+
+    if (type === 'ocean') {
+      // 浪体：棕噪声低通 + 慢速起伏
+      var body = natureNoiseSource(ctx, 'brown');
+      f = ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 520; f.Q.value = 0.7;
+      var bodyGain = ctx.createGain(); bodyGain.gain.value = 0.55;
+      body.connect(f); f.connect(bodyGain); bodyGain.connect(out);
+      sources.push(body, natureLfo(ctx, 0.075, 0.42, bodyGain.gain));
+      // 浪花细响：白噪声带通，另一路慢速起伏错拍，形成"一浪推一浪"
+      var foam = natureNoiseSource(ctx, 'white');
+      f = ctx.createBiquadFilter();
+      f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = 0.5;
+      var foamGain = ctx.createGain(); foamGain.gain.value = 0.16;
+      foam.connect(f); f.connect(foamGain); foamGain.connect(out);
+      sources.push(foam, natureLfo(ctx, 0.061, 0.14, foamGain.gain));
+    } else if (type === 'rain') {
+      var r = natureNoiseSource(ctx, 'white');
+      f = ctx.createBiquadFilter();
+      f.type = 'highpass'; f.frequency.value = 500;
+      var band = ctx.createBiquadFilter();
+      band.type = 'bandpass'; band.frequency.value = 3200; band.Q.value = 0.4;
+      var rg = ctx.createGain(); rg.gain.value = 0.55;
+      r.connect(f); f.connect(band); band.connect(rg); rg.connect(out);
+      sources.push(r, natureLfo(ctx, 0.05, 0.07, rg.gain));
+      // 雨幕嘶声
+      var s2 = natureNoiseSource(ctx, 'white');
+      f = ctx.createBiquadFilter();
+      f.type = 'highpass'; f.frequency.value = 5500;
+      var sg = ctx.createGain(); sg.gain.value = 0.12;
+      s2.connect(f); f.connect(sg); sg.connect(out);
+      sources.push(s2);
+    } else if (type === 'wind') {
+      var wsrc = natureNoiseSource(ctx, 'pink');
+      f = ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 600; f.Q.value = 1.2;
+      var wg = ctx.createGain(); wg.gain.value = 0.7;
+      wsrc.connect(f); f.connect(wg); wg.connect(out);
+      // 阵风：缓慢调制截止频率，忽远忽近
+      sources.push(wsrc, natureLfo(ctx, 0.09, 420, f.frequency));
+      // 一点点口哨感的窄带
+      var w2 = natureNoiseSource(ctx, 'pink');
+      var whis = ctx.createBiquadFilter();
+      whis.type = 'bandpass'; whis.frequency.value = 900; whis.Q.value = 7;
+      var whg = ctx.createGain(); whg.gain.value = 0.05;
+      w2.connect(whis); whis.connect(whg); whg.connect(out);
+      sources.push(w2, natureLfo(ctx, 0.052, 260, whis.frequency));
+    } else if (type === 'fire') {
+      var crack = ctx.createBufferSource();
+      crack.buffer = getFireCrackleBuffer(ctx);
+      crack.loop = true;
+      f = ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 2800;
+      var cg = ctx.createGain(); cg.gain.value = 1.0;
+      crack.connect(f); f.connect(cg); cg.connect(out);
+      sources.push(crack);
+      var bed = natureNoiseSource(ctx, 'brown');
+      var bedF = ctx.createBiquadFilter();
+      bedF.type = 'lowpass'; bedF.frequency.value = 320;
+      var bedG = ctx.createGain(); bedG.gain.value = 0.24;
+      bed.connect(bedF); bedF.connect(bedG); bedG.connect(out);
+      sources.push(bed);
+    } else {
+      return null;
+    }
+
+    sources.forEach(function (s) { try { s.start(); } catch (e) {} });
+    return { sources: sources, output: out };
+  }
+
+  // crickets / birds 仍是录音文件：页面空闲时先下载成 ArrayBuffer，
+  // 播放时只剩解码，下载等待被挪到用户点击之前。
+  var naturePreloadStarted = false;
+  function preloadNatureFiles() {
+    if (naturePreloadStarted) return;
+    naturePreloadStarted = true;
+    NATURE_FILE_TYPES.forEach(function (t) {
+      if (natureRawCache[t] || natureBufferCache[t]) return;
+      fetch('/audio/' + t + '.mp3?v=20261015nature6')
+        .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (ab) { if (ab) natureRawCache[t] = ab; })
+        .catch(function () {});
+    });
+  }
+  if (document.readyState === 'complete') {
+    setTimeout(preloadNatureFiles, 1200);
+  } else {
+    window.addEventListener('load', function () { setTimeout(preloadNatureFiles, 1200); });
+  }
   function startFsNature(type, fadeInSec) {
     if (!type || type === 'off') { stopFsNature(false); return; }
     try {
       // Already playing this exact type -> keep running (no restart glitch)
       // 同一种正在加载中也要跳过，否则会并发解码出两个音源，停止时只停掉最后一个，
       // 剩下的会一直循环播放（表现：人声结束后背景音不停，只能刷新页面）。
-      if (fsState.natureType === type && (fsState.natureSource || fsState.natureLoading)) return;
+      if (fsState.natureType === type && (fsState.natureSource || fsState.natureNodes || fsState.natureLoading)) return;
       // 切换时让旧的自然音渐出，与新的渐入交叠，而不是硬切
       stopFsNature(false);
       var token = ++natureStartToken;
@@ -1656,10 +1843,33 @@
       var cached = natureBufferCache[type];
       if (cached) { playBuffer(cached); return; }
 
+      // ocean / rain / wind / fire：本地噪声合成，建好即出声，没有任何网络等待
+      if (NATURE_SYNTH_TYPES[type]) {
+        var built = buildNatureSynth(ctx, type);
+        if (!built) { fsState.natureLoading = false; return; }
+        var synthGain = ctx.createGain();
+        synthGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        synthGain.gain.linearRampToValueAtTime(target, ctx.currentTime + fadeSec);
+        built.output.connect(synthGain);
+        synthGain.connect(ctx.destination);
+        fsState.natureSource = null;
+        fsState.natureNodes = built.sources;
+        fsState.natureGainNode = synthGain;
+        fsState.natureLoading = false;
+        return;
+      }
+
       fsState.natureLoading = true;
-      fetch('/audio/' + type + '.mp3?v=20261015nature6')
-        .then(function (r) { return r.arrayBuffer(); })
-        .then(function (ab) { return ctx.decodeAudioData(ab); })
+      // 已预取过的文件直接用内存副本解码，省掉下载
+      var rawCached = natureRawCache[type];
+      var fetched = rawCached
+        ? Promise.resolve(rawCached)
+        : fetch('/audio/' + type + '.mp3?v=20261015nature6').then(function (r) { return r.arrayBuffer(); });
+      fetched
+        .then(function (ab) {
+          if (!rawCached) { try { natureRawCache[type] = ab.slice(0); } catch (e) {} }
+          return ctx.decodeAudioData(rawCached ? ab.slice(0) : ab);
+        })
         .then(function (buf) {
           natureBufferCache[type] = buf;
           playBuffer(buf);
@@ -1679,11 +1889,13 @@
     // 让所有尚未完成的解码回调失效（否则它们回来后又会启动一个没人跟踪的音源）
     natureStartToken++;
     var src = fsState.natureSource;
+    var nodes = fsState.natureNodes;
     var g = fsState.natureGainNode;
     fsState.natureSource = null;
+    fsState.natureNodes = null;
     fsState.natureGainNode = null;
     fsState.natureType = null;
-    if (!src && !g) return;
+    if (!src && !nodes && !g) return;
     var ctx = fsState.audioCtx;
     if (g && ctx) {
       try {
@@ -1695,13 +1907,20 @@
     }
     var cleanup = function () {
       try { if (src) { src.stop(); src.disconnect(); } } catch (e) {}
+      if (nodes) {
+        nodes.forEach(function (n) {
+          try { n.stop(); } catch (e) {}
+          try { n.disconnect(); } catch (e) {}
+        });
+      }
       try { if (g) g.disconnect(); } catch (e) {}
     };
     if (immediate) cleanup();
     else setTimeout(cleanup, FS_AMB_FADE_OUT_SEC * 1000 + 150);
   }
 
-  // (Nature ambience is decoded from /audio/*.mp3 and played through WebAudio — see startFsNature/stopFsNature above.)
+  // (Nature ambience: ocean/rain/wind/fire are synthesized by buildNatureSynth with zero network
+  //  cost; crickets/birds are decoded from pre-fetched /audio/*.mp3 — see startFsNature above.)
 
   // Update Ambient & Voice Volume dynamically
   if ($('#fsAmbVol')) {
