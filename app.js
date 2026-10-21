@@ -1610,12 +1610,11 @@
   // 异步解码回来较晚的请求会被丢弃，避免留下第二个没人跟踪的循环音源。
   var natureStartToken = 0;
 
-  // ── 合成自然音（ocean / rain / wind / fire）──
-  // 这四项改为噪声合成，完全不依赖音频文件下载：点击即出声，
-  // 不会再出现"背景音没有 / 要等一会才有"的加载空窗。
-  // crickets / birds 仍用录音，但会提前预取到 natureRawCache（见 preloadNatureFiles）。
-  var NATURE_SYNTH_TYPES = { ocean: 1, rain: 1, wind: 1, fire: 1 };
-  var NATURE_FILE_TYPES = ['crickets', 'birds'];
+  // ── 合成自然音（wind / fire）──
+  // 这两项改为噪声合成，不依赖音频文件下载：点击即出声。
+  // ocean / rain / crickets / birds 仍用原始录音（提前预取到 natureRawCache，见 preloadNatureFiles）。
+  var NATURE_SYNTH_TYPES = { wind: 1, fire: 1 };
+  var NATURE_FILE_TYPES = ['ocean', 'rain', 'crickets', 'birds'];
   var natureRawCache = {};
   var natureNoiseCache = {};
 
@@ -1707,38 +1706,7 @@
     out.gain.value = 0.7;
     var f;
 
-    if (type === 'ocean') {
-      // 浪体：棕噪声低通 + 慢速起伏
-      var body = natureNoiseSource(ctx, 'brown');
-      f = ctx.createBiquadFilter();
-      f.type = 'lowpass'; f.frequency.value = 520; f.Q.value = 0.7;
-      var bodyGain = ctx.createGain(); bodyGain.gain.value = 0.55;
-      body.connect(f); f.connect(bodyGain); bodyGain.connect(out);
-      sources.push(body, natureLfo(ctx, 0.075, 0.42, bodyGain.gain));
-      // 浪花细响：白噪声带通，另一路慢速起伏错拍，形成"一浪推一浪"
-      var foam = natureNoiseSource(ctx, 'white');
-      f = ctx.createBiquadFilter();
-      f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = 0.5;
-      var foamGain = ctx.createGain(); foamGain.gain.value = 0.16;
-      foam.connect(f); f.connect(foamGain); foamGain.connect(out);
-      sources.push(foam, natureLfo(ctx, 0.061, 0.14, foamGain.gain));
-    } else if (type === 'rain') {
-      var r = natureNoiseSource(ctx, 'white');
-      f = ctx.createBiquadFilter();
-      f.type = 'highpass'; f.frequency.value = 500;
-      var band = ctx.createBiquadFilter();
-      band.type = 'bandpass'; band.frequency.value = 3200; band.Q.value = 0.4;
-      var rg = ctx.createGain(); rg.gain.value = 0.55;
-      r.connect(f); f.connect(band); band.connect(rg); rg.connect(out);
-      sources.push(r, natureLfo(ctx, 0.05, 0.07, rg.gain));
-      // 雨幕嘶声
-      var s2 = natureNoiseSource(ctx, 'white');
-      f = ctx.createBiquadFilter();
-      f.type = 'highpass'; f.frequency.value = 5500;
-      var sg = ctx.createGain(); sg.gain.value = 0.12;
-      s2.connect(f); f.connect(sg); sg.connect(out);
-      sources.push(s2);
-    } else if (type === 'wind') {
+    if (type === 'wind') {
       var wsrc = natureNoiseSource(ctx, 'pink');
       f = ctx.createBiquadFilter();
       f.type = 'lowpass'; f.frequency.value = 600; f.Q.value = 1.2;
@@ -1776,7 +1744,7 @@
     return { sources: sources, output: out };
   }
 
-  // crickets / birds 仍是录音文件：页面空闲时先下载成 ArrayBuffer，
+  // 仍用录音的自然音：页面空闲时先下载成 ArrayBuffer，
   // 播放时只剩解码，下载等待被挪到用户点击之前。
   var naturePreloadStarted = false;
   function preloadNatureFiles() {
