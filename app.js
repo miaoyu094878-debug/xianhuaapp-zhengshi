@@ -1420,9 +1420,9 @@
 
   var currentAmbFreq = null;
 
-  // 背景音提前量：先响 1 秒再进人声；渐入/渐出让出现与消失都不突兀
-  var FS_AMB_PRELUDE_MS = 1000;
-  var FS_AMB_FADE_IN_SEC = 0.8;
+  // 背景音提前量：先响 2 秒再进人声；渐入/渐出让出现与消失都不突兀
+  var FS_AMB_PRELUDE_MS = 2000;
+  var FS_AMB_FADE_IN_SEC = 1.5;
   var FS_AMB_FADE_OUT_SEC = 1.2;
 
   // Solfeggio & Atmospheric Frequency Synthesizer
@@ -2346,7 +2346,7 @@
     fetchParagraphAudio(paragraphs[idx], selectedVoice, moodInit).catch(function () {});
 
     if (idx === 0) {
-      // 背景音先响 1 秒，再进人声（首次与重播一致）
+      // 背景音先响 2 秒，再进人声（首次与重播一致）
       var preludeDelay = FS_AMB_PRELUDE_MS;
       fsState.hasEverPlayedStory = true;
       fsState.preludeTimer = setTimeout(function () {
