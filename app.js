@@ -825,9 +825,8 @@
           : 'Unlimited affirmations, wallpapers and downloads.';
       }
       if ($('#pwCost')) {
-        var lm = lite ? lite.monthlyUsd : 5;
-        var pm = sub ? sub.monthlyUsd : 9.9;
-        $('#pwCost').innerHTML = 'Lite ' + usd(lm) + ' / month · Pro ' + usd(pm) + ' / month';
+        // 不在付费墙弹窗展示订阅价格，价格统一在 Plans 页展示
+        $('#pwCost').classList.add('hidden');
       }
     } else if (kind === 'pro') {
       // AI 能力，未订阅用户：Lite 不含 AI，只能上 Pro
@@ -838,10 +837,7 @@
           : 'AI journeys, AI vision and monthly credits.';
       }
       if ($('#pwCost')) {
-        var m = sub ? sub.monthlyUsd : 9.9;
-        var y = sub ? sub.yearlyUsd : 70;
-        var save = sub ? sub.yearlySavePct : 41;
-        $('#pwCost').innerHTML = usd(m) + ' / month · ' + usd(y) + ' / year (save ' + save + '%)';
+        $('#pwCost').classList.add('hidden');
       }
     } else if (kind === 'upgrade') {
       // 已买 Lite 的用户点 AI 功能：引导升级到 Pro
@@ -852,15 +848,13 @@
           : 'Upgrade to Pro for AI journeys, AI vision and monthly credits.';
       }
       if ($('#pwCost')) {
-        var um = sub ? sub.monthlyUsd : 9.9;
-        var uy = sub ? sub.yearlyUsd : 70;
-        var usave = sub ? sub.yearlySavePct : 41;
-        $('#pwCost').innerHTML = usd(um) + ' / month · ' + usd(uy) + ' / year (save ' + usave + '%)';
+        $('#pwCost').classList.add('hidden');
       }
     } else {
       if ($('#pwTitle')) $('#pwTitle').textContent = 'Not enough credits';
       if ($('#pwIntro')) $('#pwIntro').textContent = 'AI generation is billed by the model\'s real cost. You need a minimum balance to start a generation.';
       if ($('#pwCost')) {
+        $('#pwCost').classList.remove('hidden');
         $('#pwCost').innerHTML = 'Minimum required: <span class="pw-req">' + (opts.required || 0) + ' ✦</span>' +
           (opts.balance != null ? ' · you have ' + opts.balance + ' ✦' : '');
       }
