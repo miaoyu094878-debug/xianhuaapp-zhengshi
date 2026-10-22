@@ -516,6 +516,21 @@ async function withCredits(
 
   // Pro 订阅：肯定句不限量、不扣分
   const wallet = await walletSummary(user.id);
+
+  // 第二层闸门：AI 生成必须「已登录 + 有效 Pro 订阅（未过期）」。
+  // 与前端 callUnifiedApi 的 PRO_GATED_ACTIONS（!isPro 拦截）口径一致：
+  // 免费账户与 Lite 账户一律拦截，直接跳过后续所有扣费与 AI 调用，返回 402
+  // 由前端付费墙引导升级/订阅（Lite 看到「升级 Pro」，免费看到「订阅 Pro」）。
+  if (!isProActive(wallet)) {
+    return json({
+      error: 'pro_required',
+      message: 'A Pro subscription is required to use AI features. Upgrade to continue.',
+      prices: priceSheet(),
+      plan: wallet.plan,
+      plan_expires_at: wallet.plan_expires_at,
+    }, 402, cors);
+  }
+
   const freeForPro = isProActive(wallet) && PRO_UNLIMITED_ACTIONS.includes(action);
 
   let charged = 0;
