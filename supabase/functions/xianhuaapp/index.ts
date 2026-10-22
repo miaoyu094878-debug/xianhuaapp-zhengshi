@@ -519,7 +519,9 @@ async function withCredits(
 
   // 第二层闸门：AI 生成必须「已登录 + 有效 Pro 订阅（未过期）」。
   // 与前端 callUnifiedApi 的 PRO_GATED_ACTIONS（!isPro 拦截）口径一致：
-  // 免费账户与 Lite 账户一律拦截，直接跳过后续所有扣费与 AI 调用，返回 402
+  // 免费账户与 Lite 账户一律拦截，直接跳过后续所有扣费与 AI 调用，返回 403
+  // （必须是 403 而非 402：前端 isCreditBlocked 把 402 视为「余额不足」弹充值墙，
+  //   403 / pro_required 才走订阅墙，与前端 callUnifiedApi 的约定保持一致。）
   // 由前端付费墙引导升级/订阅（Lite 看到「升级 Pro」，免费看到「订阅 Pro」）。
   if (!isProActive(wallet)) {
     return json({
@@ -528,7 +530,7 @@ async function withCredits(
       prices: priceSheet(),
       plan: wallet.plan,
       plan_expires_at: wallet.plan_expires_at,
-    }, 402, cors);
+    }, 403, cors);
   }
 
   const freeForPro = isProActive(wallet) && PRO_UNLIMITED_ACTIONS.includes(action);
