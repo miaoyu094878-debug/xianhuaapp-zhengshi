@@ -384,17 +384,19 @@
       b.textContent = planBtnLabel(plan);
     });
   }
-  function setPlanBtnBusy(busy) {
+  /** 被点的那张卡显示「Opening checkout…」；另一张只置灰禁用，保持原文案 */
+  function setPlanBtnBusy(busy, clickedBtn) {
     if (busy) {
+      var target = clickedBtn || null;
       $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
         b.disabled = true;
-        b.textContent = 'Opening checkout…';
+        if (!target || b === target) b.textContent = 'Opening checkout…';
       });
     } else {
       refreshPlanBtns();
     }
   }
-  async function startCheckout(period, plan) {
+  async function startCheckout(period, plan, btn) {
     if (checkoutBusy) return;
     if (!creditState.signedIn) {
       openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
@@ -403,7 +405,7 @@
     // EU/UK 撤销权：同意改为「订阅即同意」的明示告知（见套餐下方的 planConsentNote），
     // 点支付按钮这一动作本身即构成同意，故此处不再做勾选拦截。
     checkoutBusy = true;
-    setPlanBtnBusy(true);
+    setPlanBtnBusy(true, btn);
     try {
       var res = await callUnifiedApi('create-checkout', {
         period: period || currentBilling,
@@ -434,7 +436,7 @@
   }
   $$('#tab-plans .plan-card .plan-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro');
+      startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro', btn);
     });
   });
 
@@ -1055,8 +1057,15 @@
       openPaywall('credits', { required: (data && data.required) || 0, balance: (data && data.balance) });
       return true;
     }
-    // 403 pro_required：订阅框已由 callUnifiedApi 弹出，这里只拦截，不叠加弹窗
-    if (res.status === 403 || err === 'pro_required') return true;
+    // 403 pro_required：本地前置闸门已弹过订阅框（X-Gate: client），这里只拦截；
+    // 服务端 403（本地 plan 过期未刷新、缓存不一致、直连 API）没有弹过，这里补弹一次，
+    // 否则用户会「点了没反应」。
+    if (res.status === 403 || err === 'pro_required') {
+      var gatedLocally = false;
+      try { gatedLocally = (res.headers.get('X-Gate') || '') === 'client'; } catch (e) { gatedLocally = false; }
+      if (!gatedLocally) openPaywall(isLite() ? 'upgrade' : 'pro', { feature: 'AI features' });
+      return true;
+    }
     return false;
   }
 
@@ -2157,7 +2166,8 @@
       openPaywall(isLite() ? 'upgrade' : 'pro', { feature: gateLabel });
       return new Response(JSON.stringify({ error: 'pro_required' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json' }
+        // X-Gate 标记「订阅框已由本地前置闸门弹出」，下游 isCreditBlocked 不再重复弹窗
+        headers: { 'Content-Type': 'application/json', 'X-Gate': 'client' }
       });
     }
     var supabaseUrl = window.SUPABASE_URL || (window.LUMINARA_CONFIG && window.LUMINARA_CONFIG.SUPABASE_URL) || localStorage.getItem('luminara_supabase_url') || 'https://bnxjwnvsmiqofbjiknwf.supabase.co';
