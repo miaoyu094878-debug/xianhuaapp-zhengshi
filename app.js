@@ -384,14 +384,13 @@
       b.textContent = planBtnLabel(plan);
     });
   }
-  /** 只把「被点的那一张卡」的按钮切到加载态，另一张保持不变（共用一个 checkoutBusy 防重入） */
+  /** 被点的那张卡显示「Opening checkout…」；另一张只置灰禁用，保持原文案 */
   function setPlanBtnBusy(busy, clickedBtn) {
     if (busy) {
       var target = clickedBtn || null;
       $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
-        if (target && b !== target) return;
         b.disabled = true;
-        b.textContent = 'Opening checkout…';
+        if (!target || b === target) b.textContent = 'Opening checkout…';
       });
     } else {
       refreshPlanBtns();
