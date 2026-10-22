@@ -384,9 +384,12 @@
       b.textContent = planBtnLabel(plan);
     });
   }
-  function setPlanBtnBusy(busy) {
+  /** 只把「被点的那一张卡」的按钮切到加载态，另一张保持不变（共用一个 checkoutBusy 防重入） */
+  function setPlanBtnBusy(busy, clickedBtn) {
     if (busy) {
+      var target = clickedBtn || null;
       $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
+        if (target && b !== target) return;
         b.disabled = true;
         b.textContent = 'Opening checkout…';
       });
@@ -394,7 +397,7 @@
       refreshPlanBtns();
     }
   }
-  async function startCheckout(period, plan) {
+  async function startCheckout(period, plan, btn) {
     if (checkoutBusy) return;
     if (!creditState.signedIn) {
       openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
@@ -403,7 +406,7 @@
     // EU/UK 撤销权：同意改为「订阅即同意」的明示告知（见套餐下方的 planConsentNote），
     // 点支付按钮这一动作本身即构成同意，故此处不再做勾选拦截。
     checkoutBusy = true;
-    setPlanBtnBusy(true);
+    setPlanBtnBusy(true, btn);
     try {
       var res = await callUnifiedApi('create-checkout', {
         period: period || currentBilling,
@@ -434,7 +437,7 @@
   }
   $$('#tab-plans .plan-card .plan-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro');
+      startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro', btn);
     });
   });
 
