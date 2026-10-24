@@ -2255,6 +2255,24 @@
   var pcmAudioCache = {}; // cache audio buffer per paragraph text + voice
   var pcmAudioInFlight = {}; // In-flight request deduplication lock: prevents concurrent duplicate TTS calls
 
+  // 浏览器 decodeAudioData 会静默丢弃每段音频的尾帧（≈0.8s≈2词），导致语音结尾缺词。
+  // 在段尾追加一小段静音，让真实尾词避开丢帧区。My Voices 保存的整段文件也用这批缓存，同样生效。
+  function appendSilenceTail(buf, seconds) {
+    try {
+      if (!buf || !buf.sampleRate) return buf;
+      var ctx = fsState.audioCtx;
+      if (!ctx) return buf;
+      var extra = Math.max(1, Math.floor(buf.sampleRate * (seconds || 0.5)));
+      var out = ctx.createBuffer(buf.numberOfChannels, buf.length + extra, buf.sampleRate);
+      for (var c = 0; c < buf.numberOfChannels; c++) {
+        out.getChannelData(c).set(buf.getChannelData(c), 0);
+      }
+      return out;
+    } catch (e) {
+      return buf;
+    }
+  }
+
   async function fetchParagraphAudio(text, voiceName, mood) {
     if (!text || typeof text !== 'string') return null;
     var trimmed = text.trim();
@@ -2299,6 +2317,7 @@
         }
 
         if (audioBuf) {
+          audioBuf = appendSilenceTail(audioBuf, 0.5);
           pcmAudioCache[key] = audioBuf;
           return audioBuf;
         }
@@ -2339,7 +2358,7 @@
         } else {
           buf = pcmToAudioBuffer(a.audio, a.sampleRate || 24000, fsState.audioCtx);
         }
-        if (buf) pcmAudioCache[key] = buf;
+        if (buf) pcmAudioCache[key] = appendSilenceTail(buf, 0.5);
       } catch (e) {
         console.warn('Journey audio preload failed on paragraph ' + (i + 1), e);
       }
