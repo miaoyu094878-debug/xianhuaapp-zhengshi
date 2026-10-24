@@ -1157,7 +1157,18 @@
   $$('.affirm-back').forEach(function (btn) {
     btn.addEventListener('click', function () { goTab(btn.getAttribute('data-back') || 'tab-affirm'); });
   });
+  // 收藏 / 自建数量角标：独立于整页重渲染，先刷新角标再渲染列表，
+  // 避免后续渲染中途异常时角标滞后（要刷新页面才变）。
+  function updateAffirmBadges() {
+    var favs = (db.affirmFavs || []).filter(function (t) { return t && t.trim(); });
+    var customs = (db.affirmCustom || []).filter(function (t) { return t && t.trim(); });
+    var favCountEl = $('#aqFavCount');
+    if (favCountEl) favCountEl.textContent = String(favs.length);
+    var ownCountEl = $('#aqOwnCount');
+    if (ownCountEl) ownCountEl.textContent = String(customs.length);
+  }
   function renderAffirm() {
+    updateAffirmBadges();
     var wrap = $('#affirmList');
     wrap.innerHTML = '';
     var customSection = $('#affirmCustomSection');
@@ -1233,12 +1244,6 @@
       customSection.appendChild(ownList);
     }
 
-    // Counts on the quick-access entry buttons
-    var favCountEl = $('#aqFavCount');
-    if (favCountEl) favCountEl.textContent = String(favs.length);
-    var ownCountEl = $('#aqOwnCount');
-    if (ownCountEl) ownCountEl.textContent = String(customs.length);
-
     // ── Browse: built-in affirmations for the current category ──
     // 全部可见；只有「收藏」才需要 Pro（见下方 ✦ 按钮门禁）
     var browseList = AFFIRMATIONS[curCat];
@@ -1310,7 +1315,7 @@
     swipeOut('save', function () {
       swipeQueue.pop();
       if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
-      save(); renderSwipe(); renderAffirm();
+      save(); updateAffirmBadges(); renderSwipe(); renderAffirm();
       if (text) syncAffirmFav(text, false, true);
     });
   });
