@@ -3887,25 +3887,62 @@
 
   // Write a record row to any of the user's existing tables (best-effort).
   // Tables: affirm_favs, affirm_custom, wallpapers, visions. Empty-ops when signed out.
+  // 返回 Response（失败返回 null），调用方可以据此提示，避免写入静默失败。
   async function pushRow(table, body, method) {
     var s = savedSession(), cfg = supabaseCfg();
-    if (!s || !cfg.url || !cfg.key) return;
+    if (!s || !cfg.url || !cfg.key) return null;
     var user_id = (s.user && s.user.id) || null;
-    if (!user_id) return;
+    if (!user_id) return null;
     try {
       var payload = Object.assign({}, body, { user_id: user_id });
-      await sbFetch('/rest/v1/' + table, {
+      var res = await sbFetch('/rest/v1/' + table, {
         method: method || 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify(payload)
       });
-    } catch (e) { console.warn('pushRow(' + table + '):', e); }
+      if (!res || !res.ok) console.warn('pushRow(' + table + ') failed:', res && res.status);
+      return res;
+    } catch (e) { console.warn('pushRow(' + table + '):', e); return null; }
   }
 
   // Affirm favorites point to existing table affirm_favs (insert) / affirm_custom (custom).
-  // 返回 { ok, localOnly, deleted }：
-  //   ok=false → 请求失败（调用方回滚）；localOnly → 未登录只删了本地；
+  // 返回 { ok, localOnly, deleted, inserted }：
+  //   ok=false → 请求失败（收藏时只提示，不丢本地；删除时调用方回滚）；
+  //   localOnly → 未登录只写了本地；
   //   deleted = 云端实际删掉的行数（0 表示云端没有匹配行，通常是账号/文本不一致）。
+  // 去重并去掉空串（云端历史重复行 → 只留一个）
+  function uniqTexts(list) {
+    var seen = {}, out = [];
+    (list || []).forEach(function (t) {
+      var v = (t || '').trim();
+      if (!v || seen[v]) return;
+      seen[v] = 1;
+      out.push(v);
+    });
+    return out;
+  }
+  // 批量补传（一次请求写多行，避免 60 条收藏打 60 个 INSERT）
+  async function bulkPushFavs(table, texts) {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id) || !(texts || []).length) return null;
+    try {
+      var rows = texts.map(function (t) { return { user_id: s.user.id, text: t }; });
+      var res = await sbFetch('/rest/v1/' + table, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(rows)
+      });
+      if (!res || !res.ok) console.warn('bulkPushFavs(' + table + ') failed:', res && res.status);
+      return res;
+    } catch (e) { console.warn('bulkPushFavs(' + table + '):', e); return null; }
+  }
+  var _favSyncToastAt = 0;
+  function favSyncFailToast() {
+    var now = Date.now();
+    if (now - _favSyncToastAt < 4000) return;
+    _favSyncToastAt = now;
+    toastNotify('Saved on this device — cloud sync failed, it will retry next time you open the app.');
+  }
   async function syncAffirmFav(text, isCustom, favorited) {
     if (!text) return { ok: true, localOnly: true, deleted: 0 };
     var s = savedSession(), cfg = supabaseCfg();
@@ -3913,25 +3950,34 @@
     var user_id = (s.user && s.user.id) || null;
     if (!user_id) return { ok: true, localOnly: true, deleted: 0 };
     var table = isCustom ? 'affirm_custom' : 'affirm_favs';
+    var filter = '/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=eq.' + encodeURIComponent(text);
     try {
       if (favorited) {
-        await pushRow(table, { text: text });
-        return { ok: true, localOnly: false, deleted: 0 };
+        // 先删同文本旧行再插入：不用改库结构也能保证「一个文本只留一行」，
+        // 避免历史重复收藏把表撑成几十上百条。
+        try { await sbFetch(filter, { method: 'DELETE' }); } catch (e) {}
+        var ins = await pushRow(table, { text: text });
+        if (!ins || !ins.ok) {
+          console.warn('syncAffirmFav insert failed:', ins && ins.status);
+          favSyncFailToast();
+          return { ok: false, localOnly: false, deleted: 0, inserted: false };
+        }
+        return { ok: true, localOnly: false, deleted: 0, inserted: true };
       }
-      var res = await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=eq.' + encodeURIComponent(text), {
+      var res = await sbFetch(filter, {
         method: 'DELETE',
         headers: { 'Prefer': 'return=representation' }
       });
       if (!res || !res.ok) {
         console.warn('syncAffirmFav delete failed:', res && res.status);
-        return { ok: false, localOnly: false, deleted: -1 };
+        return { ok: false, localOnly: false, deleted: -1, inserted: false };
       }
       var rows = [];
       try { rows = await res.json(); } catch (e) { rows = []; }
       var n = Array.isArray(rows) ? rows.length : -1;
       console.info('[affirm] cloud delete "' + text + '" → rows:', n, 'status:', res.status);
-      return { ok: true, localOnly: false, deleted: n };
-    } catch (e) { console.warn('syncAffirmFav:', e); return { ok: false, localOnly: false, deleted: -1 }; }
+      return { ok: true, localOnly: false, deleted: n, inserted: false };
+    } catch (e) { console.warn('syncAffirmFav:', e); return { ok: false, localOnly: false, deleted: -1, inserted: false }; }
   }
 
   // AI Vision uses existing table visions.
@@ -4023,9 +4069,24 @@
     if (a && a.length) { db.activeDays = a.map(function (r) { return r.day; }); changed = true; }
 
     var af = await fetchTable('affirm_favs', uidv, 'text');
-    if (af && af.length) { db.affirmFavs = af.map(function (r) { return r.text; }).filter(Boolean); changed = true; }
+    if (af && af.length) {
+      // 去重：表里历史重复行（同一文本多次收藏）只保留一个
+      db.affirmFavs = uniqTexts(af.map(function (r) { return r.text; }));
+      changed = true;
+    }
     var ac = await fetchTable('affirm_custom', uidv, 'text');
-    if (ac && ac.length) { db.affirmCustom = ac.map(function (r) { return r.text; }).filter(Boolean); changed = true; }
+    if (ac && ac.length) {
+      db.affirmCustom = uniqTexts(ac.map(function (r) { return r.text; }));
+      changed = true;
+    }
+    // 补传：本地有、云端缺的收藏/自建肯定语（修复此前静默写入失败、或离线新增）
+    var cloudFav = {}, cloudOwn = {};
+    (af || []).forEach(function (r) { if (r && r.text) cloudFav[r.text] = 1; });
+    (ac || []).forEach(function (r) { if (r && r.text) cloudOwn[r.text] = 1; });
+    var missFav = (db.affirmFavs || []).filter(function (t) { return t && !cloudFav[t]; });
+    var missOwn = (db.affirmCustom || []).filter(function (t) { return t && !cloudOwn[t]; });
+    if (missFav.length) bulkPushFavs('affirm_favs', missFav);
+    if (missOwn.length) bulkPushFavs('affirm_custom', missOwn);
 
     if (changed) {
       save();
