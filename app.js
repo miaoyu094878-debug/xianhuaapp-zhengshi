@@ -1168,17 +1168,24 @@
     if (ownCountEl) ownCountEl.textContent = String(customs.length);
   }
   // 取消收藏：本地立即移除并刷新角标/列表，然后删云端。
-  // 云端删除失败时回滚本地并提示，避免刷新后收藏「复活」。
+  // 云端失败 → 回滚并提示；云端没有对应行也会明确告知（排查用）。
   function removeAffirmFav(text) {
     var i = db.affirmFavs.indexOf(text);
     if (i === -1) return;
     db.affirmFavs = db.affirmFavs.filter(function (t) { return t !== text; });
     save(); updateAffirmBadges(); renderAffirm();
-    syncAffirmFav(text, false, false).then(function (ok) {
-      if (ok) return;
-      if (db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
-      save(); updateAffirmBadges(); renderAffirm();
-      toastNotify('Could not remove this favourite from the cloud — please try again.');
+    syncAffirmFav(text, false, false).then(function (r) {
+      if (!r || !r.ok) {
+        if (db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
+        save(); updateAffirmBadges(); renderAffirm();
+        toastNotify('Could not remove this favourite from the cloud — please try again.');
+        return;
+      }
+      if (r.localOnly) {
+        toastNotify('Removed locally — sign in to sync this removal to your account.');
+      } else if (r.deleted === 0) {
+        toastNotify('Removed locally — no matching cloud row was found.');
+      }
     });
   }
   function renderAffirm() {
@@ -3896,24 +3903,35 @@
   }
 
   // Affirm favorites point to existing table affirm_favs (insert) / affirm_custom (custom).
-  // 返回值：true = 云端已同步或本来就只用本地；false = 云端删除失败（调用方回滚）。
+  // 返回 { ok, localOnly, deleted }：
+  //   ok=false → 请求失败（调用方回滚）；localOnly → 未登录只删了本地；
+  //   deleted = 云端实际删掉的行数（0 表示云端没有匹配行，通常是账号/文本不一致）。
   async function syncAffirmFav(text, isCustom, favorited) {
-    if (!text) return true;
+    if (!text) return { ok: true, localOnly: true, deleted: 0 };
     var s = savedSession(), cfg = supabaseCfg();
-    if (!s || !cfg.url || !cfg.key) return true;
+    if (!s || !cfg.url || !cfg.key) return { ok: true, localOnly: true, deleted: 0 };
     var user_id = (s.user && s.user.id) || null;
-    if (!user_id) return true;
+    if (!user_id) return { ok: true, localOnly: true, deleted: 0 };
+    var table = isCustom ? 'affirm_custom' : 'affirm_favs';
     try {
-      var table = isCustom ? 'affirm_custom' : 'affirm_favs';
       if (favorited) {
         await pushRow(table, { text: text });
-        return true;
+        return { ok: true, localOnly: false, deleted: 0 };
       }
       var res = await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=eq.' + encodeURIComponent(text), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=representation' }
       });
-      return !!res && res.ok;
-    } catch (e) { console.warn('syncAffirmFav:', e); return false; }
+      if (!res || !res.ok) {
+        console.warn('syncAffirmFav delete failed:', res && res.status);
+        return { ok: false, localOnly: false, deleted: -1 };
+      }
+      var rows = [];
+      try { rows = await res.json(); } catch (e) { rows = []; }
+      var n = Array.isArray(rows) ? rows.length : -1;
+      console.info('[affirm] cloud delete "' + text + '" → rows:', n, 'status:', res.status);
+      return { ok: true, localOnly: false, deleted: n };
+    } catch (e) { console.warn('syncAffirmFav:', e); return { ok: false, localOnly: false, deleted: -1 }; }
   }
 
   // AI Vision uses existing table visions.
