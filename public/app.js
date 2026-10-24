@@ -5113,7 +5113,7 @@
         db.aiVision.unshift({
           id: uid(),
           kind: 'photo',
-          model: 'openai/gpt-image-2',
+          model: 'black-forest-labs/flux-3-image-klein',
           ts: Date.now(),
           prompt: prompt,
           cameraQuality: cameraInfo.badge,
