@@ -1167,6 +1167,20 @@
     var ownCountEl = $('#aqOwnCount');
     if (ownCountEl) ownCountEl.textContent = String(customs.length);
   }
+  // 取消收藏：本地立即移除并刷新角标/列表，然后删云端。
+  // 云端删除失败时回滚本地并提示，避免刷新后收藏「复活」。
+  function removeAffirmFav(text) {
+    var i = db.affirmFavs.indexOf(text);
+    if (i === -1) return;
+    db.affirmFavs = db.affirmFavs.filter(function (t) { return t !== text; });
+    save(); updateAffirmBadges(); renderAffirm();
+    syncAffirmFav(text, false, false).then(function (ok) {
+      if (ok) return;
+      if (db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
+      save(); updateAffirmBadges(); renderAffirm();
+      toastNotify('Could not remove this favourite from the cloud — please try again.');
+    });
+  }
   function renderAffirm() {
     updateAffirmBadges();
     var wrap = $('#affirmList');
@@ -1209,14 +1223,10 @@
         favList.appendChild(el('p', 'affirm-empty', 'No favorites yet — tap ✧ on any affirmation to keep it here.'));
       } else {
         favs.forEach(function (text) {
-          var unfavBtn = el('button', 'icon-btn', '✦');
+          var unfavBtn = el('button', 'icon-btn', '✕');
           unfavBtn.title = 'Remove from favorites';
-          unfavBtn.addEventListener('click', function () {
-            var i = db.affirmFavs.indexOf(text);
-            if (i !== -1) db.affirmFavs.splice(i, 1);
-            save(); renderAffirm();
-            syncAffirmFav(text, false, false);
-          });
+          unfavBtn.setAttribute('aria-label', 'Remove from favorites');
+          unfavBtn.addEventListener('click', function () { removeAffirmFav(text); });
           favList.appendChild(affirmRow(text, [unfavBtn]));
         });
       }
@@ -1254,11 +1264,13 @@
       favBtn.addEventListener('click', function () {
         if (!requireLogin('Sign in to favorite affirmations ✦')) return;
         if (!requirePaid('Favourites')) return;
-        var i = db.affirmFavs.indexOf(text);
-        var was = i !== -1;
-        if (!was) db.affirmFavs.push(text); else db.affirmFavs.splice(i, 1);
-        save(); renderAffirm();
-        syncAffirmFav(text, false, !was);
+        if (db.affirmFavs.indexOf(text) !== -1) {
+          removeAffirmFav(text);
+          return;
+        }
+        db.affirmFavs.push(text);
+        save(); updateAffirmBadges(); renderAffirm();
+        syncAffirmFav(text, false, true);
       });
       wrap.appendChild(affirmRow(text, [favBtn]));
     });
@@ -3884,22 +3896,24 @@
   }
 
   // Affirm favorites point to existing table affirm_favs (insert) / affirm_custom (custom).
+  // 返回值：true = 云端已同步或本来就只用本地；false = 云端删除失败（调用方回滚）。
   async function syncAffirmFav(text, isCustom, favorited) {
-    if (!text) return;
+    if (!text) return true;
     var s = savedSession(), cfg = supabaseCfg();
-    if (!s || !cfg.url || !cfg.key) return;
+    if (!s || !cfg.url || !cfg.key) return true;
     var user_id = (s.user && s.user.id) || null;
-    if (!user_id) return;
+    if (!user_id) return true;
     try {
+      var table = isCustom ? 'affirm_custom' : 'affirm_favs';
       if (favorited) {
-        await pushRow(isCustom ? 'affirm_custom' : 'affirm_favs', { text: text });
-      } else {
-        var table = isCustom ? 'affirm_custom' : 'affirm_favs';
-        await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=' + encodeURIComponent('eq.' + text), {
-          method: 'DELETE'
-        });
+        await pushRow(table, { text: text });
+        return true;
       }
-    } catch (e) { console.warn('syncAffirmFav:', e); }
+      var res = await sbFetch('/rest/v1/' + table + '?user_id=eq.' + encodeURIComponent(user_id) + '&text=eq.' + encodeURIComponent(text), {
+        method: 'DELETE'
+      });
+      return !!res && res.ok;
+    } catch (e) { console.warn('syncAffirmFav:', e); return false; }
   }
 
   // AI Vision uses existing table visions.
