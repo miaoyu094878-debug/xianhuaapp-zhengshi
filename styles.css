@@ -746,6 +746,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .swipe-card.swiped-left { transform: translateX(-120%) rotate(-12deg); opacity: 0; }
 .swipe-card.swiped-right { transform: translateX(120%) rotate(12deg); opacity: 0; }
 .swipe-card.saved-flash { animation: savedFlash 0.4s ease; }
+/* 退场中的旧卡片叠在新卡片之上，但不拦截点击 */
+.swipe-card.swipe-leaving { pointer-events: none; z-index: 2; }
 @keyframes savedFlash { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); } 100% { box-shadow: 0 0 0 30px rgba(255,255,255,0); } }
 .swipe-empty { position: absolute; inset: 0; border-radius: 20px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; background: var(--surface); border: 1px dashed var(--border-strong); color: var(--text-soft); font-size: 14px; }
 .swipe-actions { display: flex; justify-content: center; gap: 26px; margin-top: 14px; }

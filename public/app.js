@@ -1301,36 +1301,48 @@
     card.appendChild(row);
     deck.appendChild(card);
   }
-  function swipeOut(dir, after) {
-    var card = $('#swipeDeck .swipe-card');
-    if (!card) { after(); return; }
+  // 旧卡片「留影」退场：先立即渲染下一张，再把旧卡片叠回去播动画。
+  // 这样动画不阻塞计数 —— 连点 3 次就真的收藏 3 张（角标 +3）。
+  function swipeLeave(card, dir) {
+    var deck = $('#swipeDeck');
+    if (!card || !deck) return;
+    deck.appendChild(card);
+    // 先插入再强制重排，退场过渡才会真正播出来（插入时就带类会直接落到终态）
+    void card.offsetWidth;
     card.classList.add(dir === 'save' ? 'swiped-right' : 'swiped-left');
     if (dir === 'save') card.classList.add('saved-flash');
-    setTimeout(after, 320);
+    card.classList.add('swipe-leaving');
+    setTimeout(function () {
+      if (card.parentNode) card.parentNode.removeChild(card);
+    }, 360);
   }
-  // 连点保护：滑出动画期间重复点击会连推两张卡片，用锁挡住
-  var swipeLocked = false;
   $('#swipeSave').addEventListener('click', function () {
-    if (swipeLocked) return;
     if (!requireLogin('Sign in to save affirmations ♥')) return;
     if (!requirePaid('Favourites')) return;
-    swipeLocked = true;
     var text = swipeQueue[swipeQueue.length - 1];
-    // 先落状态并立刻刷新角标：不等 320ms 的滑出动画，点下去数字马上变。
-    // 这样即使动画被打断、后续渲染异常，界面上的数量也已经是新的。
-    if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
+    if (!text) return;
+    var deck = $('#swipeDeck');
+    var oldCard = deck ? deck.querySelector('.swipe-card') : null;
+
+    // 1) 点击瞬间落状态 + 刷角标 + 同步云端
+    if (db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
     save(); updateAffirmBadges();
-    swipeOut('save', function () {
-      swipeQueue.pop();
-      // 先解锁再渲染：万一渲染抛错，也不会把爱心永久锁死
-      swipeLocked = false;
-      renderSwipe(); renderAffirm();
-    });
-    if (text) syncAffirmFav(text, false, true);
+    syncAffirmFav(text, false, true);
+
+    // 2) 立即前进到下一张，不等动画
+    swipeQueue.pop();
+    renderSwipe(); renderAffirm();
+
+    // 3) 旧卡片退场动画（不阻塞后续点击）
+    swipeLeave(oldCard, 'save');
   });
   $('#swipeSkip').addEventListener('click', function () {
-    var text = swipeQueue[swipeQueue.length - 1];
-    swipeOut('skip', function () { swipeQueue.pop(); renderSwipe(); });
+    var deck = $('#swipeDeck');
+    var oldCard = deck ? deck.querySelector('.swipe-card') : null;
+    if (!swipeQueue.length) return;
+    swipeQueue.pop();
+    renderSwipe();
+    swipeLeave(oldCard, 'skip');
   });
   $('#swipeReset').addEventListener('click', function () { initSwipe(); });
 
