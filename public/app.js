@@ -2408,6 +2408,19 @@
         };
         var qName = qVoiceMap[qVoice] || qVoice;
         badge.textContent = '💫 Qwen 3.0 TTS · ' + qName + ' narrating...';
+      } else if (selectedVoice.startsWith('voxtral:')) {
+        var vtVoice = selectedVoice.replace('voxtral:', '');
+        var vtVoiceMap = {
+          'voice_478': 'Sheila (Warm expressive · US female)',
+          'voice_447': 'Margaret (Soft natural · US female)',
+          'voice_3150': 'James (Confident clear · US male)',
+          'voice_485': 'Rob (Friendly grounded · US male)',
+          'voice_1787': 'Mary (Gentle refined · UK female)',
+          'voice_1786': 'Sky (Bright lively · UK female)',
+          'voice_591': 'Fred (Calm steady · UK male)',
+          'voice_3147': 'Howard (Deep warm · UK male)'
+        };
+        badge.textContent = '🔥 Mistral Voxtral TTS 3 · ' + (vtVoiceMap[vtVoice] || vtVoice) + ' narrating...';
       } else if (selectedVoice.startsWith('openrouter:')) {
         var orVoiceName = selectedVoice.replace('openrouter:', '');
         badge.textContent = '🌟 OpenRouter Gemini 3.1 TTS · ' + orVoiceName + ' narrating...';

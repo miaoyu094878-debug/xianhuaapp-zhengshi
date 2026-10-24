@@ -83,6 +83,8 @@ const COST_TABLE = {
   /** Qwen-Audio-3.0-TTS 链路的兜底单价（美元 / 1000 字符）：Plus 官方价 $20/M = 0.020，
    *  Flash 实测 ≈ $15/M = 0.015。兜底取该链路的**上界** 0.020，宁可略多扣也不漏收。 */
   ttsPer1kCharsQwen: 0.02,
+  /** Mistral Voxtral TTS 3 链路的兜底单价（美元 / 1000 字符）：官方价 $13/M = 0.013。 */
+  ttsPer1kCharsVoxtral: 0.013,
   visionPhoto: { low: 0.015, medium: 0.045, high: 0.17 },
   /** 每张参考图的额外成本（参考图越多，模型输入越贵） */
   visionPhotoPerRef: 0.01,
@@ -310,9 +312,17 @@ function isQwenTtsVoice(voiceName: any): boolean {
     v.startsWith('longan') || v.startsWith('loong');
 }
 
+/** 本次 TTS 是否走 Voxtral TTS 3 链路（判定口径与 handleVoice 的 isVoxtralTTS 保持一致） */
+function isVoxtralTtsVoice(voiceName: any): boolean {
+  const v = String(voiceName || '').toLowerCase();
+  return v.startsWith('voxtral:') || v.startsWith('voxtral_tts:');
+}
+
 /** TTS 兜底单价（美元 / 1000 字符），按本次实际走的链路取 */
 function ttsRatePer1kChars(voiceName: any): number {
-  return isQwenTtsVoice(voiceName) ? COST_TABLE.ttsPer1kCharsQwen : COST_TABLE.ttsPer1kChars;
+  if (isQwenTtsVoice(voiceName)) return COST_TABLE.ttsPer1kCharsQwen;
+  if (isVoxtralTtsVoice(voiceName)) return COST_TABLE.ttsPer1kCharsVoxtral;
+  return COST_TABLE.ttsPer1kChars;
 }
 
 /** 一次调用的美元成本 —— 既是审计数据，也是定价依据（pointsForCost 的输入） */
@@ -1191,6 +1201,51 @@ async function handleVoice(body: any): Promise<Response> {
       }
     } catch (e) {
       console.warn('OpenRouter Qwen Audio 3.0 TTS error in edge function:', e);
+    }
+  }
+
+  // 方案 A-Voxtral: 检查是否请求 Mistral Voxtral TTS 3 (OpenRouter audio/speech 端点,
+  // voice 为 voice_XXXX 预设声音，完整清单见 docs.mistral.ai/studio/audio/text-to-speech/voices)
+  const isVoxtralTTS = (typeof voiceName === 'string' && (voiceName.startsWith('voxtral:') || voiceName.startsWith('voxtral_tts:'))) ||
+    (typeof voiceId === 'string' && (voiceId.startsWith('voxtral:') || voiceId.startsWith('voxtral_tts:')));
+
+  if (isVoxtralTTS && effectiveOpenRouterKey) {
+    try {
+      const rawVoice = voiceName || voiceId || 'voxtral:voice_478';
+      const cleanVoice = rawVoice.replace(/^voxtral(_tts)?:/, '').trim() || 'voice_478';
+
+      const orRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://luminara.app',
+          'X-Title': 'Alyema'
+        },
+        body: JSON.stringify({
+          model: 'mistralai/voxtral-mini-tts-3-0',
+          input: cleanText,
+          voice: cleanVoice,
+          response_format: 'mp3'
+        })
+      });
+
+      if (orRes.ok) {
+        const arrayBuf = await orRes.arrayBuffer();
+        const base64Audio = bufferToBase64(new Uint8Array(arrayBuf));
+        return await ttsResponse(orRes, effectiveOpenRouterKey, {
+          audio: base64Audio,
+          format: 'mp3',
+          provider: 'openrouter-voxtral-tts',
+          model: 'mistralai/voxtral-mini-tts-3-0',
+          voice: cleanVoice
+        });
+      } else {
+        const errText = await orRes.text();
+        console.warn('OpenRouter Voxtral TTS 3 returned non-200 in Edge Function:', orRes.status, errText);
+      }
+    } catch (e) {
+      console.warn('OpenRouter Voxtral TTS 3 error in edge function:', e);
     }
   }
 
