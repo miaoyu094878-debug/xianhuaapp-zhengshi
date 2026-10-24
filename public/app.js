@@ -1308,16 +1308,25 @@
     if (dir === 'save') card.classList.add('saved-flash');
     setTimeout(after, 320);
   }
+  // 连点保护：滑出动画期间重复点击会连推两张卡片，用锁挡住
+  var swipeLocked = false;
   $('#swipeSave').addEventListener('click', function () {
+    if (swipeLocked) return;
     if (!requireLogin('Sign in to save affirmations ♥')) return;
     if (!requirePaid('Favourites')) return;
+    swipeLocked = true;
     var text = swipeQueue[swipeQueue.length - 1];
+    // 先落状态并立刻刷新角标：不等 320ms 的滑出动画，点下去数字马上变。
+    // 这样即使动画被打断、后续渲染异常，界面上的数量也已经是新的。
+    if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
+    save(); updateAffirmBadges();
     swipeOut('save', function () {
       swipeQueue.pop();
-      if (text && db.affirmFavs.indexOf(text) === -1) db.affirmFavs.push(text);
-      save(); updateAffirmBadges(); renderSwipe(); renderAffirm();
-      if (text) syncAffirmFav(text, false, true);
+      // 先解锁再渲染：万一渲染抛错，也不会把爱心永久锁死
+      swipeLocked = false;
+      renderSwipe(); renderAffirm();
     });
+    if (text) syncAffirmFav(text, false, true);
   });
   $('#swipeSkip').addEventListener('click', function () {
     var text = swipeQueue[swipeQueue.length - 1];
