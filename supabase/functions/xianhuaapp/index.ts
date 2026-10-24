@@ -773,7 +773,7 @@ Deno.serve(async (req: Request) => {
         return await withCredits(req, body, 'journey', corsHeaders, () => handleJourney(body, req));
 
       // ══════════════════════════════════════════════════════════
-      // 模块 3: AI 目标愿景写真 (OpenRouter: openai/gpt-image-2)
+      // 模块 3: AI 目标愿景写真 (OpenRouter: black-forest-labs/flux-3-image-klein)
       // ══════════════════════════════════════════════════════════
       case 'vision-photo':
       case 'photo':
@@ -827,7 +827,7 @@ Deno.serve(async (req: Request) => {
               gemini: !!Deno.env.get('GEMINI_API_KEY')
             },
             models: {
-              visionPhoto: 'openai/gpt-image-2',
+              visionPhoto: 'black-forest-labs/flux-3-image-klein',
               visionVideo: 'minimax/hailuo-3-max'
             }
           }),
@@ -1637,7 +1637,7 @@ function pcmToWavUint8Array(pcm: Uint8Array, sampleRate = 24000, numChannels = 1
 }
 
 // ─────────────────────────────────────────────────────────────
-// 子业务逻辑 3: AI Vision 照片生成 (OpenRouter: openai/gpt-image-2)
+// 子业务逻辑 3: AI Vision 照片生成 (OpenRouter: black-forest-labs/flux-3-image-klein)
 // ─────────────────────────────────────────────────────────────
 async function handleVisionPhoto(body: any): Promise<Response> {
   const openrouterKey = body?.openrouterKey || Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('GEMINI_API_KEY');
@@ -1666,11 +1666,14 @@ async function handleVisionPhoto(body: any): Promise<Response> {
     normalizedQuality = rawQuality;
   }
 
+  // FLUX 3 不认 gpt-image 的 quality(low/medium/high)，改用 resolution 枚举
+  const resolutionStr = normalizedQuality === 'high' ? '4K' : normalizedQuality === 'low' ? '1K' : '2K';
+
   const reqBody: any = {
-    model: 'openai/gpt-image-2',
+    model: 'black-forest-labs/flux-3-image-klein',
     prompt: prompt,
     aspect_ratio: body?.aspect_ratio || '1:1',
-    quality: normalizedQuality
+    resolution: resolutionStr
   };
 
   if (body?.image && typeof body.image === 'string') {
@@ -1702,17 +1705,17 @@ async function handleVisionPhoto(body: any): Promise<Response> {
           'X-Title': 'Alyema'
         },
         body: JSON.stringify({
-          model: 'openai/gpt-image-2',
+          model: 'black-forest-labs/flux-3-image-klein',
           prompt: prompt,
-          size: '1024x1024',
-          quality: normalizedQuality
+          aspect_ratio: body?.aspect_ratio || '1:1',
+          resolution: resolutionStr
         })
       });
       if (retryRes.ok) {
         orRes = retryRes;
       } else {
         return new Response(
-          JSON.stringify({ error: `OpenRouter GPT Image 2 error (${orRes.status}): ${errText}` }),
+          JSON.stringify({ error: `OpenRouter FLUX 3 Image error (${orRes.status}): ${errText}` }),
           { status: orRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -1727,7 +1730,7 @@ async function handleVisionPhoto(body: any): Promise<Response> {
       imageUrl = data.url;
     }
 
-    const payload: any = { success: true, url: imageUrl, model: 'openai/gpt-image-2', prompt: prompt };
+    const payload: any = { success: true, url: imageUrl, model: 'black-forest-labs/flux-3-image-klein', prompt: prompt };
     // 用后按真实成本结算：OpenRouter 生图响应自带 usage.cost（美元），withCredits 读取后删除
     const realCost = usageCostUsd(data.usage);
     if (realCost != null) payload.__costUsd = realCost;
