@@ -2869,7 +2869,8 @@
     // exclusively when the user saves the voice to My Voices.
     recordStoryGeneration();
 
-    fetchVoiceSession(fsKey).then(function (wholeBuf) {
+    fetchVoiceSession(fsKey, getFsAudioCtx()).then(function (r) {
+      var wholeBuf = r && r.buf;
       if (wholeBuf && fsState.paragraphs && fsState.paragraphs.length) {
         playWholeStory(wholeBuf, fsKey);
       } else {
@@ -2893,10 +2894,7 @@
     updateFsPlaybackUI(true);
     $('#fsStoryBody').querySelectorAll('.fs-story-p').forEach(function (el) { el.classList.add('lit'); });
 
-    if (!fsState.audioCtx) {
-      fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
-    }
-    if (fsState.audioCtx.state === 'suspended') fsState.audioCtx.resume();
+    getFsAudioCtx();
 
     var source = fsState.audioCtx.createBufferSource();
     source.buffer = buf;
@@ -3433,20 +3431,40 @@
       return up.ok;
     } catch (e) { console.warn('uploadVoiceSession:', e); return false; }
   }
-  // Download a cached full-story WAV and decode to AudioBuffer; returns AudioBuffer|null
+  // 复用同一个 AudioContext：此前每次播放都 new 一个，播放多次会达到浏览器上限（约 6 个）
+  // 之后新上下文创建失败 → 点了没反应，只能刷新页面。
+  function getFsAudioCtx() {
+    if (!fsState.audioCtx || fsState.audioCtx.state === 'closed') {
+      try {
+        fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+      } catch (e) {
+        fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+    if (fsState.audioCtx.state === 'suspended') fsState.audioCtx.resume();
+    return fsState.audioCtx;
+  }
+  // Download a cached full-story WAV and decode to AudioBuffer.
+  // 返回 { buf, status, networkError, decodeError }，让调用方能区分「没这个文件」和「网络/解码失败」。
   async function fetchVoiceSession(key, audioCtx) {
     var session = savedSession(), cfg = supabaseCfg();
-    if (!session || !cfg.url || !cfg.key) return null;
+    if (!session || !cfg.url || !cfg.key) return { buf: null, status: 0 };
     var uid_ = (session.user && session.user.id) || 'anon';
     var path = uid_ + '/' + key + '.wav';
     try {
       var res = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + path, {});
-      if (!res.ok) return null;
+      if (!res.ok) return { buf: null, status: res.status };
       var ab = await res.arrayBuffer();
-      var ctx = audioCtx || ((window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext || window.webkitAudioContext)() : null);
-      if (!ctx) return null;
-      return await ctx.decodeAudioData(ab);
-    } catch (e) { console.warn('fetchVoiceSession:', e); return null; }
+      var ctx = audioCtx || getFsAudioCtx();
+      if (!ctx) return { buf: null, status: res.status, decodeError: true };
+      try {
+        var buf = await ctx.decodeAudioData(ab);
+        return { buf: buf, status: res.status };
+      } catch (de) {
+        console.warn('fetchVoiceSession decode failed:', de);
+        return { buf: null, status: res.status, decodeError: true };
+      }
+    } catch (e) { console.warn('fetchVoiceSession:', e); return { buf: null, status: 0, networkError: true }; }
   }
   function setSession(s) { try { if (s) localStorage.setItem('luminara_session', JSON.stringify(s)); else localStorage.removeItem('luminara_session'); } catch (e) {} }
 
@@ -3474,6 +3492,20 @@
   var SV_TABLE = 'saved_voices';
   var svRows = [];
   var svMsgTimer = null;
+  // 已解码音频缓存：同一条语音第二次点击直接播放，不再下载 + 解码
+  var svBufCache = {}, svBufOrder = [], SV_BUF_MAX = 4;
+  var svBusyKey = null; // 正在加载的那一条（按钮显示 …）
+  function svCacheBuf(key, buf) {
+    if (!key || !buf) return;
+    svBufCache[key] = buf;
+    var i = svBufOrder.indexOf(key);
+    if (i !== -1) svBufOrder.splice(i, 1);
+    svBufOrder.push(key);
+    while (svBufOrder.length > SV_BUF_MAX) {
+      var old = svBufOrder.shift();
+      if (old !== key) delete svBufCache[old];
+    }
+  }
 
   function svToast(str) {
     var m = $('#svMsg');
@@ -3614,9 +3646,13 @@
       favBtn.title = faved ? 'Remove from favorites' : 'Add to favorites';
       favBtn.addEventListener('click', function () { toggleFavoriteVoice(row); });
       var playing = isSvPlaying(row.storage_key);
-      var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), playing ? '⏸' : '▶');
-      playBtn.type = 'button'; playBtn.title = playing ? 'Stop' : 'Play this voice';
+      var busy = !!(svBusyKey && svBusyKey === row.storage_key);
+      var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), busy ? '…' : (playing ? '⏸' : '▶'));
+      playBtn.type = 'button';
+      playBtn.disabled = busy;
+      playBtn.title = busy ? 'Loading…' : (playing ? 'Stop' : 'Play this voice');
       playBtn.addEventListener('click', function () {
+        if (busy) return;
         if (isSvPlaying(row.storage_key)) stopFutureAudio();
         else openAmbiencePicker(row);
       });
@@ -3826,9 +3862,30 @@
 
   async function openSavedVoice(row, freqOverride) {
     if (!requireLogin('Sign in to play your saved voices ✨')) return;
-    svToast('Loading voice…');
-    var buf = await fetchVoiceSession(row.storage_key);
-    if (!buf) { svToast('Audio not found in storage. Please generate and save it again.'); return; }
+    var key = row.storage_key;
+    if (!key) { svToast('This voice has no audio key. Please save it again.'); return; }
+    if (svBusyKey) { svToast('Still loading the previous voice…'); return; }
+    // 命中缓存 → 直接播；否则下载 + 解码，期间按钮显示 … 并禁用
+    var buf = svBufCache[key];
+    if (!buf) {
+      svBusyKey = key;
+      renderSavedVoices();
+      svToast('Loading voice…');
+      try {
+        var r = await fetchVoiceSession(key, getFsAudioCtx());
+        buf = r && r.buf;
+        if (!buf) {
+          if (r && r.status === 404) svToast('This voice has no saved audio in storage. Please generate and save it again.');
+          else if (r && r.decodeError) svToast('This audio file could not be decoded. Please save the voice again.');
+          else svToast('Could not load this voice (network error). Please try again.');
+          return;
+        }
+        svCacheBuf(key, buf);
+      } finally {
+        svBusyKey = null;
+        renderSavedVoices();
+      }
+    }
     stopFutureAudio();
     showSavedVoiceInPlayer(row);
     // playWholeStory 从 #fsFreq 读取环境音：先同步合并选择器，再由其桥接写回隐藏 select
@@ -3855,6 +3912,12 @@
       var res = await sbFetch('/rest/v1/' + SV_TABLE + '?id=eq.' + encodeURIComponent(row.id) + '&user_id=eq.' + encodeURIComponent(s.user.id), { method: 'DELETE' });
       if (!res.ok) { svToast('Delete failed (' + res.status + ').'); return; }
       svRows = svRows.filter(function (r) { return String(r.id) !== String(row.id); });
+      // 删掉内存缓存，避免已删除的语音仍能秒播
+      if (row.storage_key) {
+        delete svBufCache[row.storage_key];
+        var ci = svBufOrder.indexOf(row.storage_key);
+        if (ci !== -1) svBufOrder.splice(ci, 1);
+      }
       renderSavedVoices();
       svToast('Deleted from My Voices');
       // Append a "deleted" event to the usage log; the original generation record stays untouched.
