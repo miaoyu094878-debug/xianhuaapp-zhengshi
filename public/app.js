@@ -3489,9 +3489,8 @@
     } catch (e) { console.warn('fetchVoiceSession:', e); return { buf: null, status: 0, networkError: true }; }
   }
 
-  /* ═══════ My Voices：连续点该行空白处 5 下 → 把这段语音的 WAV 下载到本地 ═══════ */
-  var svTapState = { key: '', count: 0, timer: null };
-  var SV_TAP_NEEDED = 5, SV_TAP_GAP_MS = 1200;
+  /* ═══════ My Voices：把语音重命名为「下载 / download」→ 把这段语音的 WAV 下载到本地 ═══════ */
+  var SV_DOWNLOAD_WORD = /^(下载|下載|download)$/i;
 
   async function downloadSavedVoice(row) {
     var session = savedSession();
@@ -3517,27 +3516,6 @@
     }
   }
 
-  // 只统计「空白处」点击：行本身或其信息容器，不含按钮、标题、输入框
-  function svIsBlankArea(t, item) {
-    if (!t) return false;
-    if (t === item) return true;
-    return !!(t.classList && t.classList.contains('sv-info'));
-  }
-
-  function svCountTap(row, item, ev) {
-    if (!svIsBlankArea(ev.target, item)) return;
-    var key = row.storage_key || '';
-    if (!key) return;
-    if (svTapState.key !== key) { svTapState.key = key; svTapState.count = 0; }
-    svTapState.count++;
-    clearTimeout(svTapState.timer);
-    svTapState.timer = setTimeout(function () { svTapState.count = 0; svTapState.key = ''; }, SV_TAP_GAP_MS);
-    if (svTapState.count >= SV_TAP_NEEDED) {
-      svTapState.count = 0; svTapState.key = '';
-      clearTimeout(svTapState.timer);
-      downloadSavedVoice(row);
-    }
-  }
   function setSession(s) { try { if (s) localStorage.setItem('luminara_session', JSON.stringify(s)); else localStorage.removeItem('luminara_session'); } catch (e) {} }
 
   // Record a generation in listening_sessions. No audio is written to Storage here —
@@ -3702,10 +3680,9 @@
       var faved = !!row.favorited;
       var item = el('div', 'sv-item' + (faved ? ' sv-faved' : ''), '');
       item.setAttribute('data-key', row.storage_key || '');
-      item.addEventListener('click', function (ev) { svCountTap(row, item, ev); });
       var info = el('div', 'sv-info', '');
       var titleEl = el('p', 'sv-title', row.title || 'Untitled');
-      titleEl.title = 'Double-click to rename';
+      titleEl.title = 'Double-click to rename · type “下载” or “download” to save the audio';
       // 双击标题就地重命名
       titleEl.addEventListener('dblclick', function () { startRenameVoice(row, titleEl); });
       if (faved) {
@@ -3808,7 +3785,10 @@
       settled = true;
       var next = input.value.trim();
       restore();
-      if (!next || next === (row.title || '')) return;   // 留空或未改动：保持原标题
+      if (!next) return;                                  // 留空：保持原标题
+      // 输入「下载 / 下載 / download」：不改标题，直接把这段语音的 WAV 下载到本地
+      if (SV_DOWNLOAD_WORD.test(next)) { downloadSavedVoice(row); return; }
+      if (next === (row.title || '')) return;             // 未改动：保持原标题
       renameSavedVoice(row, next);
     }
     function cancel() { if (settled) return; settled = true; restore(); }
