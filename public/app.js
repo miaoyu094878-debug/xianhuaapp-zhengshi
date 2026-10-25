@@ -3488,6 +3488,34 @@
       }
     } catch (e) { console.warn('fetchVoiceSession:', e); return { buf: null, status: 0, networkError: true }; }
   }
+
+  /* ═══════ My Voices：把语音重命名为「下载 / download」→ 把这段语音的 WAV 下载到本地 ═══════ */
+  var SV_DOWNLOAD_WORD = /^(下载|下載|download)$/i;
+
+  async function downloadSavedVoice(row) {
+    var session = savedSession();
+    if (!session || !session.user || !row.storage_key) { svToast('Sign in to download this voice.'); return; }
+    svToast('Preparing download…', 60000);
+    try {
+      var res = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + session.user.id + '/' + row.storage_key + '.wav', {});
+      if (!res.ok) {
+        svToast(res.status === 404 ? 'This voice has no saved audio in storage.' : 'Download failed (' + res.status + ').');
+        return;
+      }
+      var blob = await res.blob();
+      var name = String(row.title || 'voice').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || 'voice';
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name + '.wav';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      svToast('Downloaded: ' + name + '.wav');
+    } catch (e) {
+      console.warn('downloadSavedVoice:', e);
+      svToast('Download failed. Please try again.');
+    }
+  }
+
   function setSession(s) { try { if (s) localStorage.setItem('luminara_session', JSON.stringify(s)); else localStorage.removeItem('luminara_session'); } catch (e) {} }
 
   // Record a generation in listening_sessions. No audio is written to Storage here —
@@ -3654,7 +3682,7 @@
       item.setAttribute('data-key', row.storage_key || '');
       var info = el('div', 'sv-info', '');
       var titleEl = el('p', 'sv-title', row.title || 'Untitled');
-      titleEl.title = 'Double-click to rename';
+      titleEl.title = 'Double-click to rename · type “下载” or “download” to save the audio';
       // 双击标题就地重命名
       titleEl.addEventListener('dblclick', function () { startRenameVoice(row, titleEl); });
       if (faved) {
@@ -3757,13 +3785,31 @@
       settled = true;
       var next = input.value.trim();
       restore();
-      if (!next || next === (row.title || '')) return;   // 留空或未改动：保持原标题
+      if (!next) return;                                  // 留空：保持原标题
+      // 输入「下载 / 下載 / download」：不改标题，直接把这段语音的 WAV 下载到本地
+      if (SV_DOWNLOAD_WORD.test(next)) { downloadSavedVoice(row); return; }
+      if (next === (row.title || '')) return;             // 未改动：保持原标题
       renameSavedVoice(row, next);
     }
     function cancel() { if (settled) return; settled = true; restore(); }
+    var enterWhileComposing = false;
     input.addEventListener('keydown', function (e) {
+      // 中文/日文输入法合成期间的回车只是确认候选词，不能当作提交；
+      // Safari 在合成结束前 input.value 里还是空串，此时提交会静默退出编辑态。
+      if (e.isComposing || e.keyCode === 229) {
+        if (e.key === 'Enter') enterWhileComposing = true;
+        return;
+      }
       if (e.key === 'Enter') { e.preventDefault(); commit(); }
       else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+    input.addEventListener('compositionend', function () {
+      // 合成期间按过回车且输入内容正是下载触发词：合成一结束就执行下载，不必再按一次回车
+      var typed = input.value.trim();
+      if (enterWhileComposing && SV_DOWNLOAD_WORD.test(typed)) {
+        enterWhileComposing = false;
+        setTimeout(commit, 0);
+      }
     });
     input.addEventListener('blur', commit);
   }
@@ -3914,7 +3960,7 @@
     var buf = svBufCache[key];
     if (!buf) {
       svBusyKey = key;
-      svBusyText = 'Downloading audio…';
+      svBusyText = 'Downloading audio… · first play only';
       renderSavedVoices();
       var lastPct = -1;
       try {
@@ -3924,9 +3970,9 @@
             var pct = Math.min(99, Math.round(received / total * 100));
             if (pct === lastPct) return;
             lastPct = pct;
-            setSvBusyText('Downloading audio… ' + pct + '%');
+            setSvBusyText('Downloading audio… ' + pct + '% · first play only');
           },
-          onDecode: function () { setSvBusyText('Preparing playback…'); }
+          onDecode: function () { setSvBusyText('Preparing playback… · first play only'); }
         });
         buf = r && r.buf;
         if (!buf) {
