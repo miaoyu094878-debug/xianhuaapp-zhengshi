@@ -2970,9 +2970,27 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 }
 .sv-empty { font-size: 13px; color: var(--text-soft); margin: 4px 0; text-align: center; }
 .sv-msg { font-size: 12px; color: var(--accent); margin: 10px 0 0; text-align: center; }
-/* 单条语音的加载状态：紧跟在该语音标题下方，避免列表过长时提示被挤到看不见的位置 */
-.sv-load { font-size: 11.5px; color: var(--accent); margin: 3px 0 0; letter-spacing: 0.01em; animation: svLoadPulse 1.6s ease-in-out infinite; }
-@keyframes svLoadPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+/* 单条语音的加载状态：紧跟在该语音标题下方；用琥珀色胶囊做高对比，避免被忽略 */
+.sv-load {
+  display: inline-block;
+  font-size: 11.5px; font-weight: 600;
+  color: #7c2d12;
+  background: #ffe0b2;
+  border: 1px solid #f59e0b;
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin: 4px 0 0;
+  letter-spacing: 0.01em;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+  animation: svLoadPulse 1.6s ease-in-out infinite;
+}
+@keyframes svLoadPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+  50% { opacity: 0.9; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0); }
+}
+@media (prefers-color-scheme: dark) {
+  .sv-load { color: #ffd8a8; background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; }
+}
 /* 播放按钮的加载态：三个点依次起伏（波浪），替代静止的「…」 */
 .sv-btn.sv-loading { gap: 3px; }
 .sv-dot {
