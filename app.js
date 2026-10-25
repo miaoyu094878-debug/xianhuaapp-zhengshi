@@ -3518,12 +3518,24 @@
   var svBufCache = {}, svBufOrder = [], SV_BUF_MAX = 4;
   var svBusyKey = null; // 正在加载的那一条（按钮显示 …）
   var svBusyText = ''; // 正在加载那一条旁边的状态文案（下载进度等）
-  // 只更新当前加载行里的状态文案，不整表重渲染（避免闪烁、也不受列表高度影响）
-  function setSvBusyText(str) {
+  var svBusyPct = null; // 下载百分比；null 表示当前阶段没有具体进度
+  // 只更新当前加载行里的状态条，不整表重渲染（避免闪烁、也不受列表高度影响）
+  function setSvBusyText(str, pct) {
     svBusyText = str || '';
+    svBusyPct = (typeof pct === 'number' && pct >= 0) ? pct : null;
     var box = $('#svList');
     var line = box && box.querySelector('.sv-item[data-busy="1"] .sv-load');
-    if (line) line.textContent = str || '';
+    if (!line) return;
+    var txt = line.querySelector('.sv-load-txt');
+    if (txt) txt.textContent = svBusyText || '';
+    var bar = line.querySelector('.sv-load-bar');
+    var fill = line.querySelector('.sv-load-bar i');
+    if (bar && fill) {
+      var idle = svBusyPct === null;
+      bar.classList.toggle('is-idle', idle);
+      bar.classList.toggle('is-done', svBusyPct === 100);
+      fill.style.width = idle ? '' : Math.max(2, svBusyPct) + '%';
+    }
   }
   function svCacheBuf(key, buf) {
     if (!key || !buf) return;
@@ -3700,7 +3712,16 @@
         else openAmbiencePicker(row);
       });
       // 加载状态就显示在这条语音自己旁边（不受列表长短影响，用户一定看得见）
-      if (busy) info.appendChild(el('p', 'sv-load', svBusyText || 'Loading…'));
+      if (busy) {
+        var load = el('div', 'sv-load', '');
+        load.appendChild(el('span', 'sv-load-txt', svBusyText || 'Loading…'));
+        var bar = el('span', 'sv-load-bar' + (svBusyPct === null ? ' is-idle' : ''), '');
+        var fill = document.createElement('i');
+        fill.style.width = (svBusyPct === null ? '' : Math.max(2, svBusyPct) + '%');
+        bar.appendChild(fill);
+        load.appendChild(bar);
+        info.appendChild(load);
+      }
       var delBtn = el('button', 'sv-btn sv-del', '🗑');
       delBtn.type = 'button'; delBtn.title = 'Delete';
       delBtn.addEventListener('click', function () { deleteSavedVoice(row); });
@@ -3914,7 +3935,8 @@
     var buf = svBufCache[key];
     if (!buf) {
       svBusyKey = key;
-      svBusyText = 'Downloading audio… · first play only';
+      svBusyText = 'Downloading · first play only';
+      svBusyPct = 0;
       renderSavedVoices();
       var lastPct = -1;
       try {
@@ -3924,13 +3946,13 @@
             var pct = Math.min(99, Math.round(received / total * 100));
             if (pct === lastPct) return;
             lastPct = pct;
-            setSvBusyText('Downloading audio… ' + pct + '% · first play only');
+            setSvBusyText('Downloading ' + pct + '% · first play only', pct);
           },
-          onDecode: function () { setSvBusyText('Preparing playback… · first play only'); }
+          onDecode: function () { setSvBusyText('Preparing playback', null); }
         });
         buf = r && r.buf;
         if (!buf) {
-          svBusyText = '';
+          svBusyText = ''; svBusyPct = null;
           if (r && r.status === 404) svToast('This voice has no saved audio in storage. Please generate and save it again.');
           else if (r && r.decodeError) svToast('This audio file could not be decoded. Please save the voice again.');
           else svToast('Could not load this voice (network error). Please try again.');
@@ -3940,6 +3962,7 @@
       } finally {
         svBusyKey = null;
         svBusyText = '';
+        svBusyPct = null;
         renderSavedVoices();
       }
     }
