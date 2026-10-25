@@ -3679,10 +3679,21 @@
       var playing = isSvPlaying(row.storage_key);
       var busy = !!(svBusyKey && svBusyKey === row.storage_key);
       if (busy) item.setAttribute('data-busy', '1');
-      var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), busy ? '…' : (playing ? '⏸' : '▶'));
+      var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), '');
       playBtn.type = 'button';
       playBtn.disabled = busy;
       playBtn.title = busy ? 'Loading…' : (playing ? 'Stop' : 'Play this voice');
+      if (busy) {
+        // 加载中：三个点做波浪起伏，让「系统在工作」这件事一眼看得出
+        playBtn.classList.add('sv-loading');
+        [0, 1, 2].forEach(function (i) {
+          var dot = el('i', 'sv-dot', '');
+          dot.style.animationDelay = (i * 0.16) + 's';
+          playBtn.appendChild(dot);
+        });
+      } else {
+        playBtn.textContent = playing ? '⏸' : '▶';
+      }
       playBtn.addEventListener('click', function () {
         if (busy) return;
         if (isSvPlaying(row.storage_key)) stopFutureAudio();
