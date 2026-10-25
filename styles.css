@@ -2988,9 +2988,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
   50% { opacity: 0.9; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0); }
 }
-@media (prefers-color-scheme: dark) {
-  .sv-load { color: #ffd8a8; background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; }
-}
+/* 站点固定浅色主题，不跟随系统深色模式，避免文字被改成浅色导致对比度下降 */
 /* 播放按钮的加载态：三个点依次起伏（波浪），替代静止的「…」 */
 .sv-btn.sv-loading { gap: 3px; }
 .sv-dot {
