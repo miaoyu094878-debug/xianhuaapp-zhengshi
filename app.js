@@ -810,6 +810,7 @@
 
   var paywall = $('#paywallModal');
   var _pwKind = 'pro';
+
   function openPaywall(kind, opts) {
     opts = opts || {};
     _pwKind = kind === 'content' ? 'lite' : 'pro'; // 记住拦截类型：内容功能推 Lite，AI 功能推 Pro
@@ -4342,7 +4343,8 @@
 
   /* ═══════ AI Vision (OpenRouter: GPT Image 2 & MiniMax H3 Max) ═══════ */
   var aiKeys = db.aiKeys || {};
-  var aiPhotoRefB64 = null, aiPhotoAspect = '1:1';
+  var aiPhotoRefs = [], aiPhotoAspect = '1:1';
+  var AI_PHOTO_MAX = 5;
   var aiPhotoAspectSel = '3:4', aiVideoAspectSel = '3:4';
   var aiVideoRefB64 = null;
   var currentAiSubTab = 'home';
@@ -4476,7 +4478,7 @@
       aiStatus('🎬 Calling AI Director to develop cinematic shot directions…', 'running');
 
       var userKey = aiKeys.openrouterKey || aiKeys.key || '';
-      var srcInput = aiVideoRefB64 || aiPhotoRefB64;
+      var srcInput = aiVideoRefB64 || (aiPhotoRefs[0] && aiPhotoRefs[0].b64);
       if (!srcInput) {
         var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
         if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
@@ -4533,9 +4535,32 @@
     });
   }
 
-  // Reference Photos: Photo Studio Upload & Dropzone
+  // Reference Photos: Photo Studio Upload & Dropzone (multiple, 1–5 required)
   var photoDropEl = $('#aiPhotoDrop') || $('#aiDrop');
   var photoFileInput = $('#aiPhotoFile') || $('#aiPhoto');
+  function renderPhotoThumbs() {
+    var box = $('#aiPhotoPrevBox') || $('#aiPrevBox');
+    if (!box) return;
+    box.innerHTML = '';
+    aiPhotoRefs.forEach(function (ref, i) {
+      var t = document.createElement('div');
+      t.className = 'ai-thumb';
+      var img = document.createElement('img');
+      img.src = ref.b64;
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'ai-thumb-x'; x.textContent = '×';
+      x.addEventListener('click', function () {
+        aiPhotoRefs.splice(i, 1);
+        if (aiPhotoRefs.length) aiPhotoAspect = aiPhotoRefs[0].aspect;
+        renderPhotoThumbs();
+      });
+      t.appendChild(img); t.appendChild(x);
+      box.appendChild(t);
+    });
+    box.classList.toggle('hidden', aiPhotoRefs.length === 0);
+    var clr = $('#aiPhotoPrevClear') || $('#aiPrevClear');
+    if (clr) clr.classList.toggle('hidden', aiPhotoRefs.length === 0);
+  }
   if (photoDropEl && photoFileInput) {
     photoDropEl.addEventListener('click', function () { photoFileInput.click(); });
     photoDropEl.addEventListener('dragover', function (e) {
@@ -4545,18 +4570,25 @@
     photoDropEl.addEventListener('dragleave', function () {
       photoDropEl.style.borderColor = '';
     });
+    function handlePhotoFiles(files) {
+      var list = Array.prototype.slice.call(files || []);
+      if (!list.length) return;
+      var remaining = AI_PHOTO_MAX - aiPhotoRefs.length;
+      if (remaining <= 0) { aiStatus('You can attach at most ' + AI_PHOTO_MAX + ' reference photos.', 'error'); return; }
+      list.filter(function (fl) { return fl.type.indexOf('image/') === 0; }).forEach(function (fl) {
+        if (aiPhotoRefs.length < AI_PHOTO_MAX) processAiPhotoRef(fl);
+      });
+      if (list.length > remaining) aiStatus('Only the first ' + AI_PHOTO_MAX + ' reference photos were kept.', 'error');
+      if (photoFileInput) photoFileInput.value = '';
+      renderPhotoThumbs();
+    }
     photoDropEl.addEventListener('drop', function (e) {
       e.preventDefault();
       photoDropEl.style.borderColor = '';
-      var dt = e.dataTransfer;
-      var f = dt && dt.files && dt.files[0];
-      if (f && f.type.indexOf('image/') === 0) {
-        processAiPhotoRef(f);
-      }
+      if (e.dataTransfer) handlePhotoFiles(e.dataTransfer.files);
     });
     photoFileInput.addEventListener('change', function () {
-      var f = this.files && this.files[0];
-      if (f) processAiPhotoRef(f);
+      handlePhotoFiles(this.files);
     });
   }
 
@@ -4566,24 +4598,21 @@
         aiStatus('Unable to read photo. Please select another image file.', 'error');
         return;
       }
-      aiPhotoRefB64 = data;
-      aiPhotoAspect = detectedAspect || '1:1';
-      var prevImg = $('#aiPhotoPrevImg') || $('#aiPrevImg');
-      var prevBox = $('#aiPhotoPrevBox') || $('#aiPrevBox');
-      if (prevImg) prevImg.src = data;
-      if (prevBox) prevBox.classList.remove('hidden');
-      aiStatus('Portrait reference attached (' + aiPhotoAspect + '). Facial features will be preserved.', 'success');
+      if (aiPhotoRefs.length >= AI_PHOTO_MAX) return;
+      aiPhotoRefs.push({ b64: data, aspect: detectedAspect || '1:1' });
+      aiPhotoAspect = aiPhotoRefs[0].aspect;
+      renderPhotoThumbs();
+      aiStatus('Reference attached (' + aiPhotoRefs.length + '/' + AI_PHOTO_MAX + '). Likeness will be preserved.', 'success');
     });
   }
 
   var photoPrevClear = $('#aiPhotoPrevClear') || $('#aiPrevClear');
   if (photoPrevClear) {
     photoPrevClear.addEventListener('click', function () {
-      aiPhotoRefB64 = null;
+      aiPhotoRefs = [];
       aiPhotoAspect = '1:1';
-      var prevBox = $('#aiPhotoPrevBox') || $('#aiPrevBox');
-      if (prevBox) prevBox.classList.add('hidden');
       if (photoFileInput) photoFileInput.value = '';
+      renderPhotoThumbs();
       aiStatus('');
     });
   }
@@ -5171,8 +5200,13 @@
     syncAiGenerateBusy();
 
     if (kind === 'photo') {
+      if (!aiPhotoRefs.length) {
+        aiGenerating = false; syncAiGenerateBusy();
+        showInputNudge($('#aiBtnPhoto'), '✨ Please add at least 1 reference photo (up to 5) first, then press Generate.');
+        return;
+      }
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphone16pro;
-      var hasRefImage = Boolean(aiPhotoRefB64);
+      var hasRefImage = Boolean(aiPhotoRefs.length);
       var enhancedPrompt = buildAdaptivePrompt(prompt, currentCameraQuality, hasRefImage);
 
       aiStatus('✦ Rendering portrait (' + cameraInfo.label + ')… (~15s)', 'running');
@@ -5181,7 +5215,7 @@
         raw_prompt: prompt,
         quality: cameraInfo.qualityParam,
         quality_mode: currentCameraQuality,
-        image: aiPhotoRefB64 || undefined,
+        images: aiPhotoRefs.map(function (r) { return r.b64; }),
         aspect_ratio: aiPhotoAspectSel || '3:4',
         opId: uid()   // 幂等键：同一笔生成的重复提交不会重复扣费
       };
@@ -5232,7 +5266,7 @@
       var dur = currentVideoDuration || 5;
       var res = currentVideoResolution || '480p';
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphonex;
-      var srcInput = aiVideoRefB64 || aiPhotoRefB64;
+      var srcInput = aiVideoRefB64 || (aiPhotoRefs[0] && aiPhotoRefs[0].b64);
       if (!srcInput) {
         var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
         if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
