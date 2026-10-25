@@ -1676,10 +1676,29 @@ async function handleVisionPhoto(body: any): Promise<Response> {
     resolution: resolutionStr
   };
 
-  if (body?.image && typeof body.image === 'string') {
-    const formattedUrl = body.image.startsWith('data:') ? body.image : `data:image/jpeg;base64,${body.image}`;
-    reqBody.input_references = [{ type: 'image_url', image_url: { url: formattedUrl } }];
+  // 多图参考：body.images 为 base64 字符串数组（前端限制 1-5 张，FLUX 支持 0-10）
+  const inputRefs: any[] = [];
+  if (Array.isArray(body.images)) {
+    for (const img of body.images) {
+      if (typeof img === 'string' && img) {
+        const formattedUrl = img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}`;
+        inputRefs.push({ type: 'image_url', image_url: { url: formattedUrl } });
+      }
+    }
   }
+  // 向后兼容：单图 body.image 仍为字符串
+  if (!inputRefs.length && body?.image && typeof body.image === 'string') {
+    const formattedUrl = body.image.startsWith('data:') ? body.image : `data:image/jpeg;base64,${body.image}`;
+    inputRefs.push({ type: 'image_url', image_url: { url: formattedUrl } });
+  }
+  // 照片生成现强制要求至少 1 张参考图（产品规则：必须添加参考照片才能生成）
+  if (!inputRefs.length) {
+    return new Response(
+      JSON.stringify({ error: 'A reference photo is required to generate a portrait. Please attach at least 1 photo (up to 5).' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  reqBody.input_references = inputRefs;
 
   try {
     let orRes = await fetch('https://openrouter.ai/api/v1/images', {
