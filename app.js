@@ -3444,9 +3444,29 @@
     if (fsState.audioCtx.state === 'suspended') fsState.audioCtx.resume();
     return fsState.audioCtx;
   }
+  // 边下载边回报进度（onProgress(received, total)），让首次播放有可见的状态提示。
+  // 浏览器不支持流式读取时退回一次性读取，行为不变。
+  async function readBodyWithProgress(res, onProgress) {
+    var total = Number(res.headers.get('content-length')) || 0;
+    if (!res.body || !res.body.getReader) return { buf: await res.arrayBuffer(), total: total };
+    var reader = res.body.getReader(), chunks = [], received = 0;
+    for (;;) {
+      var step = await reader.read();
+      if (step.done) break;
+      chunks.push(step.value);
+      received += step.value.length;
+      if (onProgress) { try { onProgress(received, total); } catch (e) {} }
+    }
+    var out = new Uint8Array(received), off = 0;
+    for (var i = 0; i < chunks.length; i++) { out.set(chunks[i], off); off += chunks[i].length; }
+    return { buf: out.buffer, total: total };
+  }
+
   // Download a cached full-story WAV and decode to AudioBuffer.
   // 返回 { buf, status, networkError, decodeError }，让调用方能区分「没这个文件」和「网络/解码失败」。
-  async function fetchVoiceSession(key, audioCtx) {
+  // hooks.onProgress(received, total) 下载进度；hooks.onDecode() 下载完成、开始解码。
+  async function fetchVoiceSession(key, audioCtx, hooks) {
+    hooks = hooks || {};
     var session = savedSession(), cfg = supabaseCfg();
     if (!session || !cfg.url || !cfg.key) return { buf: null, status: 0 };
     var uid_ = (session.user && session.user.id) || 'anon';
@@ -3454,7 +3474,9 @@
     try {
       var res = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + path, {});
       if (!res.ok) return { buf: null, status: res.status };
-      var ab = await res.arrayBuffer();
+      var body = await readBodyWithProgress(res, hooks.onProgress);
+      var ab = body.buf;
+      if (hooks.onDecode) { try { hooks.onDecode(); } catch (e) {} }
       var ctx = audioCtx || getFsAudioCtx();
       if (!ctx) return { buf: null, status: res.status, decodeError: true };
       try {
@@ -3495,6 +3517,14 @@
   // 已解码音频缓存：同一条语音第二次点击直接播放，不再下载 + 解码
   var svBufCache = {}, svBufOrder = [], SV_BUF_MAX = 4;
   var svBusyKey = null; // 正在加载的那一条（按钮显示 …）
+  var svBusyText = ''; // 正在加载那一条旁边的状态文案（下载进度等）
+  // 只更新当前加载行里的状态文案，不整表重渲染（避免闪烁、也不受列表高度影响）
+  function setSvBusyText(str) {
+    svBusyText = str || '';
+    var box = $('#svList');
+    var line = box && box.querySelector('.sv-item[data-busy="1"] .sv-load');
+    if (line) line.textContent = str || '';
+  }
   function svCacheBuf(key, buf) {
     if (!key || !buf) return;
     svBufCache[key] = buf;
@@ -3507,13 +3537,14 @@
     }
   }
 
-  function svToast(str) {
+  // holdMs = 0 → 不自动消失（用于下载进度这类持续状态，结束时再主动清空）
+  function svToast(str, holdMs) {
     var m = $('#svMsg');
     if (!m) return;
     m.textContent = str || '';
     m.classList.toggle('hidden', !str);
-    if (svMsgTimer) clearTimeout(svMsgTimer);
-    if (str) svMsgTimer = setTimeout(function () { m.classList.add('hidden'); }, 3200);
+    if (svMsgTimer) { clearTimeout(svMsgTimer); svMsgTimer = null; }
+    if (str && holdMs !== 0) svMsgTimer = setTimeout(function () { m.classList.add('hidden'); }, holdMs || 3200);
   }
 
   function setSelectIfExists(sel, val) {
@@ -3647,15 +3678,29 @@
       favBtn.addEventListener('click', function () { toggleFavoriteVoice(row); });
       var playing = isSvPlaying(row.storage_key);
       var busy = !!(svBusyKey && svBusyKey === row.storage_key);
-      var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), busy ? '…' : (playing ? '⏸' : '▶'));
+      if (busy) item.setAttribute('data-busy', '1');
+      var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), '');
       playBtn.type = 'button';
       playBtn.disabled = busy;
       playBtn.title = busy ? 'Loading…' : (playing ? 'Stop' : 'Play this voice');
+      if (busy) {
+        // 加载中：三个点做波浪起伏，让「系统在工作」这件事一眼看得出
+        playBtn.classList.add('sv-loading');
+        [0, 1, 2].forEach(function (i) {
+          var dot = el('i', 'sv-dot', '');
+          dot.style.animationDelay = (i * 0.16) + 's';
+          playBtn.appendChild(dot);
+        });
+      } else {
+        playBtn.textContent = playing ? '⏸' : '▶';
+      }
       playBtn.addEventListener('click', function () {
         if (busy) return;
         if (isSvPlaying(row.storage_key)) stopFutureAudio();
         else openAmbiencePicker(row);
       });
+      // 加载状态就显示在这条语音自己旁边（不受列表长短影响，用户一定看得见）
+      if (busy) info.appendChild(el('p', 'sv-load', svBusyText || 'Loading…'));
       var delBtn = el('button', 'sv-btn sv-del', '🗑');
       delBtn.type = 'button'; delBtn.title = 'Delete';
       delBtn.addEventListener('click', function () { deleteSavedVoice(row); });
@@ -3869,12 +3914,23 @@
     var buf = svBufCache[key];
     if (!buf) {
       svBusyKey = key;
+      svBusyText = 'Downloading audio… · first play only';
       renderSavedVoices();
-      svToast('Loading voice…');
+      var lastPct = -1;
       try {
-        var r = await fetchVoiceSession(key, getFsAudioCtx());
+        var r = await fetchVoiceSession(key, getFsAudioCtx(), {
+          onProgress: function (received, total) {
+            if (!total) return;
+            var pct = Math.min(99, Math.round(received / total * 100));
+            if (pct === lastPct) return;
+            lastPct = pct;
+            setSvBusyText('Downloading audio… ' + pct + '% · first play only');
+          },
+          onDecode: function () { setSvBusyText('Preparing playback… · first play only'); }
+        });
         buf = r && r.buf;
         if (!buf) {
+          svBusyText = '';
           if (r && r.status === 404) svToast('This voice has no saved audio in storage. Please generate and save it again.');
           else if (r && r.decodeError) svToast('This audio file could not be decoded. Please save the voice again.');
           else svToast('Could not load this voice (network error). Please try again.');
@@ -3883,6 +3939,7 @@
         svCacheBuf(key, buf);
       } finally {
         svBusyKey = null;
+        svBusyText = '';
         renderSavedVoices();
       }
     }
