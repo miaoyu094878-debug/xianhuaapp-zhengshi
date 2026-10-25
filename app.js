@@ -3792,9 +3792,24 @@
       renameSavedVoice(row, next);
     }
     function cancel() { if (settled) return; settled = true; restore(); }
+    var enterWhileComposing = false;
     input.addEventListener('keydown', function (e) {
+      // 中文/日文输入法合成期间的回车只是确认候选词，不能当作提交；
+      // Safari 在合成结束前 input.value 里还是空串，此时提交会静默退出编辑态。
+      if (e.isComposing || e.keyCode === 229) {
+        if (e.key === 'Enter') enterWhileComposing = true;
+        return;
+      }
       if (e.key === 'Enter') { e.preventDefault(); commit(); }
       else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+    input.addEventListener('compositionend', function () {
+      // 合成期间按过回车且输入内容正是下载触发词：合成一结束就执行下载，不必再按一次回车
+      var typed = input.value.trim();
+      if (enterWhileComposing && SV_DOWNLOAD_WORD.test(typed)) {
+        enterWhileComposing = false;
+        setTimeout(commit, 0);
+      }
     });
     input.addEventListener('blur', commit);
   }
