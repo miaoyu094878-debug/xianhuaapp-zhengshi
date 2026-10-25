@@ -3488,6 +3488,56 @@
       }
     } catch (e) { console.warn('fetchVoiceSession:', e); return { buf: null, status: 0, networkError: true }; }
   }
+
+  /* ═══════ My Voices：连续点该行空白处 5 下 → 把这段语音的 WAV 下载到本地 ═══════ */
+  var svTapState = { key: '', count: 0, timer: null };
+  var SV_TAP_NEEDED = 5, SV_TAP_GAP_MS = 1200;
+
+  async function downloadSavedVoice(row) {
+    var session = savedSession();
+    if (!session || !session.user || !row.storage_key) { svToast('Sign in to download this voice.'); return; }
+    svToast('Preparing download…', 60000);
+    try {
+      var res = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + session.user.id + '/' + row.storage_key + '.wav', {});
+      if (!res.ok) {
+        svToast(res.status === 404 ? 'This voice has no saved audio in storage.' : 'Download failed (' + res.status + ').');
+        return;
+      }
+      var blob = await res.blob();
+      var name = String(row.title || 'voice').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || 'voice';
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name + '.wav';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      svToast('Downloaded: ' + name + '.wav');
+    } catch (e) {
+      console.warn('downloadSavedVoice:', e);
+      svToast('Download failed. Please try again.');
+    }
+  }
+
+  // 只统计「空白处」点击：行本身或其信息容器，不含按钮、标题、输入框
+  function svIsBlankArea(t, item) {
+    if (!t) return false;
+    if (t === item) return true;
+    return !!(t.classList && t.classList.contains('sv-info'));
+  }
+
+  function svCountTap(row, item, ev) {
+    if (!svIsBlankArea(ev.target, item)) return;
+    var key = row.storage_key || '';
+    if (!key) return;
+    if (svTapState.key !== key) { svTapState.key = key; svTapState.count = 0; }
+    svTapState.count++;
+    clearTimeout(svTapState.timer);
+    svTapState.timer = setTimeout(function () { svTapState.count = 0; svTapState.key = ''; }, SV_TAP_GAP_MS);
+    if (svTapState.count >= SV_TAP_NEEDED) {
+      svTapState.count = 0; svTapState.key = '';
+      clearTimeout(svTapState.timer);
+      downloadSavedVoice(row);
+    }
+  }
   function setSession(s) { try { if (s) localStorage.setItem('luminara_session', JSON.stringify(s)); else localStorage.removeItem('luminara_session'); } catch (e) {} }
 
   // Record a generation in listening_sessions. No audio is written to Storage here —
@@ -3652,6 +3702,7 @@
       var faved = !!row.favorited;
       var item = el('div', 'sv-item' + (faved ? ' sv-faved' : ''), '');
       item.setAttribute('data-key', row.storage_key || '');
+      item.addEventListener('click', function (ev) { svCountTap(row, item, ev); });
       var info = el('div', 'sv-info', '');
       var titleEl = el('p', 'sv-title', row.title || 'Untitled');
       titleEl.title = 'Double-click to rename';
