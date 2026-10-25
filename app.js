@@ -3517,6 +3517,14 @@
   // 已解码音频缓存：同一条语音第二次点击直接播放，不再下载 + 解码
   var svBufCache = {}, svBufOrder = [], SV_BUF_MAX = 4;
   var svBusyKey = null; // 正在加载的那一条（按钮显示 …）
+  var svBusyText = ''; // 正在加载那一条旁边的状态文案（下载进度等）
+  // 只更新当前加载行里的状态文案，不整表重渲染（避免闪烁、也不受列表高度影响）
+  function setSvBusyText(str) {
+    svBusyText = str || '';
+    var box = $('#svList');
+    var line = box && box.querySelector('.sv-item[data-busy="1"] .sv-load');
+    if (line) line.textContent = str || '';
+  }
   function svCacheBuf(key, buf) {
     if (!key || !buf) return;
     svBufCache[key] = buf;
@@ -3670,6 +3678,7 @@
       favBtn.addEventListener('click', function () { toggleFavoriteVoice(row); });
       var playing = isSvPlaying(row.storage_key);
       var busy = !!(svBusyKey && svBusyKey === row.storage_key);
+      if (busy) item.setAttribute('data-busy', '1');
       var playBtn = el('button', 'sv-btn sv-play' + (playing ? ' sv-playing' : ''), busy ? '…' : (playing ? '⏸' : '▶'));
       playBtn.type = 'button';
       playBtn.disabled = busy;
@@ -3679,6 +3688,8 @@
         if (isSvPlaying(row.storage_key)) stopFutureAudio();
         else openAmbiencePicker(row);
       });
+      // 加载状态就显示在这条语音自己旁边（不受列表长短影响，用户一定看得见）
+      if (busy) info.appendChild(el('p', 'sv-load', svBusyText || 'Loading…'));
       var delBtn = el('button', 'sv-btn sv-del', '🗑');
       delBtn.type = 'button'; delBtn.title = 'Delete';
       delBtn.addEventListener('click', function () { deleteSavedVoice(row); });
@@ -3892,9 +3903,9 @@
     var buf = svBufCache[key];
     if (!buf) {
       svBusyKey = key;
+      svBusyText = 'Downloading audio… · first play only';
       renderSavedVoices();
       var lastPct = -1;
-      svToast('Downloading audio… · first play only', 0);
       try {
         var r = await fetchVoiceSession(key, getFsAudioCtx(), {
           onProgress: function (received, total) {
@@ -3902,12 +3913,13 @@
             var pct = Math.min(99, Math.round(received / total * 100));
             if (pct === lastPct) return;
             lastPct = pct;
-            svToast('Downloading audio… ' + pct + '% · first play only', 0);
+            setSvBusyText('Downloading audio… ' + pct + '% · first play only');
           },
-          onDecode: function () { svToast('Preparing playback… · first play only', 0); }
+          onDecode: function () { setSvBusyText('Preparing playback… · first play only'); }
         });
         buf = r && r.buf;
         if (!buf) {
+          svBusyText = '';
           if (r && r.status === 404) svToast('This voice has no saved audio in storage. Please generate and save it again.');
           else if (r && r.decodeError) svToast('This audio file could not be decoded. Please save the voice again.');
           else svToast('Could not load this voice (network error). Please try again.');
@@ -3916,6 +3928,7 @@
         svCacheBuf(key, buf);
       } finally {
         svBusyKey = null;
+        svBusyText = '';
         renderSavedVoices();
       }
     }
