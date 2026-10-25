@@ -3945,7 +3945,7 @@
     var buf = svBufCache[key];
     if (!buf) {
       svBusyKey = key;
-      svBusyText = 'Downloading audio…';
+      svBusyText = 'Downloading audio… · first play only';
       renderSavedVoices();
       var lastPct = -1;
       try {
@@ -3955,9 +3955,9 @@
             var pct = Math.min(99, Math.round(received / total * 100));
             if (pct === lastPct) return;
             lastPct = pct;
-            setSvBusyText('Downloading audio… ' + pct + '%');
+            setSvBusyText('Downloading audio… ' + pct + '% · first play only');
           },
-          onDecode: function () { setSvBusyText('Preparing playback…'); }
+          onDecode: function () { setSvBusyText('Preparing playback… · first play only'); }
         });
         buf = r && r.buf;
         if (!buf) {
