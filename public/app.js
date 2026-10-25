@@ -3444,9 +3444,29 @@
     if (fsState.audioCtx.state === 'suspended') fsState.audioCtx.resume();
     return fsState.audioCtx;
   }
+  // 边下载边回报进度（onProgress(received, total)），让首次播放有可见的状态提示。
+  // 浏览器不支持流式读取时退回一次性读取，行为不变。
+  async function readBodyWithProgress(res, onProgress) {
+    var total = Number(res.headers.get('content-length')) || 0;
+    if (!res.body || !res.body.getReader) return { buf: await res.arrayBuffer(), total: total };
+    var reader = res.body.getReader(), chunks = [], received = 0;
+    for (;;) {
+      var step = await reader.read();
+      if (step.done) break;
+      chunks.push(step.value);
+      received += step.value.length;
+      if (onProgress) { try { onProgress(received, total); } catch (e) {} }
+    }
+    var out = new Uint8Array(received), off = 0;
+    for (var i = 0; i < chunks.length; i++) { out.set(chunks[i], off); off += chunks[i].length; }
+    return { buf: out.buffer, total: total };
+  }
+
   // Download a cached full-story WAV and decode to AudioBuffer.
   // 返回 { buf, status, networkError, decodeError }，让调用方能区分「没这个文件」和「网络/解码失败」。
-  async function fetchVoiceSession(key, audioCtx) {
+  // hooks.onProgress(received, total) 下载进度；hooks.onDecode() 下载完成、开始解码。
+  async function fetchVoiceSession(key, audioCtx, hooks) {
+    hooks = hooks || {};
     var session = savedSession(), cfg = supabaseCfg();
     if (!session || !cfg.url || !cfg.key) return { buf: null, status: 0 };
     var uid_ = (session.user && session.user.id) || 'anon';
@@ -3454,7 +3474,9 @@
     try {
       var res = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + path, {});
       if (!res.ok) return { buf: null, status: res.status };
-      var ab = await res.arrayBuffer();
+      var body = await readBodyWithProgress(res, hooks.onProgress);
+      var ab = body.buf;
+      if (hooks.onDecode) { try { hooks.onDecode(); } catch (e) {} }
       var ctx = audioCtx || getFsAudioCtx();
       if (!ctx) return { buf: null, status: res.status, decodeError: true };
       try {
@@ -3507,13 +3529,14 @@
     }
   }
 
-  function svToast(str) {
+  // holdMs = 0 → 不自动消失（用于下载进度这类持续状态，结束时再主动清空）
+  function svToast(str, holdMs) {
     var m = $('#svMsg');
     if (!m) return;
     m.textContent = str || '';
     m.classList.toggle('hidden', !str);
-    if (svMsgTimer) clearTimeout(svMsgTimer);
-    if (str) svMsgTimer = setTimeout(function () { m.classList.add('hidden'); }, 3200);
+    if (svMsgTimer) { clearTimeout(svMsgTimer); svMsgTimer = null; }
+    if (str && holdMs !== 0) svMsgTimer = setTimeout(function () { m.classList.add('hidden'); }, holdMs || 3200);
   }
 
   function setSelectIfExists(sel, val) {
@@ -3870,9 +3893,19 @@
     if (!buf) {
       svBusyKey = key;
       renderSavedVoices();
-      svToast('Loading voice…');
+      var lastPct = -1;
+      svToast('Downloading audio… · first play only', 0);
       try {
-        var r = await fetchVoiceSession(key, getFsAudioCtx());
+        var r = await fetchVoiceSession(key, getFsAudioCtx(), {
+          onProgress: function (received, total) {
+            if (!total) return;
+            var pct = Math.min(99, Math.round(received / total * 100));
+            if (pct === lastPct) return;
+            lastPct = pct;
+            svToast('Downloading audio… ' + pct + '% · first play only', 0);
+          },
+          onDecode: function () { svToast('Preparing playback… · first play only', 0); }
+        });
         buf = r && r.buf;
         if (!buf) {
           if (r && r.status === 404) svToast('This voice has no saved audio in storage. Please generate and save it again.');
