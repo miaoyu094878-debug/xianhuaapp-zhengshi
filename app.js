@@ -2342,6 +2342,11 @@
       }
       try {
         var voicePayload = { text: trimmed, voiceName: voiceName, voiceId: voiceName, mood: mood };
+        // 参考音频对应的台词文本：Fish Audio Drama 3 的 input_references 需要 audio+text 配对，
+        // 才能让模型对齐发音、锚定声纹；缺 text 会对齐错位、克隆质量下降
+        var REF_TRANSCRIPTS = {
+          'voice_gemini': 'a warm cup of tea， feeling the deep calm certainty of your overflowing abundance settle perfectly into your chest。'
+        };
         // 参考声音（Drama 3 克隆）：前端读取 public/voices/<key>.<ext> 转 base64，按扩展名自适应 MIME，随请求发后端透传 input_references
         var refMatch = (voiceName || '').match(/:ref:([A-Za-z0-9_]+)\.([A-Za-z0-9]+)$/);
         if (refMatch) {
@@ -2352,7 +2357,10 @@
             var ares = await fetch('/voices/' + rkey + '.' + rext);
             if (ares.ok) {
               var abuf = await ares.arrayBuffer();
-              voicePayload.inputReferences = [{ type: 'input_audio', input_audio: { data: 'data:' + rmime + ';base64,' + abToB64(abuf) } }];
+              // 用纯 base64 + 显式 format（OpenRouter 首选形态，data: URL 反而可能不被 Fish 适配器识别）：
+              // Fish Audio Drama 3 若解不出参考音频会直接忽略 input_references、退回随机默认音（表现为每次声音/性别都变）
+              var refText = REF_TRANSCRIPTS[rkey] || '';
+              voicePayload.inputReferences = [{ type: 'input_audio', input_audio: { data: abToB64(abuf), format: rext, text: refText } }];
             } else {
               console.warn('[fish-audio] reference voice file missing:', rkey, rext);
             }
