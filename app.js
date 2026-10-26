@@ -2331,8 +2331,34 @@
     }
 
     var fetchPromise = (async function () {
+      function abToB64(buf) {
+        var bytes = new Uint8Array(buf);
+        var bin = '';
+        var chunk = 0x8000;
+        for (var i = 0; i < bytes.length; i += chunk) {
+          bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        return btoa(bin);
+      }
       try {
-        var res = await callUnifiedApi('voice', { text: trimmed, voiceName: voiceName, voiceId: voiceName, mood: mood });
+        var voicePayload = { text: trimmed, voiceName: voiceName, voiceId: voiceName, mood: mood };
+        // 参考声音（Drama 3 克隆）：前端读取 public/voices/<key>.<ext> 转 base64，按扩展名自适应 MIME，随请求发后端透传 input_references
+        var refMatch = (voiceName || '').match(/:ref:([A-Za-z0-9_]+)\.([A-Za-z0-9]+)$/);
+        if (refMatch) {
+          try {
+            var rkey = refMatch[1];
+            var rext = (refMatch[2] || 'wav').toLowerCase();
+            var rmime = rext === 'mp3' ? 'audio/mpeg' : (rext === 'm4a' ? 'audio/mp4' : 'audio/' + rext);
+            var ares = await fetch('/voices/' + rkey + '.' + rext);
+            if (ares.ok) {
+              var abuf = await ares.arrayBuffer();
+              voicePayload.inputReferences = [{ type: 'input_audio', input_audio: { data: 'data:' + rmime + ';base64,' + abToB64(abuf) } }];
+            } else {
+              console.warn('[fish-audio] reference voice file missing:', rkey, rext);
+            }
+          } catch (e) { console.warn('[fish-audio] reference voice fetch failed', e); }
+        }
+        var res = await callUnifiedApi('voice', voicePayload);
         var data = {};
         try { data = (await res.json()) || {}; } catch (e) { data = {}; }
         if (isCreditBlocked(res, data)) return null;
@@ -2505,8 +2531,9 @@
         badge.textContent = '🎙️ Native female voice narrating...';
       } else if (selectedVoice.startsWith('zf_') || selectedVoice.indexOf('kokoro') !== -1) {
         badge.textContent = '🎀 Soft Mandarin voice (Kokoro 82M) narrating...';
-      } else if (selectedVoice === 'fish-audio/s2.1-pro-free:free' || selectedVoice.indexOf('fish-audio') !== -1) {
-        badge.textContent = '🐟 Fish Audio natural voice narrating...';
+      } else if (selectedVoice.indexOf('fish-audio') !== -1) {
+        var faLabel = selectedVoice.replace('fish-audio:', '').replace('fish-audio/', '');
+        badge.textContent = '🐟 Fish Audio · ' + faLabel + ' narrating...';
       } else if (selectedVoice.length >= 15) {
         badge.textContent = '🌟 Custom lifelike voice narrating...';
       } else {
