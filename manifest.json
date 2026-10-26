@@ -1,5 +1,5 @@
 {
-  "name": "Alyema",
+  "name": "A",
   "short_name": "Alyema",
   "description": "A dreamy manifestation tool: affirmations, gratitude journal, vision board, cosmic meditation & AI guidance",
   "start_url": "./index.html",
@@ -12,7 +12,11 @@
   "share_target": {
     "action": "./index.html",
     "method": "GET",
-    "params": { "title": "title", "text": "text", "url": "url" }
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
   },
   "icons": [
     {
