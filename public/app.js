@@ -2891,6 +2891,7 @@
     var moodC = $('#fsMood') ? $('#fsMood').value : 'calm';
     var fsKey = lrHash((data.title || '') + '|' + (data.story || '') + '|' + voiceSelect + '|' + moodC);
     fsState.lrKey = fsKey;
+    updateSaveButtonState();
 
     // Usage log: record the generation only. The audio WAV is stored in Supabase Storage
     // exclusively when the user saves the voice to My Voices.
@@ -3102,6 +3103,7 @@
       var b = $('#' + id);
       if (b) b.disabled = !on;
     });
+    if (on) updateSaveButtonState();
   }
   if ($('#fsPlayBtn')) {
     $('#fsPlayBtn').addEventListener('click', function () {
@@ -3662,9 +3664,38 @@
     el.classList.toggle('err', kind === 'err');
   }
 
+  // 当前这条语音是否已经存进 My Voices（按 storage_key 判定）
+  function isCurrentVoiceSaved() {
+    if (!fsState.lrKey) return false;
+    for (var i = 0; i < svRows.length; i++) {
+      if (svRows[i] && svRows[i].storage_key === fsState.lrKey) return true;
+    }
+    return false;
+  }
+
+  // 已保存 → 按钮固定显示 "✓ Saved" 且不可再点，避免重复保存
+  function updateSaveButtonState() {
+    var btn = $('#fsSaveVoice');
+    if (!btn || !fsState.storyData || !fsState.lrKey) return;
+    if (isCurrentVoiceSaved()) {
+      btn.disabled = true;
+      btn.textContent = '✓ Saved';
+      btn.title = 'This voice is already saved in My Voices';
+    } else {
+      btn.textContent = '💾 Save Voice';
+      btn.title = 'Save this guided voice to My Voices';
+    }
+  }
+
   async function saveCurrentVoice() {
     if (!requireLogin('Sign in to save this guided voice to My Voices ✨')) return;
     if (!fsState.storyData || !fsState.lrKey) { svToast('Generate a guided voice first.'); return; }
+    if (isCurrentVoiceSaved()) {
+      setSaveStatus('✓ Already saved in My Voices', 'ok');
+      svToast('This voice is already saved in My Voices', 3000);
+      updateSaveButtonState();
+      return;
+    }
     var s0 = savedSession();
     if (!(s0 && s0.user && s0.user.id)) { svToast('Please sign in again to save.'); return; }
     var btn = $('#fsSaveVoice');
@@ -3710,11 +3741,12 @@
       await loadSavedVoices();
     } finally {
       if (btn) {
-        btn.disabled = false;
         if (saved) {
+          btn.disabled = true;
           btn.textContent = '✓ Saved';
-          setTimeout(function () { if (btn) btn.textContent = label || '💾 Save Voice'; }, 2000);
+          btn.title = 'This voice is already saved in My Voices';
         } else {
+          btn.disabled = false;
           btn.textContent = label || '💾 Save Voice';
         }
       }
@@ -3733,12 +3765,13 @@
 
   async function loadSavedVoices() {
     var s = savedSession(), cfg = supabaseCfg();
-    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) { svRows = []; renderSavedVoices(); return; }
+    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) { svRows = []; renderSavedVoices(); updateSaveButtonState(); return; }
     try {
       var res = await sbFetch('/rest/v1/' + SV_TABLE + '?user_id=eq.' + encodeURIComponent(s.user.id) + '&select=*&order=created_at.desc', {});
       svRows = res.ok ? (await res.json()) : [];
     } catch (e) { svRows = []; }
     renderSavedVoices();
+    updateSaveButtonState();
   }
 
   // Whether a given saved voice is the one currently playing
