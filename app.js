@@ -4,6 +4,27 @@
   if (window.__LUMINARA_APP_INITIALIZED__) return;
   window.__LUMINARA_APP_INITIALIZED__ = true;
 
+  /* ═══════ Boot splash：白底字标，加载完成后淡出 ═══════ */
+  (function () {
+    var el = document.getElementById('bootSplash');
+    if (!el) return;
+    var t0 = Date.now();
+    var done = false;
+    function hide() {
+      if (done) return;
+      done = true;
+      // 至少停留 700ms，避免一闪而过；之后淡出并移除
+      var wait = Math.max(0, 700 - (Date.now() - t0));
+      setTimeout(function () {
+        el.classList.add('is-hidden');
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 600);
+      }, wait);
+    }
+    if (document.readyState === 'complete') hide();
+    else window.addEventListener('load', hide);
+    setTimeout(hide, 3000);
+  })();
+
   /* ═══════ Mobile/Desktop desire textarea placeholder sync ═══════ */
   // 两个 textarea 按设备类显隐；输入时同步值，保证 #fsDesire 始终有最新内容。
   (function () {

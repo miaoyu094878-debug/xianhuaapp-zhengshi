@@ -1,18 +1,22 @@
 {
-  "name": "Alyema — Manifest Your Reality",
+  "name": "A",
   "short_name": "Alyema",
   "description": "A dreamy manifestation tool: affirmations, gratitude journal, vision board, cosmic meditation & AI guidance",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#faf6ff",
-  "theme_color": "#faf6ff",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "lang": "en",
   "share_target": {
     "action": "./index.html",
     "method": "GET",
-    "params": { "title": "title", "text": "text", "url": "url" }
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
   },
   "icons": [
     {
