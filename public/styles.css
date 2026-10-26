@@ -3364,6 +3364,37 @@ html.device-mobile .fs-scroll-arrow .fs-arrow-ico {
 .fs-loading-txt { font-size: 14px; color: var(--text); font-weight: 500; }
 .fs-loading-sub { font-size: 12px; color: var(--text-dim); }
 
+/* 生成进度条：轨道 + 百分比 + 阶段文案 */
+.fs-loading-progress {
+  display: flex; align-items: center; gap: 10px;
+  width: min(320px, 78vw);
+  margin-top: 4px;
+}
+.fs-loading-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  overflow: hidden;
+}
+#fsLoadingFill {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width .3s ease;
+}
+.fs-loading-pct {
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: right;
+  font-size: 12px; font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.fs-loading-stage { margin: 0; font-size: 12.5px; color: var(--text-soft); }
+
 /* ═══════════ 积分 / 订阅（Credits & Subscription） ═══════════ */
 
 /* 顶部余额药丸 */

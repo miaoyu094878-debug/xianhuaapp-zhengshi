@@ -2876,6 +2876,7 @@
     });
 
     $('#fsLoading').classList.add('hidden');
+    resetFsGenProgress();
     $('#fsPlayer').classList.remove('hidden');
     fsState.generating = false;
     setFsGenerateBusy(false);
@@ -3021,6 +3022,7 @@
       $('#fsPlayer').classList.add('hidden');
       $('#fsLoading').classList.remove('hidden');
       setFsControlsEnabled(false);
+      startFsGenProgress();
       $('#fsLoading').scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
@@ -3049,6 +3051,7 @@
         // 未登录 / 积分不足：拦截并给出对应入口，不再走本地兜底文案
         if (isCreditBlocked(res, data)) {
           $('#fsLoading').classList.add('hidden');
+          resetFsGenProgress();
           setFsControlsEnabled(false);
           // 回到表单：解除生成中态，允许用户充值后重新生成
           fsState.generating = false;
@@ -3061,11 +3064,18 @@
         }
 
         applyCreditUsage(data);
+        // 服务端已返回全部音频：进度直接推到 92%，解码预载完再补到 100%
+        stopFsGenProgress();
+        setFsGenProgress(92, 'Preparing playback…');
         // 先把整段音频灌进缓存再渲染，避免渲染后立刻自动播放时缓存未就绪、又去单独调 TTS
         await preloadJourneyAudio(data, journeyVoice, mood);
+        finishFsGenProgress();
+        // 让 100% 短暂停留，用户能看到完成状态
+        await new Promise(function (r) { setTimeout(r, 350); });
         renderFsStoryUI(data);
       } catch (err) {
         console.warn('API error, using client fallback:', err);
+        resetFsGenProgress();
         fsState.generating = false;
         setFsGenerateBusy(false);
         // Instant graceful client-side fallback
@@ -3097,6 +3107,49 @@
     if (!btn) return;
     btn.disabled = !!busy;
     btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  // ── 生成进度：journey 是一次请求，没有真实进度回调，
+  //    这里按已用时间平滑逼近上限（90%），拿到结果后再补到 100%。 ──
+  var fsGenProg = { timer: null, value: 0, t0: 0 };
+  function setFsGenProgress(pct, stageText) {
+    var p = Math.max(0, Math.min(100, pct));
+    var fill = $('#fsLoadingFill');
+    var pctEl = $('#fsLoadingPct');
+    var stage = $('#fsLoadingStage');
+    if (fill) fill.style.width = p + '%';
+    if (pctEl) pctEl.textContent = Math.round(p) + '%';
+    if (stage && stageText) stage.textContent = stageText;
+  }
+  function stopFsGenProgress() {
+    if (fsGenProg.timer) { clearInterval(fsGenProg.timer); fsGenProg.timer = null; }
+  }
+  function resetFsGenProgress() {
+    stopFsGenProgress();
+    fsGenProg.value = 0;
+    setFsGenProgress(0, 'Composing your scene…');
+  }
+  function finishFsGenProgress() {
+    stopFsGenProgress();
+    fsGenProg.value = 100;
+    setFsGenProgress(100, 'Ready ✨ Opening your journey…');
+  }
+  function startFsGenProgress() {
+    stopFsGenProgress();
+    fsGenProg.t0 = Date.now();
+    fsGenProg.value = 4;
+    setFsGenProgress(4, 'Composing your scene…');
+    fsGenProg.timer = setInterval(function () {
+      var sec = (Date.now() - fsGenProg.t0) / 1000;
+      var cap = sec < 4 ? 38 : sec < 10 ? 60 : sec < 20 ? 80 : 90;
+      fsGenProg.value = Math.min(cap, fsGenProg.value + Math.max(0.5, (cap - fsGenProg.value) * 0.07));
+      var stage = sec < 3 ? 'Composing your scene…'
+        : sec < 8 ? 'Writing your guided journey…'
+        : sec < 15 ? 'Recording the narration…'
+        : sec < 24 ? 'Adding ambient atmosphere…'
+        : 'Almost there — final touches…';
+      setFsGenProgress(fsGenProg.value, stage);
+    }, 250);
   }
   function setFsControlsEnabled(on) {
     ['fsPlayBtn', 'fsSaveVoice', 'fsNewDesire'].forEach(function (id) {
