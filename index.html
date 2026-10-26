@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261026bootsplash03">
+  <link rel="stylesheet" href="styles.css?v=20261026agegate03">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -633,6 +633,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .lm-actions { display: flex; gap: 10px; margin-top: 4px; }
 .lm-actions .btn-primary, .lm-actions .chip { flex: 1; text-align: center; margin: 0; text-transform: none; }
 .lm-close { margin-top: 12px; width: 100%; text-align: center; }
+
+/* 年龄门槛（16+）：注册 / 老账号补确认的必勾选项 */
+.lm-age {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 2px 0 12px; text-align: left;
+  font-size: 13px; line-height: 1.5; color: var(--text); cursor: pointer;
+}
+.lm-age input { flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--accent); cursor: pointer; }
+/* 链接用正文色 + 加粗 + 下划线：浅紫在玻璃卡片上对比度不足 3:1，不只靠颜色区分 */
+.lm-age a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 
 /* Google one-click sign-in */
 /* 描边用 var(--text) 的透明度派生，而不是 --border：后者在半透明玻璃卡片上几乎不可见 */
@@ -4489,6 +4499,10 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <input id="acctPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
               <button id="acctTogglePw" class="pw-toggle" type="button" aria-label="Toggle password visibility" aria-pressed="false">👁</button>
             </div>
+            <label class="lm-age">
+              <input type="checkbox" id="acctAge16">
+              <span>I confirm I am 16 or older and accept the <a href="/terms" target="_blank" rel="noopener">Terms</a>&nbsp;&amp;&nbsp;<a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+            </label>
             <div class="acct-actions">
               <button id="acctSignup" class="btn-primary btn-small" type="button">Sign up</button>
               <button id="acctLogin" class="chip" type="button">Log in</button>
@@ -4787,12 +4801,33 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <input id="lmPassword" type="password" placeholder="Password (8+ chars)" minlength="8">
           <button id="lmTogglePw" class="pw-toggle" type="button" aria-label="Toggle password visibility" aria-pressed="false">👁</button>
         </div>
+        <label class="lm-age">
+          <input type="checkbox" id="lmAge16">
+          <span>I confirm I am 16 or older and accept the <a href="/terms" target="_blank" rel="noopener">Terms</a>&nbsp;&amp;&nbsp;<a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
         <div class="lm-actions">
           <button id="lmSignup" class="btn-primary" type="button">Sign up</button>
           <button id="lmLogin" class="chip" type="button">Log in</button>
         </div>
         <p class="acct-hint hidden" id="lmMsg"></p>
         <button class="chip lm-close" id="lmClose" type="button">Maybe later</button>
+      </div>
+    </div>
+
+    <!-- 年龄门槛（16+）：Google 登录 / 老账号首次进入时补确认一次，确认结果写入账号元数据 -->
+    <div id="ageGateModal" class="quiz-modal hidden" role="dialog" aria-modal="true" aria-label="Confirm your age">
+      <div class="quiz-card glass">
+        <h3 class="lm-title">Confirm your age ✦</h3>
+        <p class="quiz-q">Alyema is made for adults and teens aged 16 and over. Please confirm to continue.</p>
+        <label class="lm-age">
+          <input type="checkbox" id="agCheck">
+          <span>I confirm I am 16 or older and accept the <a href="/terms" target="_blank" rel="noopener">Terms</a>&nbsp;&amp;&nbsp;<a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
+        <p class="acct-hint hidden" id="agMsg"></p>
+        <div class="lm-actions">
+          <button id="agConfirm" class="btn-primary" type="button">Continue</button>
+          <button id="agSignout" class="chip" type="button">Sign out</button>
+        </div>
       </div>
     </div>
 
@@ -4974,7 +5009,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261026bootsplash03" defer></script>
+  <script src="app.js?v=20261026agegate03" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">

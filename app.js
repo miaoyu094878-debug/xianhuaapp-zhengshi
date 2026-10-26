@@ -3398,6 +3398,9 @@
   function openLoginModal(intro) {
     if (!loginModal) return;
     if (intro && $('#lmIntro')) $('#lmIntro').textContent = intro;
+    // 每次打开都要求重新勾选年龄确认，避免"默认已同意"
+    var ageBox = $('#lmAge16');
+    if (ageBox) ageBox.checked = false;
     lmMsg('');
     loginModal.classList.remove('hidden');
   }
@@ -3413,6 +3416,69 @@
   }
   if ($('#lmClose')) $('#lmClose').addEventListener('click', closeLoginModal);
   if (loginModal) loginModal.addEventListener('click', function (e) { if (e.target === loginModal) closeLoginModal(); });
+
+  /* ═══════ 年龄门槛（16+）：注册必勾选；Google 登录 / 老账号首次进入补确认一次 ═══════ */
+  // 依据：欧盟默认 16 岁、美国 COPPA 13 岁 → 统一取 16+ 可同时满足两边。
+  // 同意结果写入 auth 用户元数据（age_ok / age_ok_at / terms_version），可作为留痕。
+  var AGE_TERMS_VERSION = '2026-10-26';
+  function ageGatePassed(s) {
+    var meta = (s && s.user && s.user.user_metadata) || null;
+    return !!(meta && meta.age_ok === true);
+  }
+  function agMsg(str) {
+    var m = $('#agMsg');
+    if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); }
+  }
+  function showAgeGate() {
+    var m = $('#ageGateModal');
+    if (!m) return;
+    var box = $('#agCheck');
+    if (box) box.checked = false;
+    agMsg('');
+    m.classList.remove('hidden');
+  }
+  function hideAgeGate() {
+    var m = $('#ageGateModal');
+    if (m) m.classList.add('hidden');
+  }
+  // 把确认结果写回账号元数据；失败时保留弹窗，避免"看起来同意了但没记录"
+  async function persistAgeConsent() {
+    var s = savedSession(), cfg = supabaseCfg();
+    if (!s || !cfg.url || !cfg.key || !s.access_token) return false;
+    try {
+      var res = await fetch(cfg.url + '/auth/v1/user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + s.access_token },
+        body: JSON.stringify({ data: { age_ok: true, age_ok_at: new Date().toISOString(), terms_version: AGE_TERMS_VERSION } })
+      });
+      if (!res.ok) return false;
+      var u = await res.json();
+      s.user = u;
+      setSession(s);
+      return true;
+    } catch (e) { console.warn('age consent:', e); return false; }
+  }
+  function enforceAgeGate(s) {
+    if (s && !ageGatePassed(s)) showAgeGate();
+  }
+  if ($('#agConfirm')) $('#agConfirm').addEventListener('click', async function () {
+    var box = $('#agCheck'), btn = $('#agConfirm');
+    if (!box || !box.checked) { agMsg('Please confirm you are 16 or older to continue.'); return; }
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    var ok = await persistAgeConsent();
+    btn.disabled = false;
+    btn.textContent = 'Continue';
+    if (!ok) { agMsg('Could not save. Check your connection and try again.'); return; }
+    hideAgeGate();
+    toastNotify('Welcome ✦');
+  });
+  if ($('#agSignout')) $('#agSignout').addEventListener('click', function () {
+    setSession(null);
+    refreshAccount();
+    hideAgeGate();
+    toastNotify('Signed out');
+  });
   var lmTogglePw = $('#lmTogglePw');
   if (lmTogglePw) lmTogglePw.addEventListener('click', function () {
     var pw = $('#lmPassword');
@@ -3428,10 +3494,11 @@
     var pass = $('#lmPassword').value || '';
     var name = ($('#lmName') && $('#lmName').value || '').trim() || (db.profile && db.profile.name) || '';
     if (!email || pass.length < 8) { lmMsg('Enter a valid email and a password of at least 8 characters.'); return; }
+    if (!$('#lmAge16') || !$('#lmAge16').checked) { lmMsg('Please confirm you are 16 or older to create an account.'); return; }
     if (name) { db.profile = db.profile || {}; db.profile.name = name; save(); renderProfile(); }
     lmMsg('Creating account…');
     try {
-      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: name } });
+      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: name, age_ok: true, age_ok_at: new Date().toISOString(), terms_version: AGE_TERMS_VERSION } });
       if (d.user && d.user.identities && d.user.identities.length === 0) { lmMsg('This email is already registered. Please log in instead.'); return; }
       if (d.session && d.session.access_token) { setSession(d.session); await loadProfile(d.session); await seedProfile(d.session); }
       if (d.access_token) { closeLoginModal(); toastNotify('Signed in ✓'); }
@@ -3451,6 +3518,7 @@
       closeLoginModal();
       toastNotify('Signed in ✓');
       refreshAccount();
+      enforceAgeGate(d);
     } catch (e) { lmMsg(e.message); }
   });
 
@@ -4508,9 +4576,10 @@
     var email = ($('#acctEmail').value || '').trim();
     var pass = $('#acctPassword').value || '';
     if (!email || pass.length < 8) { acctMsg('Enter a valid email and a password of at least 8 characters.'); return; }
+    if (!$('#acctAge16') || !$('#acctAge16').checked) { acctMsg('Please confirm you are 16 or older to create an account.'); return; }
     acctMsg('Creating account…');
     try {
-      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: (db.profile && db.profile.name) || '' } });
+      var d = await requestToken('/auth/v1/signup', { email: email, password: pass, data: { name: (db.profile && db.profile.name) || '', age_ok: true, age_ok_at: new Date().toISOString(), terms_version: AGE_TERMS_VERSION } });
       if (d.user && d.user.identities && d.user.identities.length === 0) {
         acctMsg('This email is already registered. Please log in instead.');
         return;
@@ -4532,6 +4601,7 @@
       setSession(d); await loadProfile(d); await seedProfile(d);
       toastNotify('Signed in ✓');
       refreshAccount();
+      enforceAgeGate(d);
     } catch (e) { acctMsg(e.message); }
   });
   if ($('#acctLogout')) $('#acctLogout').addEventListener('click', async function () {
@@ -4709,6 +4779,8 @@
     } catch (e) { console.warn('oauth user:', e); }
     try { await loadProfile(session); await seedProfile(session); } catch (e) {}
     closeLoginModal();
+    // Google 登录不带注册时的元数据 → 缺 age_ok 时补一次年龄确认
+    enforceAgeGate(session);
     // type=signup = 这是「邮箱验证链接」回调：给一个需手动点 Close 才消失的成功提示
     if (p.type === 'signup') { showSignupDoneModal(); } else { toastNotify('Signed in ✓'); }
     return true;
@@ -4718,6 +4790,20 @@
   handleOAuthRedirect().then(function () {
     if ($('#acctSignedIn') || $('#acctSignedOut') || $('#acctLoading')) refreshAccount();
   });
+
+  // 已登录的老账号（本次上线前注册的）：缺 16+ 确认时，进来先补一次，不做就无法继续使用
+  (async function () {
+    try {
+      var s = savedSession();
+      if (!s || !s.access_token) return;
+      if (!s.user) {
+        // 老会话可能没缓存 user，取一次再判断；取不到就跳过，避免误挡正常浏览
+        var res = await sbFetch('/auth/v1/user');
+        if (res.ok) { s.user = await res.json(); setSession(s); }
+      }
+      enforceAgeGate(s);
+    } catch (e) { console.warn('age gate boot:', e); }
+  })();
 
   /* ═══════ 主题：固定 Prism White（2026-10-19 用户要求删除切换器，暂固定单一主题） ═══════ */
   document.documentElement.setAttribute('data-theme', 'prism');
