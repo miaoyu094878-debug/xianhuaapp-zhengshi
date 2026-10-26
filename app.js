@@ -7,7 +7,8 @@
   /* ═══════ Boot splash：白底字标，加载完成后淡出 ═══════ */
   (function () {
     var el = document.getElementById('bootSplash');
-    if (!el) return;
+    // 只有 iOS 主屏启动时会带 .on；其它环境不渲染，直接结束
+    if (!el || !el.classList.contains('on')) return;
     var t0 = Date.now();
     var done = false;
     function hide() {
