@@ -2884,6 +2884,7 @@
     });
 
     $('#fsLoading').classList.add('hidden');
+    resetFsGenProgress();
     $('#fsPlayer').classList.remove('hidden');
     fsState.generating = false;
     setFsGenerateBusy(false);
@@ -2899,6 +2900,7 @@
     var moodC = $('#fsMood') ? $('#fsMood').value : 'calm';
     var fsKey = lrHash((data.title || '') + '|' + (data.story || '') + '|' + voiceSelect + '|' + moodC);
     fsState.lrKey = fsKey;
+    updateSaveButtonState();
 
     // Usage log: record the generation only. The audio WAV is stored in Supabase Storage
     // exclusively when the user saves the voice to My Voices.
@@ -3028,6 +3030,7 @@
       $('#fsPlayer').classList.add('hidden');
       $('#fsLoading').classList.remove('hidden');
       setFsControlsEnabled(false);
+      startFsGenProgress();
       $('#fsLoading').scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
@@ -3056,6 +3059,7 @@
         // 未登录 / 积分不足：拦截并给出对应入口，不再走本地兜底文案
         if (isCreditBlocked(res, data)) {
           $('#fsLoading').classList.add('hidden');
+          resetFsGenProgress();
           setFsControlsEnabled(false);
           // 回到表单：解除生成中态，允许用户充值后重新生成
           fsState.generating = false;
@@ -3068,11 +3072,18 @@
         }
 
         applyCreditUsage(data);
+        // 服务端已返回全部音频：进度直接推到 92%，解码预载完再补到 100%
+        stopFsGenProgress();
+        setFsGenProgress(92, 'Preparing playback…');
         // 先把整段音频灌进缓存再渲染，避免渲染后立刻自动播放时缓存未就绪、又去单独调 TTS
         await preloadJourneyAudio(data, journeyVoice, mood);
+        finishFsGenProgress();
+        // 让 100% 短暂停留，用户能看到完成状态
+        await new Promise(function (r) { setTimeout(r, 350); });
         renderFsStoryUI(data);
       } catch (err) {
         console.warn('API error, using client fallback:', err);
+        resetFsGenProgress();
         fsState.generating = false;
         setFsGenerateBusy(false);
         // Instant graceful client-side fallback
@@ -3105,11 +3116,55 @@
     btn.disabled = !!busy;
     btn.setAttribute('aria-busy', busy ? 'true' : 'false');
   }
+
+  // ── 生成进度：journey 是一次请求，没有真实进度回调，
+  //    这里按已用时间平滑逼近上限（90%），拿到结果后再补到 100%。 ──
+  var fsGenProg = { timer: null, value: 0, t0: 0 };
+  function setFsGenProgress(pct, stageText) {
+    var p = Math.max(0, Math.min(100, pct));
+    var fill = $('#fsLoadingFill');
+    var pctEl = $('#fsLoadingPct');
+    var stage = $('#fsLoadingStage');
+    if (fill) fill.style.width = p + '%';
+    if (pctEl) pctEl.textContent = Math.round(p) + '%';
+    if (stage && stageText) stage.textContent = stageText;
+  }
+  function stopFsGenProgress() {
+    if (fsGenProg.timer) { clearInterval(fsGenProg.timer); fsGenProg.timer = null; }
+  }
+  function resetFsGenProgress() {
+    stopFsGenProgress();
+    fsGenProg.value = 0;
+    setFsGenProgress(0, 'Composing your scene…');
+  }
+  function finishFsGenProgress() {
+    stopFsGenProgress();
+    fsGenProg.value = 100;
+    setFsGenProgress(100, 'Ready ✨ Opening your journey…');
+  }
+  function startFsGenProgress() {
+    stopFsGenProgress();
+    fsGenProg.t0 = Date.now();
+    fsGenProg.value = 4;
+    setFsGenProgress(4, 'Composing your scene…');
+    fsGenProg.timer = setInterval(function () {
+      var sec = (Date.now() - fsGenProg.t0) / 1000;
+      var cap = sec < 4 ? 38 : sec < 10 ? 60 : sec < 20 ? 80 : 90;
+      fsGenProg.value = Math.min(cap, fsGenProg.value + Math.max(0.5, (cap - fsGenProg.value) * 0.07));
+      var stage = sec < 3 ? 'Composing your scene…'
+        : sec < 8 ? 'Writing your guided journey…'
+        : sec < 15 ? 'Recording the narration…'
+        : sec < 24 ? 'Adding ambient atmosphere…'
+        : 'Almost there — final touches…';
+      setFsGenProgress(fsGenProg.value, stage);
+    }, 250);
+  }
   function setFsControlsEnabled(on) {
     ['fsPlayBtn', 'fsSaveVoice', 'fsNewDesire'].forEach(function (id) {
       var b = $('#' + id);
       if (b) b.disabled = !on;
     });
+    if (on) updateSaveButtonState();
   }
   if ($('#fsPlayBtn')) {
     $('#fsPlayBtn').addEventListener('click', function () {
@@ -3449,21 +3504,45 @@
   }
   // Upload the concatenated whole-story WAV to {userId}/{key}.wav.
   // Storage is written ONLY when the user explicitly saves the voice (My Voices).
-  async function uploadVoiceSession(childrenBufs, key) {
+  // onProgress(text)：回报「编码中 / 上传百分比」，让保存过程有可见进度。
+  async function uploadVoiceSession(childrenBufs, key, onProgress) {
     var session = savedSession(), cfg = supabaseCfg();
     if (!session || !cfg.url || !cfg.key) return false;
     try {
       var merged = concatBuffers(childrenBufs);
       if (!merged) return false;
+      if (onProgress) onProgress('Encoding audio…');
       var wav = audioBufferToWav(merged);
       var uid_ = (session.user && session.user.id) || 'anon';
       var path = uid_ + '/' + key + '.wav';
-      var up = await sbFetch('/storage/v1/object/' + LR_BUCKET + '/' + path, {
-        method: 'POST',
-        headers: { 'x-upsert': 'true', 'Content-Type': 'audio/wav' },
-        body: wav
-      });
-      return up.ok;
+      var url = cfg.url + '/storage/v1/object/' + LR_BUCKET + '/' + path;
+
+      // fetch 无法回报上传进度，这里用 XHR 的 upload.onprogress
+      function send(token) {
+        return new Promise(function (resolve) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', url, true);
+          xhr.setRequestHeader('apikey', cfg.key);
+          if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+          xhr.setRequestHeader('x-upsert', 'true');
+          xhr.setRequestHeader('Content-Type', 'audio/wav');
+          xhr.upload.onprogress = function (e) {
+            if (onProgress && e.lengthComputable && e.total) {
+              onProgress('Uploading audio… ' + Math.round((e.loaded / e.total) * 100) + '%');
+            }
+          };
+          xhr.onload = function () { resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status }); };
+          xhr.onerror = function () { resolve({ ok: false, status: 0 }); };
+          xhr.send(wav);
+        });
+      }
+
+      var r = await send(session.access_token);
+      if (!r.ok && r.status === 401) {
+        var fresh = await refreshSession();
+        if (fresh && fresh.access_token) r = await send(fresh.access_token);
+      }
+      return r.ok;
     } catch (e) { console.warn('uploadVoiceSession:', e); return false; }
   }
   // 复用同一个 AudioContext：此前每次播放都 new 一个，播放多次会达到浏览器上限（约 6 个）
@@ -3617,29 +3696,82 @@
   }
 
   // Make sure the whole-story WAV exists in Storage, synthesising any missing paragraph
-  async function ensureStoryAudioUploaded() {
+  // onProgress(text)：保存过程中的阶段 / 进度文案
+  async function ensureStoryAudioUploaded(onProgress) {
     var paragraphs = fsState.paragraphs || [];
     if (!paragraphs.length || !fsState.lrKey) return false;
     var voiceKey = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
     var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
+    var done = 0;
+    if (onProgress) onProgress('Preparing audio… 0/' + paragraphs.length);
     var buffers = await Promise.all(paragraphs.map(function (t) {
-      return fetchParagraphAudio(t, voiceKey, mood);
+      return fetchParagraphAudio(t, voiceKey, mood).then(function (b) {
+        done++;
+        if (onProgress) onProgress('Preparing audio… ' + done + '/' + paragraphs.length);
+        return b;
+      });
     }));
     for (var i = 0; i < buffers.length; i++) { if (!buffers[i]) return false; }
-    return await uploadVoiceSession(buffers, fsState.lrKey);
+    return await uploadVoiceSession(buffers, fsState.lrKey, onProgress);
+  }
+
+  // 保存语音的状态条：progress=琥珀、ok=绿、err=红；传空字符串即隐藏
+  function setSaveStatus(text, kind) {
+    var el = $('#fsSaveStatus');
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.toggle('hidden', !text);
+    el.classList.toggle('ok', kind === 'ok');
+    el.classList.toggle('err', kind === 'err');
+  }
+
+  // 当前这条语音是否已经存进 My Voices（按 storage_key 判定）
+  function isCurrentVoiceSaved() {
+    if (!fsState.lrKey) return false;
+    for (var i = 0; i < svRows.length; i++) {
+      if (svRows[i] && svRows[i].storage_key === fsState.lrKey) return true;
+    }
+    return false;
+  }
+
+  // 已保存 → 按钮固定显示 "✓ Saved" 且不可再点，避免重复保存
+  function updateSaveButtonState() {
+    var btn = $('#fsSaveVoice');
+    if (!btn || !fsState.storyData || !fsState.lrKey) return;
+    if (isCurrentVoiceSaved()) {
+      btn.disabled = true;
+      btn.textContent = '✓ Saved';
+      btn.title = 'This voice is already saved in My Voices';
+    } else {
+      btn.textContent = '💾 Save Voice';
+      btn.title = 'Save this guided voice to My Voices';
+    }
   }
 
   async function saveCurrentVoice() {
     if (!requireLogin('Sign in to save this guided voice to My Voices ✨')) return;
     if (!fsState.storyData || !fsState.lrKey) { svToast('Generate a guided voice first.'); return; }
+    if (isCurrentVoiceSaved()) {
+      setSaveStatus('✓ Already saved in My Voices', 'ok');
+      svToast('This voice is already saved in My Voices', 3000);
+      updateSaveButtonState();
+      return;
+    }
     var s0 = savedSession();
     if (!(s0 && s0.user && s0.user.id)) { svToast('Please sign in again to save.'); return; }
     var btn = $('#fsSaveVoice');
-    var label = btn ? btn.textContent : '';
+    var label = (btn && btn.textContent && btn.textContent.indexOf('✓') === -1) ? btn.textContent : '💾 Save Voice';
     if (btn) { btn.disabled = true; btn.textContent = '💾 Saving…'; }
+    setSaveStatus('Saving to My Voices… 0%');
+    var saved = false;
     try {
-      var ok = await ensureStoryAudioUploaded();
-      if (!ok) { svToast('Could not save the audio. Please play it once, then try again.'); return; }
+      var ok = await ensureStoryAudioUploaded(function (text) { setSaveStatus(text); });
+      if (!ok) {
+        setSaveStatus('Could not save the audio. Please play it once, then try again.', 'err');
+        svToast('Could not save the audio. Please play it once, then try again.');
+        return;
+      }
+      setSaveStatus('Saving to My Voices… 100%');
       var sd = fsState.storyData || {};
       var row = {
         user_id: s0.user.id,
@@ -3658,22 +3790,49 @@
         headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify(row)
       });
-      if (!res.ok) { svToast('Save failed (' + res.status + '). Please try again.'); return; }
-      svToast('Saved to My Voices ✓');
+      if (!res.ok) {
+        var failMsg = 'Save failed (' + res.status + '). Please try again.';
+        setSaveStatus(failMsg, 'err');
+        svToast(failMsg);
+        return;
+      }
+      saved = true;
+      setSaveStatus('✓ Saved to My Voices', 'ok');
+      svToast('Saved to My Voices ✓', 3000);
       await loadSavedVoices();
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = label || '💾 Save Voice'; }
+      if (btn) {
+        if (saved) {
+          btn.disabled = true;
+          btn.textContent = '✓ Saved';
+          btn.title = 'This voice is already saved in My Voices';
+        } else {
+          btn.disabled = false;
+          btn.textContent = label || '💾 Save Voice';
+        }
+      }
+      // 成功提示保留 3 秒；失败提示保留 5 秒，方便看清原因
+      setTimeout(function () {
+        var el = $('#fsSaveStatus');
+        if (!el) return;
+        if (saved || el.classList.contains('err')) setSaveStatus('');
+      }, saved ? 3000 : 5000);
+      if (!saved) {
+        var st = $('#fsSaveStatus');
+        if (st && !st.classList.contains('err')) setSaveStatus('Save failed. Please try again.', 'err');
+      }
     }
   }
 
   async function loadSavedVoices() {
     var s = savedSession(), cfg = supabaseCfg();
-    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) { svRows = []; renderSavedVoices(); return; }
+    if (!s || !cfg.url || !cfg.key || !(s.user && s.user.id)) { svRows = []; renderSavedVoices(); updateSaveButtonState(); return; }
     try {
       var res = await sbFetch('/rest/v1/' + SV_TABLE + '?user_id=eq.' + encodeURIComponent(s.user.id) + '&select=*&order=created_at.desc', {});
       svRows = res.ok ? (await res.json()) : [];
     } catch (e) { svRows = []; }
     renderSavedVoices();
+    updateSaveButtonState();
   }
 
   // Whether a given saved voice is the one currently playing
