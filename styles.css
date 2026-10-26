@@ -3333,15 +3333,15 @@ html.device-mobile .fs-scroll-arrow .fs-arrow-ico {
 #fsControlsBar { margin-top: 14px; }
 .fs-controls-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* 保存语音的进度 / 成功提示：与按钮同排的下一行，琥珀胶囊 → 成功转绿 */
+/* 保存语音的进度 / 成功提示：与按钮同排的下一行，配色与空输入轻提示一致（浅底紫边），成功转绿 */
 .fs-save-status {
   flex-basis: 100%;
   margin: 2px 0 0;
   font-size: 12px; font-weight: 600;
   text-align: center;
-  color: #4a1a04;
-  background: #ffe0b2;
-  border: 1px solid #f59e0b;
+  color: #2c2542;
+  background: #f7f5fb;
+  border: 1px solid rgba(120, 92, 190, 0.28);
   border-radius: 999px;
   padding: 5px 12px;
   letter-spacing: 0.01em;
