@@ -4622,6 +4622,63 @@
     location.reload();
   });
 
+  /* ═══════ 删除账号（自助，GDPR Art.17 / CCPA）═══════ */
+  // 走边缘函数 delete-account：删 Storage 音频 + 业务表本人行 + auth 用户。
+  // 财务流水 credit_ledger 按隐私政策保留 24 个月（只含金额，不含内容）。
+  function delAcctMsg(str) {
+    var m = $('#delAcctMsg');
+    if (m) { m.textContent = str || ''; m.classList.toggle('hidden', !str); }
+  }
+  function closeDeleteAcct() {
+    var m = $('#deleteAcctModal');
+    if (m) m.classList.add('hidden');
+    var inp = $('#delAcctInput');
+    if (inp) inp.value = '';
+    delAcctMsg('');
+  }
+  if ($('#acctDelete')) $('#acctDelete').addEventListener('click', function () {
+    if (!savedSession()) return;
+    var inp = $('#delAcctInput');
+    if (inp) inp.value = '';
+    delAcctMsg('');
+    var m = $('#deleteAcctModal');
+    if (m) m.classList.remove('hidden');
+    if (inp) setTimeout(function () { inp.focus(); }, 50);
+  });
+  if ($('#delAcctCancel')) $('#delAcctCancel').addEventListener('click', closeDeleteAcct);
+  var delAcctModal = $('#deleteAcctModal');
+  if (delAcctModal) delAcctModal.addEventListener('click', function (e) { if (e.target === delAcctModal) closeDeleteAcct(); });
+  if ($('#delAcctConfirm')) $('#delAcctConfirm').addEventListener('click', async function () {
+    var btn = $('#delAcctConfirm'), inp = $('#delAcctInput');
+    if (!inp || inp.value.trim().toUpperCase() !== 'DELETE') {
+      delAcctMsg('Type DELETE exactly to confirm.');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+    var ok = false;
+    try {
+      var out = await creditRequest('delete-account');
+      ok = !!(out.res && out.res.ok && out.data && out.data.ok);
+      if (!ok) console.warn('delete-account failed:', out.res && out.res.status, out.data);
+    } catch (e) { console.warn('delete-account:', e); }
+    btn.disabled = false;
+    btn.textContent = 'Delete forever';
+    if (!ok) {
+      delAcctMsg('Could not delete just now. Please try again, or email support@alyema.com and we will delete it within 30 days.');
+      return;
+    }
+    closeDeleteAcct();
+    setSession(null);
+    try {
+      localStorage.removeItem('manifest_data_v1');
+      localStorage.removeItem('luminara_profile_v1');
+      localStorage.removeItem('luminara_openrouter_key');
+    } catch (e) {}
+    toastNotify('Your account has been deleted', 4000);
+    setTimeout(function () { location.reload(); }, 1200);
+  });
+
   // Ensure a profiles row exists for the current user (upsert).
   // Only non-empty fields are sent: with merge-duplicates a partial payload touches
   // just those columns, so a blank local profile can never wipe a saved name.

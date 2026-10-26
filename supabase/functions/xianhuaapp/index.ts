@@ -809,6 +809,11 @@ Deno.serve(async (req: Request) => {
       case 'cancel-subscription':
         return await handleCancelSubscription(req, corsHeaders);
 
+      // 删除账号（GDPR Art.17 / CCPA 自助删除）：删音频 + 业务数据 + auth 用户
+      case 'delete-account':
+      case 'delete_account':
+        return await handleDeleteAccount(req, corsHeaders);
+
       case 'dodo-webhook':
         return await handleDodoWebhook(req, rawBody, corsHeaders);
 
@@ -2513,6 +2518,103 @@ async function handleCancelSubscription(req: Request, cors: Record<string, strin
     console.error('[dodo] cancel error', user.id, err);
     return json({ ok: false, error: err.message || 'cancel_failed' }, 500);
   }
+}
+
+/**
+ * 删除账号（GDPR Art.17 / CCPA 自助删除）
+ *
+ * 顺序：① 有订阅先排「本期末取消」→ ② 删 Storage 里 {uid}/ 下所有音频
+ *      → ③ 删业务表本人行 → ④ 删 auth 用户（放最后，失败即报错）
+ *
+ * 保留：credit_ledger（隐私政策写明财务流水保留 24 个月，只含金额与动作，不含内容）
+ * 说明：删 auth 用户前先把业务行清掉，避免 auth 删除成功后留下孤儿数据。
+ */
+async function handleDeleteAccount(req: Request, cors: Record<string, string>) {
+  const user = await resolveUser(req);
+  if (!user) return json({ ok: false, error: 'auth_required' }, 401, cors);
+  if (!SERVICE_KEY) return json({ ok: false, error: 'deletion_unavailable' }, 503, cors);
+
+  const uid = user.id;
+  const svc = { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY };
+
+  // ① 有订阅先排定期末取消：避免删号后仍被继续扣款（失败不阻断，但要留日志）
+  try {
+    const sub: any = await rpc('dodo_subscription_of', { p_user_id: uid });
+    const subId = String((sub && sub.subscription_id) || '');
+    if (subId && DODO_API_KEY) {
+      const cres = await fetch(DODO_API_BASE + '/subscriptions/' + encodeURIComponent(subId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + DODO_API_KEY },
+        body: JSON.stringify({ cancel_at_next_billing_date: true }),
+      });
+      if (!cres.ok) {
+        console.warn('[delete-account] cancel subscription failed', uid, cres.status, (await cres.text()).slice(0, 300));
+      }
+    }
+  } catch (e) {
+    console.warn('[delete-account] cancel subscription threw', uid, String((e && (e as any).message) || e));
+  }
+
+  // ② 音频文件（Storage 路径约定 {uid}/{key}.wav）
+  try {
+    const listRes = await fetch(SUPABASE_URL + '/storage/v1/object/list/lrv-audio', {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix: uid, limit: 1000, offset: 0 }),
+    });
+    if (listRes.ok) {
+      const files: any[] = await listRes.json();
+      const paths = (Array.isArray(files) ? files : [])
+        .map((f) => (f && f.name ? uid + '/' + f.name : ''))
+        .filter(Boolean);
+      if (paths.length) {
+        const dres = await fetch(SUPABASE_URL + '/storage/v1/object/lrv-audio', {
+          method: 'DELETE',
+          headers: { ...svc, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prefixes: paths }),
+        });
+        if (!dres.ok) console.warn('[delete-account] storage delete', uid, dres.status);
+      }
+    } else {
+      console.warn('[delete-account] storage list', uid, listRes.status);
+    }
+  } catch (e) { console.warn('[delete-account] storage', uid, e); }
+
+  // ③ 业务表本人行（profiles 主键是 id，其余表是 user_id）
+  const byUser = ['active_days', 'affirm_custom', 'affirm_favs', 'goals', 'listening_sessions',
+    'saved_items', 'saved_voices', 'subscriptions', 'visions', 'wallpapers'];
+  for (const t of byUser) {
+    try {
+      const r = await fetch(SUPABASE_URL + '/rest/v1/' + t + '?user_id=eq.' + encodeURIComponent(uid), {
+        method: 'DELETE', headers: svc,
+      });
+      if (!r.ok) console.warn('[delete-account] table', t, r.status, (await r.text()).slice(0, 200));
+    } catch (e) { console.warn('[delete-account] table', t, e); }
+  }
+  try {
+    const pr = await fetch(SUPABASE_URL + '/rest/v1/profiles?id=eq.' + encodeURIComponent(uid), {
+      method: 'DELETE', headers: svc,
+    });
+    if (!pr.ok) console.warn('[delete-account] profiles', uid, pr.status);
+  } catch (e) { console.warn('[delete-account] profiles', uid, e); }
+
+  // ④ auth 用户（最后一步）
+  try {
+    const del = await fetch(SUPABASE_URL + '/auth/v1/admin/users/' + encodeURIComponent(uid), {
+      method: 'DELETE', headers: svc,
+    });
+    if (!del.ok) {
+      const detail = (await del.text()).slice(0, 300);
+      console.error('[delete-account] auth delete failed', uid, del.status, detail);
+      return json({ ok: false, error: 'auth_delete_failed' }, 502, cors);
+    }
+  } catch (e: any) {
+    console.error('[delete-account] auth delete threw', uid, e);
+    return json({ ok: false, error: 'auth_delete_failed' }, 502, cors);
+  }
+
+  console.log('[delete-account] deleted', uid);
+  return json({ ok: true }, 200, cors);
 }
 
 /** 接收 Dodo webhook：验签 → 去重 → 开通/续期/降级 */
