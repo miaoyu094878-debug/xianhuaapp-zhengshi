@@ -1349,13 +1349,19 @@ async function handleVoice(body: any): Promise<Response> {
     (typeof voiceName === 'string' && voiceName.toLowerCase().includes('fish-audio')) ||
     (typeof voiceId === 'string' && voiceId.toLowerCase().includes('fish-audio'));
 
+  // 从 voice 取值推导 Fish Audio 模型（fish-audio:drama-3 → fish-audio/drama-3），兼容旧的写死模型；去掉 :ref: 后缀。
+  const faModel = String(voiceName || voiceId || 'fish-audio/s2.1-pro-free:free').split(':ref:')[0].replace(/^fish-audio[:/]/, 'fish-audio/');
+
   if (isFishAudio && effectiveOpenRouterKey) {
     try {
       const payload: any = {
-        model: 'fish-audio/s2.1-pro-free:free',
+        model: faModel,
         input: cleanText,
         response_format: 'mp3'
       };
+      // 透传参考声音（前端已读取 public/voices/<key>.mp3 转 base64 经 inputReferences 发来）
+      const _inRefs = body && (body.inputReferences || body.input_references);
+      if (Array.isArray(_inRefs) && _inRefs.length) payload.input_references = _inRefs;
 
       const orRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
         method: 'POST',
@@ -1375,8 +1381,8 @@ async function handleVoice(body: any): Promise<Response> {
           audio: base64Audio,
           format: 'mp3',
           provider: 'openrouter-fish-audio',
-          model: 'fish-audio/s2.1-pro-free:free',
-          voice: 'fish-audio/s2.1-pro-free:free'
+          model: faModel,
+          voice: faModel
         });
       }
     } catch (e) {
