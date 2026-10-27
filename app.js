@@ -3999,7 +3999,7 @@
         var d = new Date(row.created_at);
         if (!isNaN(d.getTime())) meta.push(d.toLocaleDateString());
       }
-      info.appendChild(el('p', 'sv-meta', meta.join(' · ')));
+      info.appendChild(el('p', 'sv-meta', meta.concat(['AI voice']).join(' · ')));
       var acts = el('div', 'sv-acts', '');
       var favBtn = el('button', 'sv-btn sv-fav' + (faved ? ' sv-faved' : ''), faved ? '♥' : '♡');
       favBtn.type = 'button';
@@ -4638,6 +4638,59 @@
     } catch (e) {}
     location.reload();
   });
+
+  /* ═══════ 数据导出（GDPR Art.20 可携带权 / CCPA）═══════ */
+  // 导出本人全部数据：本地存档 + 云端各表，一次性下载为 JSON。
+  // 云端查询走 RLS，只能取到本人的行；未登录时只导出本地部分。
+  function downloadJsonFile(obj, filename) {
+    try {
+      var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    } catch (e) { console.warn('export download:', e); }
+  }
+  async function exportMyData() {
+    var btn = $('#acctExport');
+    if (btn) { btn.disabled = true; btn.textContent = 'Preparing…'; }
+    var s = savedSession();
+    var out = {
+      service: 'Alyema',
+      exported_at: new Date().toISOString(),
+      account: (s && s.user) ? { id: s.user.id, email: s.user.email, created_at: s.user.created_at } : null,
+      local: {},
+      cloud: {}
+    };
+    ['manifest_data_v1', 'luminara_profile_v1'].forEach(function (k) {
+      try {
+        var raw = localStorage.getItem(k);
+        if (raw) out.local[k] = JSON.parse(raw);
+      } catch (e) {}
+    });
+    if (s && s.user && s.user.id) {
+      var tables = {
+        saved_voices: 'user_id', affirm_favs: 'user_id', affirm_custom: 'user_id', goals: 'user_id',
+        active_days: 'user_id', listening_sessions: 'user_id', profiles: 'id'
+      };
+      for (var t in tables) {
+        try {
+          var res = await sbFetch('/rest/v1/' + t + '?' + tables[t] + '=eq.' + encodeURIComponent(s.user.id) + '&select=*');
+          out.cloud[t] = res.ok ? await res.json() : { error: 'HTTP ' + res.status };
+        } catch (e) { out.cloud[t] = { error: 'request failed' }; }
+      }
+    }
+    var d = new Date();
+    var stamp = '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    downloadJsonFile(out, 'alyema-data-' + stamp + '.json');
+    if (btn) { btn.disabled = false; btn.textContent = 'Export my data'; }
+    toastNotify('Your data has been downloaded', 3500);
+  }
+  if ($('#acctExport')) $('#acctExport').addEventListener('click', exportMyData);
 
   /* ═══════ 删除账号（自助，GDPR Art.17 / CCPA）═══════ */
   // 走边缘函数 delete-account：删 Storage 音频 + 业务表本人行 + auth 用户。
@@ -6024,6 +6077,8 @@
         var badge = el('span', 'ai-type-pill ' + badgeClass, badgeTxt);
         mediaContainer.appendChild(badge);
       }
+      // AI 生成标识：每张成品右上角常驻角标（EU AI Act Art.50）
+      mediaContainer.appendChild(el('span', 'ai-type-pill ai-gen', 'AI'));
 
       if (v.kind === 'photo') {
         var img = document.createElement('img');
