@@ -3953,6 +3953,23 @@
     });
   }
 
+  // 把保存音频卡片里存的原始 voice value 翻译成声音选择框（#fsVoice）里的友好名，
+  // 保证「保存音频」下方标记的声音名与声音选择框完全一致（含 emoji + 描述）。
+  var _voiceLabelMap = null;
+  function voiceFriendlyLabel(val) {
+    if (!val) return '';
+    if (_voiceLabelMap === null) {
+      _voiceLabelMap = {};
+      var sel = document.getElementById('fsVoice');
+      if (sel) {
+        Array.prototype.forEach.call(sel.options, function (o) {
+          if (o && o.value) _voiceLabelMap[o.value] = o.textContent.trim();
+        });
+      }
+    }
+    return _voiceLabelMap[val] || val;
+  }
+
   function renderSavedVoices() {
     var listEl = $('#svList');
     if (!listEl) return;
@@ -3977,7 +3994,7 @@
       }
       info.appendChild(titleEl);
       var meta = [];
-      if (row.voice) meta.push(row.voice);
+      if (row.voice) meta.push(voiceFriendlyLabel(row.voice));
       if (row.created_at) {
         var d = new Date(row.created_at);
         if (!isNaN(d.getTime())) meta.push(d.toLocaleDateString());
