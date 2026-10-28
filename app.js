@@ -365,6 +365,13 @@
     $$('#tab-plans [data-credits]').forEach(function (el) { el.hidden = el.dataset.credits !== mode; });
     var saveBadge = $('#plansSave');
     if (saveBadge) saveBadge.hidden = mode !== 'yearly';
+    // 授权金额随月付/年付切换，必须与卡片上的价格一致
+    var renewAmt = $('#planRenewAmount');
+    if (renewAmt) {
+      renewAmt.textContent = mode === 'monthly'
+        ? '$5.00 per month (Lite) or $9.90 per month (Pro)'
+        : '$29.00 per year (Lite) or $70.00 per year (Pro)';
+    }
     // 月付 / 年付切换会改变"目标周期"，按钮可用性要跟着重算
     if (typeof refreshPlanBtns === 'function') refreshPlanBtns();
   }
@@ -398,11 +405,17 @@
     }
     return true; // 升级
   }
+  /** 结账前明示同意：① 条款 ② 自动续订授权，两者都必须主动勾选 */
+  function planConsentOk() {
+    var t = $('#planTermsCheck'), r = $('#planRenewCheck');
+    return !!(t && t.checked && r && r.checked);
+  }
   /** 刷新两张卡的按钮状态：按换档规则判定（同档位换周期要放行，如月付 → 年付） */
   function refreshPlanBtns() {
+    var consent = planConsentOk();
     $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
       var plan = b.dataset.plan === 'lite' ? 'lite' : 'pro';
-      b.disabled = !switchAllowed(plan, currentBilling);
+      b.disabled = !consent || !switchAllowed(plan, currentBilling);
       b.textContent = planBtnLabel(plan);
     });
   }
@@ -424,8 +437,11 @@
       openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
       return;
     }
-    // EU/UK 撤销权：同意改为「订阅即同意」的明示告知（见套餐下方的 planConsentNote），
-    // 点支付按钮这一动作本身即构成同意，故此处不再做勾选拦截。
+    // 结账前明示同意：条款勾选与自动续订授权必须分开且都勾上（加州 ARL 要求续订同意独立）
+    if (!planConsentOk()) {
+      toastCredits('Please tick both consent boxes above to continue.');
+      return;
+    }
     checkoutBusy = true;
     setPlanBtnBusy(true, btn);
     try {
@@ -461,6 +477,11 @@
       startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro', btn);
     });
   });
+  if ($('#planTermsCheck') || $('#planRenewCheck')) {
+    ['#planTermsCheck', '#planRenewCheck'].forEach(function (sel) {
+      if ($(sel)) $(sel).addEventListener('change', refreshPlanBtns);
+    });
+  }
 
   /* ---------- 订阅卡选中态：点卡切换高亮（featured 样式跟人走），按钮才去支付 ---------- */
   function setSelectedPlan(plan) {
@@ -3999,7 +4020,7 @@
         var d = new Date(row.created_at);
         if (!isNaN(d.getTime())) meta.push(d.toLocaleDateString());
       }
-      info.appendChild(el('p', 'sv-meta', meta.join(' · ')));
+      info.appendChild(el('p', 'sv-meta', meta.concat(['AI voice']).join(' · ')));
       var acts = el('div', 'sv-acts', '');
       var favBtn = el('button', 'sv-btn sv-fav' + (faved ? ' sv-faved' : ''), faved ? '♥' : '♡');
       favBtn.type = 'button';
@@ -4638,6 +4659,59 @@
     } catch (e) {}
     location.reload();
   });
+
+  /* ═══════ 数据导出（GDPR Art.20 可携带权 / CCPA）═══════ */
+  // 导出本人全部数据：本地存档 + 云端各表，一次性下载为 JSON。
+  // 云端查询走 RLS，只能取到本人的行；未登录时只导出本地部分。
+  function downloadJsonFile(obj, filename) {
+    try {
+      var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    } catch (e) { console.warn('export download:', e); }
+  }
+  async function exportMyData() {
+    var btn = $('#acctExport');
+    if (btn) { btn.disabled = true; btn.textContent = 'Preparing…'; }
+    var s = savedSession();
+    var out = {
+      service: 'Alyema',
+      exported_at: new Date().toISOString(),
+      account: (s && s.user) ? { id: s.user.id, email: s.user.email, created_at: s.user.created_at } : null,
+      local: {},
+      cloud: {}
+    };
+    ['manifest_data_v1', 'luminara_profile_v1'].forEach(function (k) {
+      try {
+        var raw = localStorage.getItem(k);
+        if (raw) out.local[k] = JSON.parse(raw);
+      } catch (e) {}
+    });
+    if (s && s.user && s.user.id) {
+      var tables = {
+        saved_voices: 'user_id', affirm_favs: 'user_id', affirm_custom: 'user_id', goals: 'user_id',
+        active_days: 'user_id', listening_sessions: 'user_id', profiles: 'id'
+      };
+      for (var t in tables) {
+        try {
+          var res = await sbFetch('/rest/v1/' + t + '?' + tables[t] + '=eq.' + encodeURIComponent(s.user.id) + '&select=*');
+          out.cloud[t] = res.ok ? await res.json() : { error: 'HTTP ' + res.status };
+        } catch (e) { out.cloud[t] = { error: 'request failed' }; }
+      }
+    }
+    var d = new Date();
+    var stamp = '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    downloadJsonFile(out, 'alyema-data-' + stamp + '.json');
+    if (btn) { btn.disabled = false; btn.textContent = 'Export my data'; }
+    toastNotify('Your data has been downloaded', 3500);
+  }
+  if ($('#acctExport')) $('#acctExport').addEventListener('click', exportMyData);
 
   /* ═══════ 删除账号（自助，GDPR Art.17 / CCPA）═══════ */
   // 走边缘函数 delete-account：删 Storage 音频 + 业务表本人行 + auth 用户。
@@ -6024,6 +6098,8 @@
         var badge = el('span', 'ai-type-pill ' + badgeClass, badgeTxt);
         mediaContainer.appendChild(badge);
       }
+      // AI 生成标识：每张成品右上角常驻角标（EU AI Act Art.50）
+      mediaContainer.appendChild(el('span', 'ai-type-pill ai-gen', 'AI'));
 
       if (v.kind === 'photo') {
         var img = document.createElement('img');
