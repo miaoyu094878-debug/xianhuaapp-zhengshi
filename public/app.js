@@ -410,12 +410,23 @@
     var t = $('#planTermsCheck'), r = $('#planRenewCheck');
     return !!(t && t.checked && r && r.checked);
   }
-  /** 刷新两张卡的按钮状态：按换档规则判定（同档位换周期要放行，如月付 → 年付） */
+  /* 未勾选就点订阅：勾选区域抖动 + 一行红色提示（与上传照片的拦截方式一致，
+     按钮本身不置灰，保证用户点得下去、能看到反馈） */
+  function planConsentWarn() {
+    var wrap = $('#planConsentNote'), hint = $('#planConsentHint');
+    if (wrap) {
+      wrap.classList.remove('shake');
+      void wrap.offsetWidth; // 重排一次，连续点击也能重新播放动画
+      wrap.classList.add('shake');
+    }
+    if (hint) hint.classList.remove('hidden');
+  }
+  /** 刷新两张卡的按钮状态：只按换档规则判定（同档位换周期要放行，如月付 → 年付）。
+     同意与否不在这里禁用按钮，改由点击时提示，避免按钮灰掉后用户不知道该点哪里。 */
   function refreshPlanBtns() {
-    var consent = planConsentOk();
     $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
       var plan = b.dataset.plan === 'lite' ? 'lite' : 'pro';
-      b.disabled = !consent || !switchAllowed(plan, currentBilling);
+      b.disabled = !switchAllowed(plan, currentBilling);
       b.textContent = planBtnLabel(plan);
     });
   }
@@ -479,7 +490,7 @@
     }
     // 结账前明示同意：条款勾选与自动续订授权必须分开且都勾上（加州 ARL 要求续订同意独立）
     if (!planConsentOk()) {
-      toastCredits('Please tick both consent boxes above to continue.');
+      planConsentWarn();
       return;
     }
     checkoutBusy = true;
@@ -523,7 +534,12 @@
   });
   if ($('#planTermsCheck') || $('#planRenewCheck')) {
     ['#planTermsCheck', '#planRenewCheck'].forEach(function (sel) {
-      if ($(sel)) $(sel).addEventListener('change', refreshPlanBtns);
+      if (!$(sel)) return;
+      $(sel).addEventListener('change', function () {
+        // 两个都勾上后收起红字提示（与上传声明的行为一致）
+        if (planConsentOk() && $('#planConsentHint')) $('#planConsentHint').classList.add('hidden');
+        refreshPlanBtns();
+      });
     });
   }
 
