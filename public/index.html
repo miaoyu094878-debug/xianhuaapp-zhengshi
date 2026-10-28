@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261028consent02">
+  <link rel="stylesheet" href="styles.css?v=20261028consent08">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -3926,6 +3926,12 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                 </div>
                 <div id="aiPhotoPrevBox" class="ai-thumb-grid hidden"></div>
                 <button id="aiPhotoPrevClear" class="chip hidden" type="button" style="margin-top:8px;">Remove all</button>
+                <!-- 上传声明：条款层限制（本人照片 / 16+ / 非他人私密影像），未勾选不接收文件 -->
+                <label class="ai-photo-attest" id="aiPhotoAttestWrap">
+                  <input type="checkbox" id="aiPhotoAttest">
+                  <span>This photo is of me, I am 16 or older, and it is not another person's private image.</span>
+                </label>
+                <p class="ai-attest-hint hidden" id="aiPhotoAttestHint">Please tick this box before uploading a photo.</p>
               </div>
 
               <!-- 4 · Aspect Ratio -->
@@ -4000,7 +4006,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
               <!-- 2 · Reference Photo -->
               <div class="ai-field-group">
                 <div class="ai-label-row">
-                  <label class="ai-field-title">2 · Reference Photo (Optional)</label>
+                  <label class="ai-field-title">2 · Reference Photo (Required)</label>
                   <button type="button" id="aiBtnUseRecentPhoto" class="ai-btn-text-action hidden" title="Use the latest portrait created in Photo Studio as the first frame">
                     ✦ Use Latest Generated Portrait
                   </button>
@@ -4023,6 +4029,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   </div>
                   <button id="aiVideoPrevClear" class="chip" type="button" style="margin:0;">Remove</button>
                 </div>
+                <label class="ai-photo-attest" id="aiVideoAttestWrap">
+                  <input type="checkbox" id="aiVideoAttest">
+                  <span>This photo is of me, I am 16 or older, and it is not another person's private image.</span>
+                </label>
+                <p class="ai-attest-hint hidden" id="aiVideoAttestHint">Please tick this box before uploading a photo.</p>
               </div>
 
               <!-- 3 · Video Duration Selector -->
@@ -4092,6 +4103,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
                   <span class="ai-btn-sub">5s · 480p</span>
                   <span class="cost-badge" id="costVideo"></span>
                 </button>
+                <button id="aiBtnVideoCancel" class="ai-btn-cancel hidden" type="button">■ Stop generating</button>
               </div>
 
               <div id="aiVideoStatus" class="ai-status-banner"></div>
@@ -4741,6 +4753,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
             <span>I authorize the recurring charge of <strong id="planRenewAmount">$29.00 per year (Lite) or $70.00 per year (Pro)</strong> for the plan I select, renewing automatically until I cancel in My Account → Subscriptions. As an EU/UK consumer I consent to immediate access; if I withdraw within 14 days, I pay only for the service already provided.</span>
           </label>
         </div>
+        <p class="ai-attest-hint hidden" id="planConsentHint">Please tick both boxes above before subscribing.</p>
 
         <p class="plans-fineprint" id="planStatusLine">Not subscribed — subscribe below to unlock everything.</p>
 
@@ -5069,7 +5082,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261028consent02" defer></script>
+  <script src="app.js?v=20261028consent09" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">

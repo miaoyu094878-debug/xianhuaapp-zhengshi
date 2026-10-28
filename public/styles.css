@@ -508,6 +508,36 @@ html.device-mobile .fs-desire-desktop { display: none; }
 .plan-consent a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .plan-consent strong { font-weight: 600; }
 
+/* 上传照片前的声明勾选：条款层限制（本人 / 16+ / 非他人私密影像），视觉从简 */
+.ai-photo-attest {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 10px 0 2px; text-align: left;
+  font-size: 12.5px; line-height: 1.5; color: var(--text); cursor: pointer;
+}
+.ai-photo-attest input { flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--accent); cursor: pointer; }
+/* 未勾选就上传：勾选框抖动 + 一行红色提示，把注意力引到要勾的位置 */
+.ai-photo-attest.shake { animation: aiAttestShake 0.45s ease-in-out; }
+/* 未勾选就点订阅：整组同意勾选抖动（与上传拦截同一套动效） */
+.plan-consent-group.shake { animation: aiAttestShake 0.45s ease-in-out; }
+/* 视频生成未传参考照片：上传区抖动，提示先补首帧 */
+.ai-drop-zone.shake { animation: aiAttestShake 0.45s ease-in-out; }
+/* 视频生成中的「中途关闭」按钮 */
+.ai-btn-cancel {
+  align-self: center; border: 1px solid var(--border-strong); background: var(--surface-2);
+  color: var(--text-soft); border-radius: 12px; padding: 8px 16px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer; transition: 0.2s ease;
+}
+.ai-btn-cancel:hover { background: var(--surface-hover); color: var(--text); }
+@keyframes aiAttestShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.ai-attest-hint { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: #b3261e; }
+@media (prefers-reduced-motion: reduce) { .ai-photo-attest.shake, .plan-consent-group.shake, .ai-drop-zone.shake { animation: none; } }
+
 /* ---------- Refund contact modal ---------- */
 .refund-contact {
   display: flex; align-items: center; justify-content: center; gap: 10px;

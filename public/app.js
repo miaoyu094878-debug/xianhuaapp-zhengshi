@@ -410,12 +410,23 @@
     var t = $('#planTermsCheck'), r = $('#planRenewCheck');
     return !!(t && t.checked && r && r.checked);
   }
-  /** 刷新两张卡的按钮状态：按换档规则判定（同档位换周期要放行，如月付 → 年付） */
+  /* 未勾选就点订阅：勾选区域抖动 + 一行红色提示（与上传照片的拦截方式一致，
+     按钮本身不置灰，保证用户点得下去、能看到反馈） */
+  function planConsentWarn() {
+    var wrap = $('#planConsentNote'), hint = $('#planConsentHint');
+    if (wrap) {
+      wrap.classList.remove('shake');
+      void wrap.offsetWidth; // 重排一次，连续点击也能重新播放动画
+      wrap.classList.add('shake');
+    }
+    if (hint) hint.classList.remove('hidden');
+  }
+  /** 刷新两张卡的按钮状态：只按换档规则判定（同档位换周期要放行，如月付 → 年付）。
+     同意与否不在这里禁用按钮，改由点击时提示，避免按钮灰掉后用户不知道该点哪里。 */
   function refreshPlanBtns() {
-    var consent = planConsentOk();
     $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
       var plan = b.dataset.plan === 'lite' ? 'lite' : 'pro';
-      b.disabled = !consent || !switchAllowed(plan, currentBilling);
+      b.disabled = !switchAllowed(plan, currentBilling);
       b.textContent = planBtnLabel(plan);
     });
   }
@@ -431,6 +442,46 @@
       refreshPlanBtns();
     }
   }
+  /* 同意留痕：金额必须与页面展示一致（与 setBillingMode 里的文案同源） */
+  var PLAN_PRICES = {
+    lite: { monthly: 5, yearly: 29 },
+    pro: { monthly: 9.9, yearly: 70 }
+  };
+  var CONSENT_VERSION = '2026-10-28';
+
+  /* 把这次结账的明示同意写进 consent_records（append-only 审计表）。
+     失败不阻断支付：Dodo 自己的结账页也留存同意记录，这里只是我方证据。
+     最多等 1.5s，避免网络慢时用户点了没反应。 */
+  async function logPlanConsent(period, plan) {
+    try {
+      var s = savedSession(), cfg = supabaseCfg();
+      if (!s || !s.user || !s.user.id || !s.access_token || !cfg.url) return;
+      var note = $('#planConsentNote');
+      var row = {
+        user_id: s.user.id,
+        plan: plan,
+        period: period,
+        amount_usd: (PLAN_PRICES[plan] && PLAN_PRICES[plan][period]) || null,
+        currency: 'USD',
+        terms_version: CONSENT_VERSION,
+        terms_checked: !!($('#planTermsCheck') && $('#planTermsCheck').checked),
+        renew_checked: !!($('#planRenewCheck') && $('#planRenewCheck').checked),
+        consent_text: note ? (note.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 900) : '',
+        user_agent: (navigator.userAgent || '').slice(0, 400),
+        locale: (navigator.language || '').slice(0, 20),
+        page: (location.pathname || '').slice(0, 120)
+      };
+      await Promise.race([
+        sbFetch('/rest/v1/consent_records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify(row)
+        }),
+        new Promise(function (resolve) { setTimeout(resolve, 1500); })
+      ]);
+    } catch (e) { console.warn('consent log:', e); }
+  }
+
   async function startCheckout(period, plan, btn) {
     if (checkoutBusy) return;
     if (!creditState.signedIn) {
@@ -439,15 +490,19 @@
     }
     // 结账前明示同意：条款勾选与自动续订授权必须分开且都勾上（加州 ARL 要求续订同意独立）
     if (!planConsentOk()) {
-      toastCredits('Please tick both consent boxes above to continue.');
+      planConsentWarn();
       return;
     }
     checkoutBusy = true;
     setPlanBtnBusy(true, btn);
+    var buyPeriod = period || currentBilling;
+    var buyPlan = plan === 'lite' ? 'lite' : 'pro';
+    // 先落同意记录，再创建结账链接
+    await logPlanConsent(buyPeriod, buyPlan);
     try {
       var res = await callUnifiedApi('create-checkout', {
-        period: period || currentBilling,
-        plan: plan === 'lite' ? 'lite' : 'pro'
+        period: buyPeriod,
+        plan: buyPlan
       });
       var data = await res.json().catch(function () { return {}; });
       if (data && data.checkout_url) { window.location.href = data.checkout_url; return; }
@@ -479,7 +534,12 @@
   });
   if ($('#planTermsCheck') || $('#planRenewCheck')) {
     ['#planTermsCheck', '#planRenewCheck'].forEach(function (sel) {
-      if ($(sel)) $(sel).addEventListener('change', refreshPlanBtns);
+      if (!$(sel)) return;
+      $(sel).addEventListener('change', function () {
+        // 两个都勾上后收起红字提示（与上传声明的行为一致）
+        if (planConsentOk() && $('#planConsentHint')) $('#planConsentHint').classList.add('hidden');
+        refreshPlanBtns();
+      });
     });
   }
 
@@ -5001,6 +5061,27 @@
     }
   }
 
+  /* 视频生成暂时下线（敬请期待）：前后端逻辑全部保留，只把入口文案与生成动作拦住。
+     恢复时把 VIDEO_COMING_SOON 改成 false，并同步打开边缘函数的 VIDEO_GENERATION_ENABLED。 */
+  var VIDEO_COMING_SOON = true;
+  (function applyVideoComingSoon() {
+    if (!VIDEO_COMING_SOON) return;
+    var card = $('#aiCardVideo');
+    if (card) {
+      var tag = card.querySelector('.ai-mode-tag');
+      if (tag) tag.textContent = 'Coming Soon';
+    }
+    var btn = $('#aiBtnVideo');
+    if (btn) {
+      var title = btn.querySelector('.ai-btn-title');
+      if (title) title.textContent = '🎬 Motion Video · Coming Soon';
+      var sub = btn.querySelector('.ai-btn-sub');
+      if (sub) sub.textContent = 'Not available yet — we are still polishing it';
+    }
+    var cancel = $('#aiBtnVideoCancel');
+    if (cancel) cancel.classList.add('hidden');
+  })();
+
   function setAiSubTab(tab) {
     if (tab !== 'home' && tab !== 'photo' && tab !== 'video') tab = 'home';
     currentAiSubTab = tab;
@@ -5177,8 +5258,38 @@
     var clr = $('#aiPhotoPrevClear') || $('#aiPrevClear');
     if (clr) clr.classList.toggle('hidden', aiPhotoRefs.length === 0);
   }
+  /* 上传声明：照片必须是本人、16+、非他人私密影像。
+     这是条款层的限制（阻断「我不知道」抗辩），不是技术识别——未勾选就不收文件。
+     未勾选时：勾选框抖动 + 显示小提示，让用户立刻知道要勾哪里。 */
+  var ATTEST_UI = {
+    photo: { sel: '#aiPhotoAttest', wrap: '#aiPhotoAttestWrap', hint: '#aiPhotoAttestHint' },
+    video: { sel: '#aiVideoAttest', wrap: '#aiVideoAttestWrap', hint: '#aiVideoAttestHint' }
+  };
+  function photoAttestOk(kind) {
+    var ui = ATTEST_UI[kind] || {};
+    var c = $(ui.sel), hint = $(ui.hint), ok = !!(c && c.checked);
+    if (ok) { if (hint) hint.classList.add('hidden'); return true; }
+    var wrap = $(ui.wrap);
+    if (wrap) {
+      wrap.classList.remove('shake');
+      void wrap.offsetWidth; // 重排一次，保证连续点击也能重新播放动画
+      wrap.classList.add('shake');
+    }
+    if (hint) hint.classList.remove('hidden');
+    aiStatus('Please tick “This photo is of me” to continue.', 'error');
+    return false;
+  }
+  ['photo', 'video'].forEach(function (kind) {
+    var c = $(ATTEST_UI[kind].sel);
+    if (c) c.addEventListener('change', function () {
+      if (c.checked && $(ATTEST_UI[kind].hint)) $(ATTEST_UI[kind].hint).classList.add('hidden');
+    });
+  });
   if (photoDropEl && photoFileInput) {
-    photoDropEl.addEventListener('click', function () { photoFileInput.click(); });
+    photoDropEl.addEventListener('click', function () {
+      if (!photoAttestOk('photo')) return; // 未勾选直接拦在打开文件选择器之前
+      photoFileInput.click();
+    });
     photoDropEl.addEventListener('dragover', function (e) {
       e.preventDefault();
       photoDropEl.style.borderColor = 'var(--accent)';
@@ -5189,6 +5300,7 @@
     function handlePhotoFiles(files) {
       var list = Array.prototype.slice.call(files || []);
       if (!list.length) return;
+      if (!photoAttestOk('photo')) { if (photoFileInput) photoFileInput.value = ''; return; }
       var remaining = AI_PHOTO_MAX - aiPhotoRefs.length;
       if (remaining <= 0) { aiStatus('You can attach at most ' + AI_PHOTO_MAX + ' reference photos.', 'error'); return; }
       list.filter(function (fl) { return fl.type.indexOf('image/') === 0; }).forEach(function (fl) {
@@ -5237,7 +5349,10 @@
   var videoDropEl = $('#aiVideoDrop');
   var videoFileInput = $('#aiVideoPhotoFile');
   if (videoDropEl && videoFileInput) {
-    videoDropEl.addEventListener('click', function () { videoFileInput.click(); });
+    videoDropEl.addEventListener('click', function () {
+      if (!photoAttestOk('video')) return;
+      videoFileInput.click();
+    });
     videoDropEl.addEventListener('dragover', function (e) {
       e.preventDefault();
       videoDropEl.style.borderColor = 'var(--accent)';
@@ -5251,12 +5366,15 @@
       var dt = e.dataTransfer;
       var f = dt && dt.files && dt.files[0];
       if (f && f.type.indexOf('image/') === 0) {
+        if (!photoAttestOk('video')) return;
         processAiVideoAnchor(f);
       }
     });
     videoFileInput.addEventListener('change', function () {
       var f = this.files && this.files[0];
-      if (f) processAiVideoAnchor(f);
+      if (!f) return;
+      if (!photoAttestOk('video')) { this.value = ''; return; }
+      processAiVideoAnchor(f);
     });
   }
 
@@ -5735,6 +5853,12 @@
       clearInterval(timer);
       done(err, url);
     }
+    // 用户中途关闭：停止轮询、不再回调 done（正在返回的那一轮结果会被 finished 丢弃）
+    function cancel() {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
+    }
 
     timer = setInterval(function () {
       if (finished || inFlight) return;
@@ -5778,18 +5902,42 @@
         }
       });
     }, 5000);
+
+    return { cancel: cancel };
   }
 
   // 生成中状态：仅生成期间禁用按钮，防止重复提交；空输入改为点击时拦截并弹出提示
   var aiGenerating = false;
+  var videoPollCtrl = null; // 当前视频轮询的取消句柄（中途关闭用）
   function syncAiGenerateBusy() {
     var btnPhoto = $('#aiBtnPhoto');
     var btnVideo = $('#aiBtnVideo');
     if (btnPhoto) btnPhoto.disabled = aiGenerating;
     if (btnVideo) btnVideo.disabled = aiGenerating;
   }
+  function setVideoCancelVisible(on) {
+    var b = $('#aiBtnVideoCancel');
+    if (b) b.classList.toggle('hidden', !on);
+  }
+  // 中途关闭视频生成：停止轮询与等待，释放按钮，不再写入画廊
+  if ($('#aiBtnVideoCancel')) {
+    $('#aiBtnVideoCancel').addEventListener('click', function () {
+      var ctrl = videoPollCtrl;
+      videoPollCtrl = null;
+      if (ctrl) ctrl.cancel();
+      aiGenerating = false;
+      syncAiGenerateBusy();
+      setVideoCancelVisible(false);
+      aiStatus('Video generation stopped. You can start a new one whenever you are ready.', 'success');
+    });
+  }
 
   function aiGenerate(kind) {
+    // 视频生成暂时下线：前端入口直接给「敬请期待」提示，不发起任何请求、不扣积分
+    if (kind === 'video' && VIDEO_COMING_SOON) {
+      showInputNudge($('#aiBtnVideo'), '🎬 Motion video is coming soon — we are still polishing it.');
+      return;
+    }
     // Gate: generating photos/videos requires an account (browsing the studio is free)
     if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
     var prompt = '';
@@ -5807,6 +5955,17 @@
       if (!prompt) {
         showInputNudge($('#aiBtnVideo'), '✨ Please describe your motion scene first, then press Generate.');
         if (vInput) vInput.focus({ preventScroll: true });
+        return;
+      }
+      // 视频生成必须先从参考照片起步：没有第一帧锚点就直接拦下，不再退化成纯文本生视频
+      if (!aiVideoRefB64) {
+        showInputNudge($('#aiBtnVideo'), '✨ Please upload your reference photo first — the video starts from it.');
+        var drop = $('#aiVideoDrop');
+        if (drop) {
+          drop.classList.remove('shake');
+          void drop.offsetWidth;
+          drop.classList.add('shake');
+        }
         return;
       }
     }
@@ -5882,14 +6041,9 @@
       var dur = currentVideoDuration || 5;
       var res = currentVideoResolution || '480p';
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphonex;
-      var srcInput = aiVideoRefB64 || (aiPhotoRefs[0] && aiPhotoRefs[0].b64);
-      if (!srcInput) {
-        var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
-        if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
-          srcInput = lastPhoto.url;
-        }
-      }
-      var hasRefImage = Boolean(srcInput);
+      // 前面已强制要求参考照片，这里直接作为首帧锚点
+      var srcInput = aiVideoRefB64;
+      var hasRefImage = true;
 
       function dispatchVideoJob(finalPromptToSend, directorUsed) {
         var directorTag = directorUsed ? (' · Polished by ' + directorUsed) : '';
@@ -5922,7 +6076,10 @@
 
           var finalTag = data.directorModel ? (' · Polished by ' + data.directorModel) : directorTag;
           aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
-          pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
+          // 轮询期间显示「中断」按钮：用户可以中途关闭，不再等结果
+          videoPollCtrl = pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
+            videoPollCtrl = null;
+            setVideoCancelVisible(false);
             aiGenerating = false;
             syncAiGenerateBusy();
 
@@ -5959,6 +6116,7 @@
             aiStatus('Videos aren\'t saved — please download and save them now.', 'success');
             renderAiResults();
           });
+          setVideoCancelVisible(true);
         })
         .catch(function (err) {
           aiGenerating = false;
