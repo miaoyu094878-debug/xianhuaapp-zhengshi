@@ -365,6 +365,13 @@
     $$('#tab-plans [data-credits]').forEach(function (el) { el.hidden = el.dataset.credits !== mode; });
     var saveBadge = $('#plansSave');
     if (saveBadge) saveBadge.hidden = mode !== 'yearly';
+    // 授权金额随月付/年付切换，必须与卡片上的价格一致
+    var renewAmt = $('#planRenewAmount');
+    if (renewAmt) {
+      renewAmt.textContent = mode === 'monthly'
+        ? '$5.00 per month (Lite) or $9.90 per month (Pro)'
+        : '$29.00 per year (Lite) or $70.00 per year (Pro)';
+    }
     // 月付 / 年付切换会改变"目标周期"，按钮可用性要跟着重算
     if (typeof refreshPlanBtns === 'function') refreshPlanBtns();
   }
@@ -398,10 +405,10 @@
     }
     return true; // 升级
   }
-  /** 结账前明示同意（EU/UK 撤回权放弃 + 自动续订）：未勾选不允许发起结账 */
+  /** 结账前明示同意：① 条款 ② 自动续订授权，两者都必须主动勾选 */
   function planConsentOk() {
-    var c = $('#planConsentCheck');
-    return !!(c && c.checked);
+    var t = $('#planTermsCheck'), r = $('#planRenewCheck');
+    return !!(t && t.checked && r && r.checked);
   }
   /** 刷新两张卡的按钮状态：按换档规则判定（同档位换周期要放行，如月付 → 年付） */
   function refreshPlanBtns() {
@@ -430,9 +437,9 @@
       openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
       return;
     }
-    // 结账前明示同意：必须主动勾选（EU/UK 撤回权放弃 + 自动续订确认）
+    // 结账前明示同意：条款勾选与自动续订授权必须分开且都勾上（加州 ARL 要求续订同意独立）
     if (!planConsentOk()) {
-      toastCredits('Please tick the consent box above to continue.');
+      toastCredits('Please tick both consent boxes above to continue.');
       return;
     }
     checkoutBusy = true;
@@ -470,7 +477,11 @@
       startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro', btn);
     });
   });
-  if ($('#planConsentCheck')) $('#planConsentCheck').addEventListener('change', refreshPlanBtns);
+  if ($('#planTermsCheck') || $('#planRenewCheck')) {
+    ['#planTermsCheck', '#planRenewCheck'].forEach(function (sel) {
+      if ($(sel)) $(sel).addEventListener('change', refreshPlanBtns);
+    });
+  }
 
   /* ---------- 订阅卡选中态：点卡切换高亮（featured 样式跟人走），按钮才去支付 ---------- */
   function setSelectedPlan(plan) {

@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261028consent01">
+  <link rel="stylesheet" href="styles.css?v=20261028consent02">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4728,11 +4728,19 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </article>
         </div>
 
-        <!-- 结账前明示同意：EU/UK 撤回权放弃 + 自动续订。必须主动勾选，未勾选则订阅按钮禁用 -->
-        <label class="plan-consent" id="planConsentNote">
-          <input type="checkbox" id="planConsentCheck">
-          <span>I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/refund" target="_blank" rel="noopener">Refund Policy</a>. I understand this is an auto-renewing subscription charged at the price shown above until I cancel, and — as an EU/UK consumer — I consent to immediate access and acknowledge that I lose my 14-day right of withdrawal once access begins.</span>
-        </label>
+        <!-- 结账前明示同意（分两个独立勾选）：① 同意条款 ② 单独授权自动续订
+             加州 ARL（AB 2863）要求续订同意与其它条款分开；EU/UK 不写「放弃撤回权」，
+             改为「即时开通，14 天内撤回只需支付已提供部分」 -->
+        <div class="plan-consent-group" id="planConsentNote">
+          <label class="plan-consent">
+            <input type="checkbox" id="planTermsCheck">
+            <span>I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/refund" target="_blank" rel="noopener">Refund Policy</a>.</span>
+          </label>
+          <label class="plan-consent">
+            <input type="checkbox" id="planRenewCheck">
+            <span>I authorize the recurring charge of <strong id="planRenewAmount">$29.00 per year (Lite) or $70.00 per year (Pro)</strong> for the plan I select, renewing automatically until I cancel in My Account → Subscriptions. As an EU/UK consumer I consent to immediate access; if I withdraw within 14 days, I pay only for the service already provided.</span>
+          </label>
+        </div>
 
         <p class="plans-fineprint" id="planStatusLine">Not subscribed — subscribe below to unlock everything.</p>
 
@@ -5061,7 +5069,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261028consent01" defer></script>
+  <script src="app.js?v=20261028consent02" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
