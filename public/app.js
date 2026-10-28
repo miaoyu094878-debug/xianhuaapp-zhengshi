@@ -5222,15 +5222,37 @@
     if (clr) clr.classList.toggle('hidden', aiPhotoRefs.length === 0);
   }
   /* 上传声明：照片必须是本人、16+、非他人私密影像。
-     这是条款层的限制（阻断「我不知道」抗辩），不是技术识别——未勾选就不收文件。 */
-  function photoAttestOk(sel) {
-    var c = $(sel);
-    if (c && c.checked) return true;
-    aiStatus('Please tick “This photo is of me” before uploading.', 'error');
+     这是条款层的限制（阻断「我不知道」抗辩），不是技术识别——未勾选就不收文件。
+     未勾选时：勾选框抖动 + 显示小提示，让用户立刻知道要勾哪里。 */
+  var ATTEST_UI = {
+    photo: { sel: '#aiPhotoAttest', wrap: '#aiPhotoAttestWrap', hint: '#aiPhotoAttestHint' },
+    video: { sel: '#aiVideoAttest', wrap: '#aiVideoAttestWrap', hint: '#aiVideoAttestHint' }
+  };
+  function photoAttestOk(kind) {
+    var ui = ATTEST_UI[kind] || {};
+    var c = $(ui.sel), hint = $(ui.hint), ok = !!(c && c.checked);
+    if (ok) { if (hint) hint.classList.add('hidden'); return true; }
+    var wrap = $(ui.wrap);
+    if (wrap) {
+      wrap.classList.remove('shake');
+      void wrap.offsetWidth; // 重排一次，保证连续点击也能重新播放动画
+      wrap.classList.add('shake');
+    }
+    if (hint) hint.classList.remove('hidden');
+    aiStatus('Please tick “This photo is of me” to continue.', 'error');
     return false;
   }
+  ['photo', 'video'].forEach(function (kind) {
+    var c = $(ATTEST_UI[kind].sel);
+    if (c) c.addEventListener('change', function () {
+      if (c.checked && $(ATTEST_UI[kind].hint)) $(ATTEST_UI[kind].hint).classList.add('hidden');
+    });
+  });
   if (photoDropEl && photoFileInput) {
-    photoDropEl.addEventListener('click', function () { photoFileInput.click(); });
+    photoDropEl.addEventListener('click', function () {
+      if (!photoAttestOk('photo')) return; // 未勾选直接拦在打开文件选择器之前
+      photoFileInput.click();
+    });
     photoDropEl.addEventListener('dragover', function (e) {
       e.preventDefault();
       photoDropEl.style.borderColor = 'var(--accent)';
@@ -5241,7 +5263,7 @@
     function handlePhotoFiles(files) {
       var list = Array.prototype.slice.call(files || []);
       if (!list.length) return;
-      if (!photoAttestOk('#aiPhotoAttest')) { if (photoFileInput) photoFileInput.value = ''; return; }
+      if (!photoAttestOk('photo')) { if (photoFileInput) photoFileInput.value = ''; return; }
       var remaining = AI_PHOTO_MAX - aiPhotoRefs.length;
       if (remaining <= 0) { aiStatus('You can attach at most ' + AI_PHOTO_MAX + ' reference photos.', 'error'); return; }
       list.filter(function (fl) { return fl.type.indexOf('image/') === 0; }).forEach(function (fl) {
@@ -5290,7 +5312,10 @@
   var videoDropEl = $('#aiVideoDrop');
   var videoFileInput = $('#aiVideoPhotoFile');
   if (videoDropEl && videoFileInput) {
-    videoDropEl.addEventListener('click', function () { videoFileInput.click(); });
+    videoDropEl.addEventListener('click', function () {
+      if (!photoAttestOk('video')) return;
+      videoFileInput.click();
+    });
     videoDropEl.addEventListener('dragover', function (e) {
       e.preventDefault();
       videoDropEl.style.borderColor = 'var(--accent)';
@@ -5304,14 +5329,14 @@
       var dt = e.dataTransfer;
       var f = dt && dt.files && dt.files[0];
       if (f && f.type.indexOf('image/') === 0) {
-        if (!photoAttestOk('#aiVideoAttest')) return;
+        if (!photoAttestOk('video')) return;
         processAiVideoAnchor(f);
       }
     });
     videoFileInput.addEventListener('change', function () {
       var f = this.files && this.files[0];
       if (!f) return;
-      if (!photoAttestOk('#aiVideoAttest')) { this.value = ''; return; }
+      if (!photoAttestOk('video')) { this.value = ''; return; }
       processAiVideoAnchor(f);
     });
   }

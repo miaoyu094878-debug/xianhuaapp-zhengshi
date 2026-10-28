@@ -515,6 +515,17 @@ html.device-mobile .fs-desire-desktop { display: none; }
   font-size: 12.5px; line-height: 1.5; color: var(--text); cursor: pointer;
 }
 .ai-photo-attest input { flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--accent); cursor: pointer; }
+/* 未勾选就上传：勾选框抖动 + 一行红色提示，把注意力引到要勾的位置 */
+.ai-photo-attest.shake { animation: aiAttestShake 0.45s ease-in-out; }
+@keyframes aiAttestShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.ai-attest-hint { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: #b3261e; }
+@media (prefers-reduced-motion: reduce) { .ai-photo-attest.shake { animation: none; } }
 
 /* ---------- Refund contact modal ---------- */
 .refund-contact {
