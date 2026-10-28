@@ -431,6 +431,46 @@
       refreshPlanBtns();
     }
   }
+  /* 同意留痕：金额必须与页面展示一致（与 setBillingMode 里的文案同源） */
+  var PLAN_PRICES = {
+    lite: { monthly: 5, yearly: 29 },
+    pro: { monthly: 9.9, yearly: 70 }
+  };
+  var CONSENT_VERSION = '2026-10-28';
+
+  /* 把这次结账的明示同意写进 consent_records（append-only 审计表）。
+     失败不阻断支付：Dodo 自己的结账页也留存同意记录，这里只是我方证据。
+     最多等 1.5s，避免网络慢时用户点了没反应。 */
+  async function logPlanConsent(period, plan) {
+    try {
+      var s = savedSession(), cfg = supabaseCfg();
+      if (!s || !s.user || !s.user.id || !s.access_token || !cfg.url) return;
+      var note = $('#planConsentNote');
+      var row = {
+        user_id: s.user.id,
+        plan: plan,
+        period: period,
+        amount_usd: (PLAN_PRICES[plan] && PLAN_PRICES[plan][period]) || null,
+        currency: 'USD',
+        terms_version: CONSENT_VERSION,
+        terms_checked: !!($('#planTermsCheck') && $('#planTermsCheck').checked),
+        renew_checked: !!($('#planRenewCheck') && $('#planRenewCheck').checked),
+        consent_text: note ? (note.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 900) : '',
+        user_agent: (navigator.userAgent || '').slice(0, 400),
+        locale: (navigator.language || '').slice(0, 20),
+        page: (location.pathname || '').slice(0, 120)
+      };
+      await Promise.race([
+        sbFetch('/rest/v1/consent_records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify(row)
+        }),
+        new Promise(function (resolve) { setTimeout(resolve, 1500); })
+      ]);
+    } catch (e) { console.warn('consent log:', e); }
+  }
+
   async function startCheckout(period, plan, btn) {
     if (checkoutBusy) return;
     if (!creditState.signedIn) {
@@ -444,10 +484,14 @@
     }
     checkoutBusy = true;
     setPlanBtnBusy(true, btn);
+    var buyPeriod = period || currentBilling;
+    var buyPlan = plan === 'lite' ? 'lite' : 'pro';
+    // 先落同意记录，再创建结账链接
+    await logPlanConsent(buyPeriod, buyPlan);
     try {
       var res = await callUnifiedApi('create-checkout', {
-        period: period || currentBilling,
-        plan: plan === 'lite' ? 'lite' : 'pro'
+        period: buyPeriod,
+        plan: buyPlan
       });
       var data = await res.json().catch(function () { return {}; });
       if (data && data.checkout_url) { window.location.href = data.checkout_url; return; }
