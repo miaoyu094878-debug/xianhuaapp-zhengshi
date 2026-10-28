@@ -5832,6 +5832,12 @@
       clearInterval(timer);
       done(err, url);
     }
+    // 用户中途关闭：停止轮询、不再回调 done（正在返回的那一轮结果会被 finished 丢弃）
+    function cancel() {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
+    }
 
     timer = setInterval(function () {
       if (finished || inFlight) return;
@@ -5875,15 +5881,34 @@
         }
       });
     }, 5000);
+
+    return { cancel: cancel };
   }
 
   // 生成中状态：仅生成期间禁用按钮，防止重复提交；空输入改为点击时拦截并弹出提示
   var aiGenerating = false;
+  var videoPollCtrl = null; // 当前视频轮询的取消句柄（中途关闭用）
   function syncAiGenerateBusy() {
     var btnPhoto = $('#aiBtnPhoto');
     var btnVideo = $('#aiBtnVideo');
     if (btnPhoto) btnPhoto.disabled = aiGenerating;
     if (btnVideo) btnVideo.disabled = aiGenerating;
+  }
+  function setVideoCancelVisible(on) {
+    var b = $('#aiBtnVideoCancel');
+    if (b) b.classList.toggle('hidden', !on);
+  }
+  // 中途关闭视频生成：停止轮询与等待，释放按钮，不再写入画廊
+  if ($('#aiBtnVideoCancel')) {
+    $('#aiBtnVideoCancel').addEventListener('click', function () {
+      var ctrl = videoPollCtrl;
+      videoPollCtrl = null;
+      if (ctrl) ctrl.cancel();
+      aiGenerating = false;
+      syncAiGenerateBusy();
+      setVideoCancelVisible(false);
+      aiStatus('Video generation stopped. You can start a new one whenever you are ready.', 'success');
+    });
   }
 
   function aiGenerate(kind) {
@@ -6025,7 +6050,10 @@
 
           var finalTag = data.directorModel ? (' · Polished by ' + data.directorModel) : directorTag;
           aiStatus('Rendering cinematic video (' + dur + 's · ' + cameraInfo.badge + finalTag + ')… Initializing frames (~1-2m)', 'running');
-          pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
+          // 轮询期间显示「中断」按钮：用户可以中途关闭，不再等结果
+          videoPollCtrl = pollVideoJob(jobId, userKey, $('#aiVideoStatus'), function (pollErr, videoUrl) {
+            videoPollCtrl = null;
+            setVideoCancelVisible(false);
             aiGenerating = false;
             syncAiGenerateBusy();
 
@@ -6062,6 +6090,7 @@
             aiStatus('Videos aren\'t saved — please download and save them now.', 'success');
             renderAiResults();
           });
+          setVideoCancelVisible(true);
         })
         .catch(function (err) {
           aiGenerating = false;
