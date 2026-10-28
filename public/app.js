@@ -5221,6 +5221,14 @@
     var clr = $('#aiPhotoPrevClear') || $('#aiPrevClear');
     if (clr) clr.classList.toggle('hidden', aiPhotoRefs.length === 0);
   }
+  /* 上传声明：照片必须是本人、16+、非他人私密影像。
+     这是条款层的限制（阻断「我不知道」抗辩），不是技术识别——未勾选就不收文件。 */
+  function photoAttestOk(sel) {
+    var c = $(sel);
+    if (c && c.checked) return true;
+    aiStatus('Please tick “This photo is of me” before uploading.', 'error');
+    return false;
+  }
   if (photoDropEl && photoFileInput) {
     photoDropEl.addEventListener('click', function () { photoFileInput.click(); });
     photoDropEl.addEventListener('dragover', function (e) {
@@ -5233,6 +5241,7 @@
     function handlePhotoFiles(files) {
       var list = Array.prototype.slice.call(files || []);
       if (!list.length) return;
+      if (!photoAttestOk('#aiPhotoAttest')) { if (photoFileInput) photoFileInput.value = ''; return; }
       var remaining = AI_PHOTO_MAX - aiPhotoRefs.length;
       if (remaining <= 0) { aiStatus('You can attach at most ' + AI_PHOTO_MAX + ' reference photos.', 'error'); return; }
       list.filter(function (fl) { return fl.type.indexOf('image/') === 0; }).forEach(function (fl) {
@@ -5295,12 +5304,15 @@
       var dt = e.dataTransfer;
       var f = dt && dt.files && dt.files[0];
       if (f && f.type.indexOf('image/') === 0) {
+        if (!photoAttestOk('#aiVideoAttest')) return;
         processAiVideoAnchor(f);
       }
     });
     videoFileInput.addEventListener('change', function () {
       var f = this.files && this.files[0];
-      if (f) processAiVideoAnchor(f);
+      if (!f) return;
+      if (!photoAttestOk('#aiVideoAttest')) { this.value = ''; return; }
+      processAiVideoAnchor(f);
     });
   }
 

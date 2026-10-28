@@ -508,6 +508,14 @@ html.device-mobile .fs-desire-desktop { display: none; }
 .plan-consent a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .plan-consent strong { font-weight: 600; }
 
+/* 上传照片前的声明勾选：条款层限制（本人 / 16+ / 非他人私密影像），视觉从简 */
+.ai-photo-attest {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 10px 0 2px; text-align: left;
+  font-size: 12.5px; line-height: 1.5; color: var(--text); cursor: pointer;
+}
+.ai-photo-attest input { flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--accent); cursor: pointer; }
+
 /* ---------- Refund contact modal ---------- */
 .refund-contact {
   display: flex; align-items: center; justify-content: center; gap: 10px;
