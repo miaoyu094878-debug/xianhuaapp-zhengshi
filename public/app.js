@@ -5061,6 +5061,27 @@
     }
   }
 
+  /* 视频生成暂时下线（敬请期待）：前后端逻辑全部保留，只把入口文案与生成动作拦住。
+     恢复时把 VIDEO_COMING_SOON 改成 false，并同步打开边缘函数的 VIDEO_GENERATION_ENABLED。 */
+  var VIDEO_COMING_SOON = true;
+  (function applyVideoComingSoon() {
+    if (!VIDEO_COMING_SOON) return;
+    var card = $('#aiCardVideo');
+    if (card) {
+      var tag = card.querySelector('.ai-mode-tag');
+      if (tag) tag.textContent = 'Coming Soon';
+    }
+    var btn = $('#aiBtnVideo');
+    if (btn) {
+      var title = btn.querySelector('.ai-btn-title');
+      if (title) title.textContent = '🎬 Motion Video · Coming Soon';
+      var sub = btn.querySelector('.ai-btn-sub');
+      if (sub) sub.textContent = 'Not available yet — we are still polishing it';
+    }
+    var cancel = $('#aiBtnVideoCancel');
+    if (cancel) cancel.classList.add('hidden');
+  })();
+
   function setAiSubTab(tab) {
     if (tab !== 'home' && tab !== 'photo' && tab !== 'video') tab = 'home';
     currentAiSubTab = tab;
@@ -5912,6 +5933,11 @@
   }
 
   function aiGenerate(kind) {
+    // 视频生成暂时下线：前端入口直接给「敬请期待」提示，不发起任何请求、不扣积分
+    if (kind === 'video' && VIDEO_COMING_SOON) {
+      showInputNudge($('#aiBtnVideo'), '🎬 Motion video is coming soon — we are still polishing it.');
+      return;
+    }
     // Gate: generating photos/videos requires an account (browsing the studio is free)
     if (!requireLogin('Sign in to generate your AI Vision ✨')) return;
     var prompt = '';

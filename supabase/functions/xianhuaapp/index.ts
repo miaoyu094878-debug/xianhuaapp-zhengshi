@@ -115,6 +115,12 @@ const CREDIT_COSTS: Record<string, number> = {
 const PRO_UNLIMITED_ACTIONS = ['story'];
 
 /**
+ * 视频生成功能开关：暂时下线（敬请期待）。代码逻辑全部保留，
+ * 恢复时改回 true 即可，无需改动其它逻辑。
+ */
+const VIDEO_GENERATION_ENABLED = false;
+
+/**
  * 成本（美元）→ 应交积分。
  * 公式：积分 = 成本 ÷ (1 - 目标毛利) ÷ 积分单价，向上取整，最小 1 分。
  * 零成本动作（如优化提示词）保持免费，返回 0。
@@ -784,6 +790,12 @@ Deno.serve(async (req: Request) => {
       // ══════════════════════════════════════════════════════════
       case 'vision-video':
       case 'video':
+        if (!VIDEO_GENERATION_ENABLED) {
+          return new Response(
+            JSON.stringify({ error: 'coming_soon', message: 'Video generation is coming soon and is not available yet.' }),
+            { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         return await withCredits(req, body, 'vision-video', corsHeaders, () => handleVisionVideo(body));
 
       case 'optimize-video-prompt':
