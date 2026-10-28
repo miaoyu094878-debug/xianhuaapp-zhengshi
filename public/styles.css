@@ -519,6 +519,8 @@ html.device-mobile .fs-desire-desktop { display: none; }
 .ai-photo-attest.shake { animation: aiAttestShake 0.45s ease-in-out; }
 /* 未勾选就点订阅：整组同意勾选抖动（与上传拦截同一套动效） */
 .plan-consent-group.shake { animation: aiAttestShake 0.45s ease-in-out; }
+/* 视频生成未传参考照片：上传区抖动，提示先补首帧 */
+.ai-drop-zone.shake { animation: aiAttestShake 0.45s ease-in-out; }
 @keyframes aiAttestShake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-5px); }
@@ -527,7 +529,7 @@ html.device-mobile .fs-desire-desktop { display: none; }
   80% { transform: translateX(3px); }
 }
 .ai-attest-hint { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: #b3261e; }
-@media (prefers-reduced-motion: reduce) { .ai-photo-attest.shake, .plan-consent-group.shake { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ai-photo-attest.shake, .plan-consent-group.shake, .ai-drop-zone.shake { animation: none; } }
 
 /* ---------- Refund contact modal ---------- */
 .refund-contact {

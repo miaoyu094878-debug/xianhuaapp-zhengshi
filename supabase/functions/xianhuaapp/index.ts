@@ -1937,6 +1937,14 @@ async function handleVisionVideo(body: any): Promise<Response> {
     );
   }
 
+  // 视频一律从参考照片起步（首帧锚点）：没有图就不允许退化成纯文本生视频
+  if (!body?.image || typeof body.image !== 'string' || !body.image.trim()) {
+    return new Response(
+      JSON.stringify({ error: 'A reference photo is required to generate a video.' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const targetDuration = Math.min(15, Math.max(5, parseInt(body?.duration, 10) || 5));
   const targetResolution = (body?.resolution === '768p' || body?.resolution === '720p') ? '768p' : '480p';
 

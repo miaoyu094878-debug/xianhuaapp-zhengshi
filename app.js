@@ -5906,6 +5906,17 @@
         if (vInput) vInput.focus({ preventScroll: true });
         return;
       }
+      // 视频生成必须先从参考照片起步：没有第一帧锚点就直接拦下，不再退化成纯文本生视频
+      if (!aiVideoRefB64) {
+        showInputNudge($('#aiBtnVideo'), '✨ Please upload your reference photo first — the video starts from it.');
+        var drop = $('#aiVideoDrop');
+        if (drop) {
+          drop.classList.remove('shake');
+          void drop.offsetWidth;
+          drop.classList.add('shake');
+        }
+        return;
+      }
     }
 
     var userKey = aiKeys.openrouterKey || aiKeys.key || '';
@@ -5979,14 +5990,9 @@
       var dur = currentVideoDuration || 5;
       var res = currentVideoResolution || '480p';
       var cameraInfo = IPHONE_TEXTURE_PROMPTS[currentCameraQuality] || IPHONE_TEXTURE_PROMPTS.iphonex;
-      var srcInput = aiVideoRefB64 || (aiPhotoRefs[0] && aiPhotoRefs[0].b64);
-      if (!srcInput) {
-        var lastPhoto = (db.aiVision || []).filter(function (v) { return v.kind === 'photo'; })[0];
-        if (lastPhoto && lastPhoto.url && lastPhoto.url.startsWith('data:')) {
-          srcInput = lastPhoto.url;
-        }
-      }
-      var hasRefImage = Boolean(srcInput);
+      // 前面已强制要求参考照片，这里直接作为首帧锚点
+      var srcInput = aiVideoRefB64;
+      var hasRefImage = true;
 
       function dispatchVideoJob(finalPromptToSend, directorUsed) {
         var directorTag = directorUsed ? (' · Polished by ' + directorUsed) : '';
