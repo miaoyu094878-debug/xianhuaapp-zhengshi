@@ -398,11 +398,17 @@
     }
     return true; // 升级
   }
+  /** 结账前明示同意（EU/UK 撤回权放弃 + 自动续订）：未勾选不允许发起结账 */
+  function planConsentOk() {
+    var c = $('#planConsentCheck');
+    return !!(c && c.checked);
+  }
   /** 刷新两张卡的按钮状态：按换档规则判定（同档位换周期要放行，如月付 → 年付） */
   function refreshPlanBtns() {
+    var consent = planConsentOk();
     $$('#tab-plans .plan-card .plan-btn').forEach(function (b) {
       var plan = b.dataset.plan === 'lite' ? 'lite' : 'pro';
-      b.disabled = !switchAllowed(plan, currentBilling);
+      b.disabled = !consent || !switchAllowed(plan, currentBilling);
       b.textContent = planBtnLabel(plan);
     });
   }
@@ -424,8 +430,11 @@
       openLoginModal('Sign in or create an account to subscribe — your plan is tied to your account ✦');
       return;
     }
-    // EU/UK 撤销权：同意改为「订阅即同意」的明示告知（见套餐下方的 planConsentNote），
-    // 点支付按钮这一动作本身即构成同意，故此处不再做勾选拦截。
+    // 结账前明示同意：必须主动勾选（EU/UK 撤回权放弃 + 自动续订确认）
+    if (!planConsentOk()) {
+      toastCredits('Please tick the consent box above to continue.');
+      return;
+    }
     checkoutBusy = true;
     setPlanBtnBusy(true, btn);
     try {
@@ -461,6 +470,7 @@
       startCheckout(currentBilling, btn.dataset.plan === 'lite' ? 'lite' : 'pro', btn);
     });
   });
+  if ($('#planConsentCheck')) $('#planConsentCheck').addEventListener('change', refreshPlanBtns);
 
   /* ---------- 订阅卡选中态：点卡切换高亮（featured 样式跟人走），按钮才去支付 ---------- */
   function setSelectedPlan(plan) {

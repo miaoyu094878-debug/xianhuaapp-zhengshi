@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261027agegate05">
+  <link rel="stylesheet" href="styles.css?v=20261028consent01">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -4728,8 +4728,11 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           </article>
         </div>
 
-        <!-- EU/UK 撤销权：以「订阅即同意」明示告知（点支付按钮即视为同意），不再单独勾选 -->
-        <p class="plan-consent-note" id="planConsentNote">By subscribing you agree to our <a href="/terms">Terms of Service</a>, <a href="/privacy">Privacy Policy</a> and <a href="/refund">Refund Policy</a>, and you consent to immediate access to the Service and acknowledge that, as an EU/UK consumer, you lose your 14-day right of withdrawal once access begins.</p>
+        <!-- 结账前明示同意：EU/UK 撤回权放弃 + 自动续订。必须主动勾选，未勾选则订阅按钮禁用 -->
+        <label class="plan-consent" id="planConsentNote">
+          <input type="checkbox" id="planConsentCheck">
+          <span>I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/refund" target="_blank" rel="noopener">Refund Policy</a>. I understand this is an auto-renewing subscription charged at the price shown above until I cancel, and — as an EU/UK consumer — I consent to immediate access and acknowledge that I lose my 14-day right of withdrawal once access begins.</span>
+        </label>
 
         <p class="plans-fineprint" id="planStatusLine">Not subscribed — subscribe below to unlock everything.</p>
 
@@ -5058,7 +5061,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261027ai01" defer></script>
+  <script src="app.js?v=20261028consent01" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
