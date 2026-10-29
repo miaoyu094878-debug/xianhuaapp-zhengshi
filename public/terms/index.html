@@ -56,14 +56,19 @@ main { padding: 54px 0 40px; }
 .legal-foot .f-links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 .legal-foot .f-links a { color: var(--text2); text-decoration: none; font-size: 13px; font-weight: 500; transition: 0.25s; }
 .legal-foot .f-links a:hover { color: var(--text); }
-.report-abuse-box { max-width: 460px; margin: 14px auto 0; padding: 14px 16px; border-radius: 14px;
-  background: rgba(255,255,255,0.7); border: 1px solid rgba(184,161,227,0.3); text-align: left; }
-.report-abuse-box p { font-size: 13px; color: var(--text2); line-height: 1.65; }
-.report-abuse-box strong { color: var(--text); font-weight: 600; }
-.report-abuse-box .ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
-.report-abuse-box .ra-copy { border: 1px solid rgba(184,161,227,0.35); background: rgba(255,255,255,0.85);
-  color: var(--purple); border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
-.report-abuse-box .ra-copied { font-size: 12px; color: var(--purple); }
+.report-abuse-pop { position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(45,27,78,0.26); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.report-abuse-pop[hidden] { display: none; }
+.ra-card { width: 100%; max-width: 380px; padding: 22px 20px; border-radius: 18px; text-align: left;
+  background: rgba(252,249,255,0.97); border: 1px solid rgba(184,161,227,0.35); box-shadow: 0 18px 50px rgba(120,90,170,0.18); }
+.ra-title { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; font-size: 20px; color: var(--text); margin: 0 0 8px; }
+.ra-text { font-size: 13px; line-height: 1.65; color: var(--text2); margin: 0; }
+.ra-text strong { color: var(--text); font-weight: 600; }
+.ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+.ra-copy { border: 1px solid rgba(184,161,227,0.35); background: rgba(255,255,255,0.9); color: var(--purple);
+  border-radius: 999px; padding: 7px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+.ra-copied { font-size: 12px; color: var(--purple); }
+.ra-close { margin-left: auto; border: none; background: transparent; color: var(--text3); font: inherit; font-size: 13px; cursor: pointer; }
 @media (max-width: 600px) {
   .legal-card { padding: 30px 22px; }
   .legal-card h1 { font-size: 30px; }
@@ -173,11 +178,15 @@ main { padding: 54px 0 40px; }
       <a href="/refund">Refund Policy</a>
       <a href="#" id="reportAbuseLink" role="button" aria-expanded="false" aria-controls="reportAbuseBox">Report abuse</a>
     </p>
-    <div class="report-abuse-box" id="reportAbuseBox" hidden>
-      <p>To report abuse, copyright infringement, or a privacy issue, email <strong>support@alyema.com</strong> with the subject “Report abuse”. We reply within 48 hours.</p>
-      <div class="ra-actions">
-        <button type="button" class="ra-copy" id="reportAbuseCopy">Copy email</button>
-        <span class="ra-copied" id="reportAbuseCopied" hidden>Copied ✓</span>
+    <div class="report-abuse-pop" id="reportAbuseBox" hidden>
+      <div class="ra-card" role="dialog" aria-modal="true" aria-labelledby="raTitle">
+        <h3 class="ra-title" id="raTitle">Report abuse</h3>
+        <p class="ra-text">To report abuse, copyright infringement, or a privacy issue, email <strong>support@alyema.com</strong> with the subject “Report abuse”. We reply within 48 hours.</p>
+        <div class="ra-actions">
+          <button type="button" class="ra-copy" id="reportAbuseCopy">Copy email</button>
+          <span class="ra-copied" id="reportAbuseCopied" hidden>Copied ✓</span>
+          <button type="button" class="ra-close" id="reportAbuseClose">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -188,15 +197,23 @@ main { padding: 54px 0 40px; }
   var link = document.getElementById('reportAbuseLink');
   var box = document.getElementById('reportAbuseBox');
   var btn = document.getElementById('reportAbuseCopy');
+  var close = document.getElementById('reportAbuseClose');
   var ok = document.getElementById('reportAbuseCopied');
   if (!link || !box || !btn) return;
   var EMAIL = 'support@alyema.com';
+  function setOpen(open) {
+    box.hidden = !open;
+    link.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!open && ok) ok.hidden = true;
+  }
+  function isOpen() { return !box.hidden; }
   link.addEventListener('click', function (e) {
     e.preventDefault();
-    box.hidden = !box.hidden;
-    link.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
-    if (!box.hidden && ok) ok.hidden = true;
+    setOpen(!isOpen());
   });
+  box.addEventListener('click', function (e) { if (e.target === box) setOpen(false); });
+  if (close) close.addEventListener('click', function () { setOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen()) setOpen(false); });
   function flash() { if (!ok) return; ok.hidden = false; setTimeout(function () { ok.hidden = true; }, 2000); }
   function legacyCopy() {
     var ta = document.createElement('textarea');

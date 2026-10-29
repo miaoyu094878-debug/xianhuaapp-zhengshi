@@ -8653,20 +8653,34 @@
   });
 })();
 
-/* ---- Report abuse：点击就地展开邮箱 + 一键复制（不跳转邮件客户端） ---- */
+/* ---- Report abuse：小弹窗展示邮箱 + 一键复制；点遮罩 / Close / Esc 关闭 ---- */
 (function () {
   var link = document.getElementById('reportAbuseLink');
   var box = document.getElementById('reportAbuseBox');
   var btn = document.getElementById('reportAbuseCopy');
+  var close = document.getElementById('reportAbuseClose');
   var ok = document.getElementById('reportAbuseCopied');
   if (!link || !box || !btn) return;
   var EMAIL = 'support@alyema.com';
 
+  function setOpen(open) {
+    box.classList.toggle('hidden', !open);
+    link.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!open && ok) ok.classList.add('hidden');
+  }
+  function isOpen() { return !box.classList.contains('hidden'); }
+
   link.addEventListener('click', function (e) {
     if (e && e.preventDefault) e.preventDefault();
-    var open = box.classList.toggle('hidden') === false;
-    link.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open && ok) ok.classList.add('hidden');
+    setOpen(!isOpen());
+  });
+  // 点遮罩关闭（点卡片内部不关）
+  box.addEventListener('click', function (e) {
+    if (e.target === box) setOpen(false);
+  });
+  if (close) close.addEventListener('click', function () { setOpen(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && isOpen()) setOpen(false);
   });
 
   function flash() {
