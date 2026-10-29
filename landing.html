@@ -171,6 +171,18 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
 .lp-price-note { margin-top: 22px; text-align: center; font-size: 13px; color: var(--text3); }.lp-price-note a { color: var(--text2); font-weight: 500; text-decoration: none; border-bottom: 1px solid rgba(184,161,227,0.5); }
 .lp-foot .f-contact { margin-top: 10px; font-size: 13px; color: var(--text2); }
 .lp-foot .f-contact a { color: var(--text2); font-weight: 500; text-decoration: none; border-bottom: 1px solid rgba(184,161,227,0.5); }
+.report-abuse-pop { position: fixed; z-index: 400; width: 300px; max-width: calc(100vw - 24px); }
+.report-abuse-pop[hidden] { display: none; }
+.ra-card { width: 100%; padding: 16px 18px; border-radius: 16px; text-align: left;
+  background: rgba(252,249,255,0.97); border: 1px solid rgba(184,161,227,0.35); box-shadow: 0 16px 40px rgba(120,90,170,0.2); }
+.ra-title { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; font-size: 18px; color: var(--text); margin: 0 0 6px; }
+.ra-text { font-size: 12.5px; line-height: 1.6; color: var(--text2); margin: 0; }
+.ra-text strong { color: var(--text); font-weight: 600; }
+.ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+.ra-copy { border: 1px solid rgba(184,161,227,0.35); background: rgba(255,255,255,0.9); color: var(--purple);
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+.ra-copied { font-size: 12px; color: var(--purple); }
+.ra-close { margin-left: auto; border: none; background: transparent; color: var(--text3); font: inherit; font-size: 13px; cursor: pointer; }
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -319,7 +331,7 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
         <a class="btn btn-gold" href="index.html?subscribe=1">Get Pro</a>
       </div>
     </div>
-    <p class="lp-price-note">Billing, cancellation or refund questions? Email <a href="mailto:admin@alyema.com">admin@alyema.com</a> — we reply within 1 business day.</p>
+    <p class="lp-price-note">Billing, cancellation or refund questions? Email <a href="mailto:support@alyema.com">support@alyema.com</a> — we reply within 1 business day.</p>
   </div>
 </section>
 
@@ -331,12 +343,81 @@ h1, h2, h3 { font-family: 'Instrument Serif', serif; font-style: italic; font-we
       <a href="/privacy">Privacy Policy</a>
       <a href="/terms">Terms of Service</a>
       <a href="/refund">Refund Policy</a>
-      <a href="mailto:admin@alyema.com">Contact</a>
+      <a href="#" id="reportAbuseLink" role="button" aria-expanded="false" aria-controls="reportAbuseBox">Report abuse</a>
+      <a href="mailto:support@alyema.com">Contact</a>
     </p>
-    <p class="f-contact">Support &amp; billing: <a href="mailto:admin@alyema.com">admin@alyema.com</a></p>
+    <p class="f-contact">Support &amp; billing: <a href="mailto:support@alyema.com">support@alyema.com</a></p>
     <p class="f-note">Alyema is a self-improvement and mindset practice tool provided for personal development and entertainment purposes. It is not medical, psychological, therapeutic, or financial advice, and is not a substitute for professional care. We do not guarantee any specific outcome, result, or life change.</p>
   </div>
 </footer>
+
+<div class="report-abuse-pop" id="reportAbuseBox" hidden>
+  <div class="ra-card" role="dialog" aria-labelledby="raTitle">
+    <h3 class="ra-title" id="raTitle">Report abuse</h3>
+    <p class="ra-text">To report abuse, copyright infringement, or a privacy issue, email <strong>support@alyema.com</strong> with the subject “Report abuse”. We reply within 48 hours.</p>
+    <div class="ra-actions">
+      <button type="button" class="ra-copy" id="reportAbuseCopy">Copy email</button>
+      <span class="ra-copied" id="reportAbuseCopied" hidden>Copied ✓</span>
+      <button type="button" class="ra-close" id="reportAbuseClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var link = document.getElementById('reportAbuseLink');
+  var box = document.getElementById('reportAbuseBox');
+  var btn = document.getElementById('reportAbuseCopy');
+  var close = document.getElementById('reportAbuseClose');
+  var ok = document.getElementById('reportAbuseCopied');
+  if (!link || !box || !btn) return;
+  var EMAIL = 'support@alyema.com';
+  function isOpen() { return !box.hidden; }
+  function place() {
+    var r = link.getBoundingClientRect();
+    var w = box.offsetWidth, h = box.offsetHeight, pad = 12;
+    var left = r.left + r.width / 2 - w / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+    var top = r.bottom + 8;
+    if (top + h > window.innerHeight - pad) top = r.top - h - 8;
+    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    box.style.left = Math.round(left) + 'px';
+    box.style.top = Math.round(top) + 'px';
+  }
+  function setOpen(open) {
+    if (open) { box.hidden = false; place(); }
+    else { box.hidden = true; if (ok) ok.hidden = true; }
+    link.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  link.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(!isOpen());
+  });
+  document.addEventListener('click', function (e) {
+    if (!isOpen()) return;
+    if (box.contains(e.target) || link.contains(e.target)) return;
+    setOpen(false);
+  });
+  if (close) close.addEventListener('click', function () { setOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen()) setOpen(false); });
+  window.addEventListener('scroll', function () { if (isOpen()) place(); }, { passive: true });
+  window.addEventListener('resize', function () { if (isOpen()) place(); });
+  function flash() { if (!ok) return; ok.hidden = false; setTimeout(function () { ok.hidden = true; }, 2000); }
+  function legacyCopy() {
+    var ta = document.createElement('textarea');
+    ta.value = EMAIL; ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); flash(); } catch (err) {}
+    document.body.removeChild(ta);
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(EMAIL).then(flash, legacyCopy);
+    } else { legacyCopy(); }
+  });
+})();
+</script>
 
 <script>
 (function () {

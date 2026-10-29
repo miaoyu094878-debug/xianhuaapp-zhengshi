@@ -8652,3 +8652,80 @@
     copyText(line);
   });
 })();
+
+/* ---- Report abuse：锚定在链接旁的小弹窗（不遮罩页面）；点外部 / Close / Esc 关闭 ---- */
+(function () {
+  var link = document.getElementById('reportAbuseLink');
+  var box = document.getElementById('reportAbuseBox');
+  var btn = document.getElementById('reportAbuseCopy');
+  var close = document.getElementById('reportAbuseClose');
+  var ok = document.getElementById('reportAbuseCopied');
+  if (!link || !box || !btn) return;
+  var EMAIL = 'support@alyema.com';
+
+  function isOpen() { return !box.classList.contains('hidden'); }
+
+  // 需要先显示才能量到尺寸，再决定放上方还是下方
+  function place() {
+    var r = link.getBoundingClientRect();
+    var w = box.offsetWidth;
+    var h = box.offsetHeight;
+    var pad = 12;
+    var left = r.left + r.width / 2 - w / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+    var top = r.bottom + 8;
+    if (top + h > window.innerHeight - pad) top = r.top - h - 8;
+    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    box.style.left = Math.round(left) + 'px';
+    box.style.top = Math.round(top) + 'px';
+  }
+
+  function setOpen(open) {
+    if (open) {
+      box.classList.remove('hidden');
+      place();
+    } else {
+      box.classList.add('hidden');
+      if (ok) ok.classList.add('hidden');
+    }
+    link.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  link.addEventListener('click', function (e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    setOpen(!isOpen());
+  });
+  // 点弹窗内部不关；点页面其它任何地方关闭
+  document.addEventListener('click', function (e) {
+    if (!isOpen()) return;
+    if (box.contains(e.target) || link.contains(e.target)) return;
+    setOpen(false);
+  });
+  if (close) close.addEventListener('click', function () { setOpen(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && isOpen()) setOpen(false);
+  });
+  // 页面滚动或缩放时跟随锚点
+  window.addEventListener('scroll', function () { if (isOpen()) place(); }, { passive: true });
+  window.addEventListener('resize', function () { if (isOpen()) place(); });
+
+  function flash() {
+    if (!ok) return;
+    ok.classList.remove('hidden');
+    setTimeout(function () { ok.classList.add('hidden'); }, 2000);
+  }
+  function legacyCopy() {
+    var ta = document.createElement('textarea');
+    ta.value = EMAIL;
+    ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); flash(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(EMAIL).then(flash, legacyCopy);
+    } else { legacyCopy(); }
+  });
+})();
