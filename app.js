@@ -6473,43 +6473,43 @@
     {
       id: 'waterfall',
       name: 'Hidden Forest Waterfall',
-      src: 'assets/nature/waterfall.jpg?v=20261029natureA',
-      desktopSrc: 'assets/nature/desktop_waterfall.jpg?v=20261029natureA',
+      src: 'assets/nature/waterfall.jpg?v=20261029natureB',
+      desktopSrc: 'assets/nature/desktop_waterfall.jpg?v=20261029natureB',
       vignette: 0.16
     },
     {
       id: 'forest',
       name: 'Misty Pine Forest',
-      src: 'assets/nature/forest.jpg?v=20261029natureA',
-      desktopSrc: 'assets/nature/desktop_forest.jpg?v=20261029natureA',
+      src: 'assets/nature/forest.jpg?v=20261029natureB',
+      desktopSrc: 'assets/nature/desktop_forest.jpg?v=20261029natureB',
       vignette: 0.16
     },
     {
       id: 'tropical_island',
       name: 'Tropical Island Sanctuary',
-      src: 'assets/nature/tropical_island.jpg?v=20261029natureA',
-      desktopSrc: 'assets/nature/desktop_tropical_island.jpg?v=20261029natureA',
+      src: 'assets/nature/tropical_island.jpg?v=20261029natureB',
+      desktopSrc: 'assets/nature/desktop_tropical_island.jpg?v=20261029natureB',
       vignette: 0.14
     },
     {
       id: 'bamboo_grove',
       name: 'Zen Bamboo Grove',
-      src: 'assets/nature/bamboo_grove.jpg?v=20261029natureA',
-      desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg?v=20261029natureA',
+      src: 'assets/nature/bamboo_grove.jpg?v=20261029natureB',
+      desktopSrc: 'assets/nature/desktop_bamboo_grove.jpg?v=20261029natureB',
       vignette: 0.15
     },
     {
       id: 'mountain_sunrise',
-      name: 'Mountain Sunrise',
-      src: 'assets/nature/mountain_sunrise.jpg?v=20261029natureA',
-      desktopSrc: 'assets/nature/desktop_mountain_sunrise.jpg?v=20261029natureA',
+      name: 'Golden Desert Dunes',
+      src: 'assets/nature/mountain_sunrise.jpg?v=20261029natureB',
+      desktopSrc: 'assets/nature/desktop_mountain_sunrise.jpg?v=20261029natureB',
       vignette: 0.15
     },
     {
       id: 'alpine_lake',
       name: 'Alpine Lake Mirror',
-      src: 'assets/nature/alpine_lake.jpg?v=20261029natureA',
-      desktopSrc: 'assets/nature/desktop_alpine_lake.jpg?v=20261029natureA',
+      src: 'assets/nature/alpine_lake.jpg?v=20261029natureB',
+      desktopSrc: 'assets/nature/desktop_alpine_lake.jpg?v=20261029natureB',
       vignette: 0.14
     }
   ];
