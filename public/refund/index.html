@@ -56,6 +56,18 @@ main { padding: 54px 0 40px; }
 .legal-foot .f-links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 .legal-foot .f-links a { color: var(--text2); text-decoration: none; font-size: 13px; font-weight: 500; transition: 0.25s; }
 .legal-foot .f-links a:hover { color: var(--text); }
+.report-abuse-pop { position: fixed; z-index: 400; width: 300px; max-width: calc(100vw - 24px); }
+.report-abuse-pop[hidden] { display: none; }
+.ra-card { width: 100%; padding: 16px 18px; border-radius: 16px; text-align: left;
+  background: rgba(252,249,255,0.97); border: 1px solid rgba(184,161,227,0.35); box-shadow: 0 16px 40px rgba(120,90,170,0.2); }
+.ra-title { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; font-size: 18px; color: var(--text); margin: 0 0 6px; }
+.ra-text { font-size: 12.5px; line-height: 1.6; color: var(--text2); margin: 0; }
+.ra-text strong { color: var(--text); font-weight: 600; }
+.ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+.ra-copy { border: 1px solid rgba(184,161,227,0.35); background: rgba(255,255,255,0.9); color: var(--purple);
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+.ra-copied { font-size: 12px; color: var(--purple); }
+.ra-close { margin-left: auto; border: none; background: transparent; color: var(--text3); font: inherit; font-size: 13px; cursor: pointer; }
 @media (max-width: 600px) {
   .legal-card { padding: 30px 22px; }
   .legal-card h1 { font-size: 30px; }
@@ -77,13 +89,14 @@ main { padding: 54px 0 40px; }
     <article class="legal-card">
       <p class="legal-kicker">Legal</p>
       <h1>Refund Policy</h1>
-      <p class="legal-date">Effective Date: September 25, 2026 · Updated: October 18, 2026</p>
+      <p class="legal-date">Effective Date: September 25, 2026 · Updated: October 29, 2026</p>
 
       <section>
         <h2>1. 7-Day Refund Window</h2>
         <p>You may request a refund within <strong>7 days</strong> of your initial purchase or renewal.</p>
         <p>If you have <strong>not used any credits</strong> (or any subscriber-only features), you will receive a <strong>full refund</strong>, no reason required.</p>
         <p>If you have <strong>already used part of your plan</strong>, the refund is calculated on the <strong>unused portion</strong> of your plan, as described below.</p>
+        <p>The no-reason full refund is available <strong>once per account</strong>. Later requests are still reviewed under Section 2, and nothing here limits any statutory rights described in Section 7.</p>
       </section>
 
       <section>
@@ -91,27 +104,40 @@ main { padding: 54px 0 40px; }
         <p><strong>Subscription with credits (Pro):</strong> your refund equals the plan price minus the value of the credits you have already consumed. Only the unused portion is refundable.</p>
         <p><strong>Subscription without credits (Lite):</strong> your refund equals the plan price × (remaining days ÷ current billing period).</p>
         <p><strong>One-time credit packs (if offered):</strong> only unused credits are refundable; credits already consumed are non-refundable.</p>
-        <p>When a refund is issued, any remaining credits and plan access are <strong>voided immediately</strong>.</p>
+        <p>When a refund is issued, any remaining credits and plan access are <strong>voided immediately</strong>. This does not apply to a normal cancellation (see Section 5), which keeps access until the end of the period you already paid for.</p>
       </section>
 
       <section>
-        <h2>3. How to Request</h2>
+        <h2>3. How Refunds Are Issued</h2>
+        <p>Payments are collected by our payment provider, <strong>Dodo Payments</strong>, acting as merchant of record. Approved refunds are issued <strong>by Dodo Payments back to your original payment method</strong>; please allow <strong>5–10 business days</strong> for the credit to appear, depending on your bank or card issuer.</p>
+        <p>We cannot refund to a different card, account, or currency, and any card or bank fees charged by your provider are outside our control.</p>
+      </section>
+
+      <section>
+        <h2>4. How to Request</h2>
         <p>Email <a href="mailto:support@alyema.com">support@alyema.com</a> with your account email and order details. We will process your request within 5 business days.</p>
       </section>
 
       <section>
-        <h2>4. Purchases Through App Stores</h2>
+        <h2>5. Cancelling Your Subscription</h2>
+        <p>You can cancel automatic renewal at any time from <strong>My Profile → Cancel subscription</strong> in the app, or by emailing <a href="mailto:support@alyema.com">support@alyema.com</a>. You do not need to give a reason, and cancelling is never harder than subscribing.</p>
+        <p><strong>Cancelling is not a refund.</strong> After you cancel, your plan and credits stay active until the end of the period you have already paid for, and no further charges are made. The amount already paid for that period is not refunded unless you are within the 7-day window in Section 1 or a statutory right in Section 7 applies.</p>
+      </section>
+
+      <section>
+        <h2>6. Purchases Through App Stores</h2>
         <p>If you purchased through the Apple App Store or Google Play, refunds must be requested through that platform's refund process and are subject to its policies.</p>
       </section>
 
       <section>
-        <h2>5. EU/UK Right of Withdrawal</h2>
-        <p>Consumers in the EU or UK normally have 14 days to withdraw from a distance purchase. When you ask us to begin the Service immediately and you tick the renewal authorization at checkout, you consent to that immediate start. If you withdraw within those 14 days, we will refund you minus the value of the service already provided (the pro-rated amount for the days used).</p>
-        <p>Where a purchase consists of digital content delivered immediately — for example a generated audio file you download — you expressly consent to immediate delivery and acknowledge that you lose the 14-day right of withdrawal once delivery begins. Our voluntary 7-day refund window and calculation are described above and are unaffected.</p>
+        <h2>7. EU/UK Right of Withdrawal</h2>
+        <p>Consumers in the EU or UK normally have 14 days to withdraw from a distance purchase. At checkout you separately agree to the Terms and confirm that you want the Service to start immediately; by doing so you request that performance begins before the 14-day period ends and acknowledge that, if you withdraw, you will pay for the part already provided (the pro-rated amount for the days used).</p>
+        <p>Where a purchase consists of digital content delivered immediately — for example a generated audio file you download — you expressly consent to immediate delivery and acknowledge that you lose the 14-day right of withdrawal once delivery begins. We confirm this acknowledgment in the order confirmation we send you.</p>
+        <p>Our voluntary 7-day window and calculation (Sections 1–2) are more generous than the statutory minimum and apply regardless of the above.</p>
       </section>
 
       <section>
-        <h2>6. After 7 Days</h2>
+        <h2>8. After 7 Days</h2>
         <p>Requests after 7 days are reviewed case by case; credits already used or content already generated may affect the refund amount.</p>
       </section>
     </article>
@@ -126,9 +152,77 @@ main { padding: 54px 0 40px; }
       <a href="/privacy">Privacy Policy</a>
       <a href="/terms">Terms of Service</a>
       <a href="/refund">Refund Policy</a>
+      <a href="#" id="reportAbuseLink" role="button" aria-expanded="false" aria-controls="reportAbuseBox">Report abuse</a>
     </p>
+    <div class="report-abuse-pop" id="reportAbuseBox" hidden>
+      <div class="ra-card" role="dialog" aria-modal="true" aria-labelledby="raTitle">
+        <h3 class="ra-title" id="raTitle">Report abuse</h3>
+        <p class="ra-text">To report abuse, copyright infringement, or a privacy issue, email <strong>support@alyema.com</strong> with the subject “Report abuse”. We reply within 48 hours.</p>
+        <div class="ra-actions">
+          <button type="button" class="ra-copy" id="reportAbuseCopy">Copy email</button>
+          <span class="ra-copied" id="reportAbuseCopied" hidden>Copied ✓</span>
+          <button type="button" class="ra-close" id="reportAbuseClose">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 </footer>
+
+<script>
+(function () {
+  var link = document.getElementById('reportAbuseLink');
+  var box = document.getElementById('reportAbuseBox');
+  var btn = document.getElementById('reportAbuseCopy');
+  var close = document.getElementById('reportAbuseClose');
+  var ok = document.getElementById('reportAbuseCopied');
+  if (!link || !box || !btn) return;
+  var EMAIL = 'support@alyema.com';
+  function isOpen() { return !box.hidden; }
+  function place() {
+    var r = link.getBoundingClientRect();
+    var w = box.offsetWidth, h = box.offsetHeight, pad = 12;
+    var left = r.left + r.width / 2 - w / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+    var top = r.bottom + 8;
+    if (top + h > window.innerHeight - pad) top = r.top - h - 8;
+    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    box.style.left = Math.round(left) + 'px';
+    box.style.top = Math.round(top) + 'px';
+  }
+  function setOpen(open) {
+    if (open) { box.hidden = false; place(); }
+    else { box.hidden = true; if (ok) ok.hidden = true; }
+    link.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  link.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(!isOpen());
+  });
+  document.addEventListener('click', function (e) {
+    if (!isOpen()) return;
+    if (box.contains(e.target) || link.contains(e.target)) return;
+    setOpen(false);
+  });
+  if (close) close.addEventListener('click', function () { setOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen()) setOpen(false); });
+  window.addEventListener('scroll', function () { if (isOpen()) place(); }, { passive: true });
+  window.addEventListener('resize', function () { if (isOpen()) place(); });
+  function flash() { if (!ok) return; ok.hidden = false; setTimeout(function () { ok.hidden = true; }, 2000); }
+  function legacyCopy() {
+    var ta = document.createElement('textarea');
+    ta.value = EMAIL; ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); flash(); } catch (err) {}
+    document.body.removeChild(ta);
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(EMAIL).then(flash, legacyCopy);
+    } else { legacyCopy(); }
+  });
+})();
+</script>
 
 </body>
 </html>
