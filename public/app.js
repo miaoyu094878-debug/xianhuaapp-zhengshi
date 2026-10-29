@@ -8652,3 +8652,39 @@
     copyText(line);
   });
 })();
+
+/* ---- Report abuse：点击就地展开邮箱 + 一键复制（不跳转邮件客户端） ---- */
+(function () {
+  var link = document.getElementById('reportAbuseLink');
+  var box = document.getElementById('reportAbuseBox');
+  var btn = document.getElementById('reportAbuseCopy');
+  var ok = document.getElementById('reportAbuseCopied');
+  if (!link || !box || !btn) return;
+  var EMAIL = 'support@alyema.com';
+
+  link.addEventListener('click', function (e) {
+    if (e && e.preventDefault) e.preventDefault();
+    var open = box.classList.toggle('hidden') === false;
+    link.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open && ok) ok.classList.add('hidden');
+  });
+
+  function flash() {
+    if (!ok) return;
+    ok.classList.remove('hidden');
+    setTimeout(function () { ok.classList.add('hidden'); }, 2000);
+  }
+  function legacyCopy() {
+    var ta = document.createElement('textarea');
+    ta.value = EMAIL;
+    ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); flash(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(EMAIL).then(flash, legacyCopy);
+    } else { legacyCopy(); }
+  });
+})();
