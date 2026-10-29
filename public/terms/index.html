@@ -56,17 +56,16 @@ main { padding: 54px 0 40px; }
 .legal-foot .f-links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 .legal-foot .f-links a { color: var(--text2); text-decoration: none; font-size: 13px; font-weight: 500; transition: 0.25s; }
 .legal-foot .f-links a:hover { color: var(--text); }
-.report-abuse-pop { position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center;
-  padding: 20px; background: rgba(45,27,78,0.26); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.report-abuse-pop { position: fixed; z-index: 400; width: 300px; max-width: calc(100vw - 24px); }
 .report-abuse-pop[hidden] { display: none; }
-.ra-card { width: 100%; max-width: 380px; padding: 22px 20px; border-radius: 18px; text-align: left;
-  background: rgba(252,249,255,0.97); border: 1px solid rgba(184,161,227,0.35); box-shadow: 0 18px 50px rgba(120,90,170,0.18); }
-.ra-title { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; font-size: 20px; color: var(--text); margin: 0 0 8px; }
-.ra-text { font-size: 13px; line-height: 1.65; color: var(--text2); margin: 0; }
+.ra-card { width: 100%; padding: 16px 18px; border-radius: 16px; text-align: left;
+  background: rgba(252,249,255,0.97); border: 1px solid rgba(184,161,227,0.35); box-shadow: 0 16px 40px rgba(120,90,170,0.2); }
+.ra-title { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; font-size: 18px; color: var(--text); margin: 0 0 6px; }
+.ra-text { font-size: 12.5px; line-height: 1.6; color: var(--text2); margin: 0; }
 .ra-text strong { color: var(--text); font-weight: 600; }
-.ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+.ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
 .ra-copy { border: 1px solid rgba(184,161,227,0.35); background: rgba(255,255,255,0.9); color: var(--purple);
-  border-radius: 999px; padding: 7px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
 .ra-copied { font-size: 12px; color: var(--purple); }
 .ra-close { margin-left: auto; border: none; background: transparent; color: var(--text3); font: inherit; font-size: 13px; cursor: pointer; }
 @media (max-width: 600px) {
@@ -201,19 +200,37 @@ main { padding: 54px 0 40px; }
   var ok = document.getElementById('reportAbuseCopied');
   if (!link || !box || !btn) return;
   var EMAIL = 'support@alyema.com';
-  function setOpen(open) {
-    box.hidden = !open;
-    link.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (!open && ok) ok.hidden = true;
-  }
   function isOpen() { return !box.hidden; }
+  function place() {
+    var r = link.getBoundingClientRect();
+    var w = box.offsetWidth, h = box.offsetHeight, pad = 12;
+    var left = r.left + r.width / 2 - w / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+    var top = r.bottom + 8;
+    if (top + h > window.innerHeight - pad) top = r.top - h - 8;
+    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    box.style.left = Math.round(left) + 'px';
+    box.style.top = Math.round(top) + 'px';
+  }
+  function setOpen(open) {
+    if (open) { box.hidden = false; place(); }
+    else { box.hidden = true; if (ok) ok.hidden = true; }
+    link.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
   link.addEventListener('click', function (e) {
     e.preventDefault();
+    e.stopPropagation();
     setOpen(!isOpen());
   });
-  box.addEventListener('click', function (e) { if (e.target === box) setOpen(false); });
+  document.addEventListener('click', function (e) {
+    if (!isOpen()) return;
+    if (box.contains(e.target) || link.contains(e.target)) return;
+    setOpen(false);
+  });
   if (close) close.addEventListener('click', function () { setOpen(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen()) setOpen(false); });
+  window.addEventListener('scroll', function () { if (isOpen()) place(); }, { passive: true });
+  window.addEventListener('resize', function () { if (isOpen()) place(); });
   function flash() { if (!ok) return; ok.hidden = false; setTimeout(function () { ok.hidden = true; }, 2000); }
   function legacyCopy() {
     var ta = document.createElement('textarea');

@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261029report02">
+  <link rel="stylesheet" href="styles.css?v=20261029report03">
   <style id="luminara-styles">
 /* ════════════════════════════════════════════════════════════════
    Alyema — Multi-Theme Design System
@@ -437,18 +437,17 @@ main { padding: 10px 18px 0; }
 .legal-links { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
 .legal-links a { color: var(--text-dim); text-decoration: none; font-size: 12px; font-weight: 500; transition: 0.25s; }
 .legal-links a:hover { color: var(--accent); }
-.report-abuse-pop { position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center;
-  padding: 20px; background: rgba(45,27,78,0.26); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.ra-card { width: 100%; max-width: 380px; padding: 22px 20px; border-radius: 18px; text-align: left;
-  background: var(--surface-2); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
-  border: 1px solid var(--border-strong); box-shadow: var(--shadow-hover); }
-.ra-title { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 20px; font-weight: 400;
-  color: var(--text); margin: 0 0 8px; }
-.ra-text { font-size: 12.5px; line-height: 1.65; color: var(--text-soft); margin: 0; }
+.report-abuse-pop { position: fixed; z-index: 400; width: 320px; max-width: calc(100vw - 24px); }
+.ra-card { width: 100%; padding: 16px 18px; border-radius: 16px; text-align: left;
+  background: rgba(252,249,255,0.96); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--border-strong); box-shadow: 0 16px 40px rgba(74,63,92,0.2); }
+.ra-title { font-family: var(--font-heading); font-style: var(--heading-italic); font-size: 18px; font-weight: 400;
+  color: var(--text); margin: 0 0 6px; }
+.ra-text { font-size: 12.5px; line-height: 1.6; color: var(--text-soft); margin: 0; }
 .ra-text strong { color: var(--text); font-weight: 600; }
-.ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+.ra-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
 .ra-copy { border: 1px solid var(--border-strong); background: var(--surface-hover); color: var(--accent);
-  border-radius: 999px; padding: 7px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
 .ra-copy:active { transform: scale(.97); }
 .ra-copied { font-size: 12px; color: var(--accent); }
 .ra-close { margin-left: auto; border: none; background: transparent; color: var(--text-dim); font: inherit;
@@ -4697,7 +4696,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
           <a href="#" id="reportAbuseLink" role="button" aria-expanded="false" aria-controls="reportAbuseBox">Report abuse</a>
         </div>
         <div class="report-abuse-pop hidden" id="reportAbuseBox">
-          <div class="ra-card" role="dialog" aria-modal="true" aria-labelledby="raTitle">
+          <div class="ra-card" role="dialog" aria-labelledby="raTitle">
             <h3 class="ra-title" id="raTitle">Report abuse</h3>
             <p class="ra-text">To report abuse, copyright infringement, or a privacy issue, email <strong>support@alyema.com</strong> with the subject “Report abuse”. We reply within 48 hours.</p>
             <div class="ra-actions">
@@ -5110,7 +5109,7 @@ html.device-desktop #tab-goals .form-card, html.device-desktop #tab-future .form
 
   </div>
 
-  <script src="app.js?v=20261029report02" defer></script>
+  <script src="app.js?v=20261029report03" defer></script>
 
   <!-- 空输入轻提示：点击空输入的生成按钮时，在按钮旁弹出，3 秒自动消失，点击可关闭 -->
   <div id="inputNudge" class="input-nudge hidden" role="status" aria-live="polite">
