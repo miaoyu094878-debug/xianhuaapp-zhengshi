@@ -1557,7 +1557,8 @@
     // 已保存的整段录音缓存：再次点大播放按钮时直接重播，不重新调用 TTS
     wholeStoryBuf: null,
     wholeStoryKey: null,
-    wholeStoryVoice: null
+    wholeStoryVoice: null,
+    pendingWholeBuf: null
   };
 
   function getFsAudioContext() {
@@ -2520,12 +2521,38 @@
   // 这里直接灌进播放缓存（key 与 fetchParagraphAudio 完全一致），
   // 播放时命中缓存 → 不再发起任何 TTS 请求，也就不会再产生额外扣费。
   async function preloadJourneyAudio(data, voiceName, mood) {
-    if (!data || !Array.isArray(data.audios) || !data.audios.length) return;
+    if (!data) return;
     var vName = voiceName || 'Zephyr';
     var vMood = mood || 'calm';
     if (!fsState.audioCtx) {
       fsState.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
     }
+    // 方案 C：整篇一次合成——单个 audio 字段，解码后供整篇播放/保存（不再逐段请求 TTS）
+    fsState.pendingWholeBuf = null;
+    if (data.audio && data.audio.audio) {
+      var wa = data.audio;
+      try {
+        var wbuf = null;
+        var wEncoded = wa.format === 'mp3' || wa.format === 'wav' ||
+          (typeof wa.provider === 'string' && /tts|elevenlabs|fish|kokoro/.test(wa.provider));
+        if (wEncoded) {
+          var wbin = atob(wa.audio);
+          var wbytes = new Uint8Array(wbin.length);
+          for (var k = 0; k < wbin.length; k++) wbytes[k] = wbin.charCodeAt(k);
+          wbuf = await fsState.audioCtx.decodeAudioData(wbytes.buffer.slice(0));
+        } else {
+          wbuf = pcmToAudioBuffer(wa.audio, wa.sampleRate || 24000, fsState.audioCtx);
+        }
+        if (wbuf) {
+          fsState.pendingWholeBuf = appendSilenceTail(wbuf, 0.5);
+          pcmAudioCache[vName + ':' + vMood + ':' + String(wa.text || '').trim()] = fsState.pendingWholeBuf;
+        }
+      } catch (e) {
+        console.warn('Journey whole-story audio preload failed', e);
+      }
+      return;
+    }
+    if (!Array.isArray(data.audios) || !data.audios.length) return;
     for (var i = 0; i < data.audios.length; i++) {
       var a = data.audios[i];
       if (!a || !a.audio) continue;
@@ -2979,9 +3006,14 @@
       pEl.className = 'fs-story-p';
       pEl.textContent = pText;
       pEl.addEventListener('click', function () {
-        // Click to jump to this paragraph
-        fsState.activeParagraphIdx = i;
-        playFsManifestation(false);
+        // 整篇一次合成模式：无法定位到某段，点击任意段落 = 从头重播（兼容旧逐段模式）
+        if (fsState.pendingWholeBuf || fsState.wholeStoryBuf) {
+          fsState.activeParagraphIdx = 0;
+          playFsManifestation(true);
+        } else {
+          fsState.activeParagraphIdx = i;
+          playFsManifestation(false);
+        }
       });
       storyBody.appendChild(pEl);
     });
@@ -3010,14 +3042,19 @@
     recordStoryGeneration();
 
     fetchVoiceSession(fsKey, getFsAudioCtx()).then(function (r) {
-      var wholeBuf = r && r.buf;
+      // 优先用 Storage 里已保存的整篇（不重复扣费），否则用本次生成的整篇 buffer
+      var wholeBuf = (r && r.buf) || fsState.pendingWholeBuf;
       if (wholeBuf && fsState.paragraphs && fsState.paragraphs.length) {
         playWholeStory(wholeBuf, fsKey);
       } else {
         playFsManifestation(true);
       }
     }).catch(function () {
-      playFsManifestation(true);
+      if (fsState.pendingWholeBuf && fsState.paragraphs && fsState.paragraphs.length) {
+        playWholeStory(fsState.pendingWholeBuf, fsKey);
+      } else {
+        playFsManifestation(true);
+      }
     });
   }
 
@@ -3129,6 +3166,7 @@
       fsState.wholeStoryBuf = null;
       fsState.wholeStoryKey = null;
       fsState.wholeStoryVoice = null;
+      fsState.pendingWholeBuf = null;
 
       $('#fsPlayer').classList.add('hidden');
       $('#fsLoading').classList.remove('hidden');
@@ -3871,6 +3909,13 @@
   async function ensureStoryAudioUploaded(onProgress) {
     var paragraphs = fsState.paragraphs || [];
     if (!paragraphs.length || !fsState.lrKey) return false;
+    // 方案 C：整篇一次合成已有单个 buffer，直接上传；
+    // 避免 fetchParagraphAudio 逐段重新 TTS（多扣费 + 音色又会不一致）
+    var wholeBuf = fsState.wholeStoryBuf || fsState.pendingWholeBuf;
+    if (wholeBuf) {
+      if (onProgress) onProgress('Preparing audio…');
+      return await uploadVoiceSession([wholeBuf], fsState.lrKey, onProgress);
+    }
     var voiceKey = $('#fsVoice') ? $('#fsVoice').value : 'Zephyr';
     var mood = $('#fsMood') ? $('#fsMood').value : 'calm';
     var done = 0;
