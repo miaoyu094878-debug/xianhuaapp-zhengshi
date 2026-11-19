@@ -3914,6 +3914,7 @@
       btn.textContent = '✓ Saved';
       btn.title = 'This voice is already saved in My Voices';
     } else {
+      btn.disabled = false;
       btn.textContent = '💾 Save Voice';
       btn.title = 'Save this guided voice to My Voices';
     }
