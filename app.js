@@ -2266,13 +2266,13 @@
     var stage = $('#fsPlayer');
 
     if (playing) {
-      if (orbIcon) orbIcon.textContent = '⏸';
-      if (playBtn) playBtn.textContent = '⏸ Pause';
+      if (orbIcon) orbIcon.classList.add('is-pause');
+      if (playBtn) playBtn.textContent = 'Pause';
       if (orbPlay) orbPlay.classList.add('playing');
       if (stage) stage.classList.add('is-playing');
     } else {
-      if (orbIcon) orbIcon.textContent = '▶';
-      if (playBtn) playBtn.textContent = '▶ Narrate';
+      if (orbIcon) orbIcon.classList.remove('is-pause');
+      if (playBtn) playBtn.textContent = 'Narrate';
       if (orbPlay) orbPlay.classList.remove('playing');
       if (stage) stage.classList.remove('is-playing');
     }
